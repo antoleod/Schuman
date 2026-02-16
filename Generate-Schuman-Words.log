@@ -1,21 +1,98 @@
-[2026-02-16 14:49:39] UI startup.
-[2026-02-16 14:50:51] UI startup.
-[2026-02-16 14:50:51] UI run.
-[2026-02-16 14:50:52] UI shown.
-[2026-02-16 14:51:18] UI startup.
-[2026-02-16 14:51:19] UI run.
-[2026-02-16 14:51:19] UI shown.
-[2026-02-16 14:51:34] UI closed.
-[2026-02-16 14:52:37] UI startup.
-[2026-02-16 14:52:37] UI run.
-[2026-02-16 14:52:37] UI shown.
-[2026-02-16 14:57:49] UI startup.
-[2026-02-16 14:57:49] UI run.
-[2026-02-16 14:57:49] UI shown.
-[2026-02-16 15:02:12] UI startup.
-[2026-02-16 15:02:12] UI run.
-[2026-02-16 15:02:13] UI shown.
-[2026-02-16 15:07:21] User clicked Start.
-[2026-02-16 15:07:21] === RUN START ===
-[2026-02-16 15:09:33] User clicked Start.
-[2026-02-16 15:09:33] === RUN START ===
+﻿[2026-02-16 16:57:48] Row 2: Set FieldDisplayName -> False via NotFound (replacements=0)
+[2026-02-16 16:57:48] Row 2: Saving
+[2026-02-16 16:57:49] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Angoi Ludovic Nguessan NGORAN.pdf
+[2026-02-16 16:57:49] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 16:57:49] Row 3 start: RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 16:57:49] Row 3: Doc opened
+[2026-02-16 16:57:49] Row 3: Doc Text Placeholders (6): FieldDelegateCheckbox, FieldDisplayName, FieldITEquipment, FieldPINumber, FieldTicketNumber, FieldUniqueIdentifier
+[2026-02-16 16:57:49] Row 3: ProtectionType=-1 (Unknown)
+[2026-02-16 16:57:49] Row 3: Document protected, attempting unprotect
+[2026-02-16 16:57:49] Row 3: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-16 16:57:49] Row 3: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-16 16:58:10] Row 3: Set FieldITEquipment -> False via NotFound (replacements=0)
+[2026-02-16 16:58:35] Row 3: Set FieldTicketNumber -> False via NotFound (replacements=0)
+[2026-02-16 16:58:56] User clicked Start.
+[2026-02-16 16:58:56] === RUN START ===
+[2026-02-16 16:58:56] Opening Excel
+[2026-02-16 16:58:59] Excel opened
+[2026-02-16 16:58:59] Using sheet: BRU
+[2026-02-16 16:59:01] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 16:59:01] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 16:59:01] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 16:59:01] Rows detected: 20
+[2026-02-16 16:59:01] Opening Word
+[2026-02-16 16:59:03] Word opened
+[2026-02-16 16:59:03] Template path: C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx
+[2026-02-16 16:59:07] Template inspection: opened
+[2026-02-16 16:59:07] Template FormFields (1): Delegate
+[2026-02-16 16:59:07] Template ContentControls (0): 
+[2026-02-16 16:59:07] Template Bookmarks (1): Delegate
+[2026-02-16 16:59:07] Template Text Placeholders (6): FieldDelegateCheckbox, FieldDisplayName, FieldITEquipment, FieldPINumber, FieldTicketNumber, FieldUniqueIdentifier
+[2026-02-16 16:59:08] Row 2 start: RITM0483422_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 16:59:08] Row 2 values: Name='Angoi Ludovic N'guessan N'GORAN' Ticket='RITM0483422' PI='MUSTBRUN2424012' Equipment='Laptop'
+[2026-02-16 16:59:08] Row 2: Opening copied doc
+[2026-02-16 16:59:08] Row 2: Doc opened
+[2026-02-16 16:59:09] Row 2: Doc Text Placeholders (6): FieldDelegateCheckbox, FieldDisplayName, FieldITEquipment, FieldPINumber, FieldTicketNumber, FieldUniqueIdentifier
+[2026-02-16 16:59:12] Row 3: Set FieldPINumber -> False via NotFound (replacements=0)
+[2026-02-16 16:59:21] Row 2: Set FieldITEquipment -> True via FindReplace (replacements=1)
+[2026-02-16 16:59:41] User clicked Stop.
+[2026-02-16 16:59:44] Row 2: Set FieldTicketNumber -> True via FindReplace (replacements=1)
+[2026-02-16 16:59:52] Row 2: Set FieldPINumber -> True via FindReplace (replacements=1)
+[2026-02-16 16:59:58] Row 3: Set FieldDisplayName -> False via NotFound (replacements=0)
+[2026-02-16 16:59:58] Row 3: Saving
+[2026-02-16 16:59:58] Row 3: Saved
+[2026-02-16 16:59:59] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.pdf
+[2026-02-16 16:59:59] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 17:00:02] Excel saved
+[2026-02-16 17:00:02] === RUN END === Total=20 Saved=2 Skipped=1 Errors=0
+[2026-02-16 17:00:04] Row 2: Set FieldDisplayName -> True via FindReplace (replacements=1)
+[2026-02-16 17:00:04] Row 2: Saving
+[2026-02-16 17:00:04] Row 2 ERROR: The RPC server is unavailable. (Exception from HRESULT: 0x800706BA)
+[2026-02-16 17:00:05] Excel saved
+[2026-02-16 17:00:05] === RUN END === Total=20 Saved=0 Skipped=0 Errors=1
+[2026-02-16 17:00:20] User clicked Start.
+[2026-02-16 17:00:20] === RUN START ===
+[2026-02-16 17:00:20] Opening Excel
+[2026-02-16 17:00:30] Excel opened
+[2026-02-16 17:00:31] Using sheet: BRU
+[2026-02-16 17:00:33] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 17:00:33] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 17:00:33] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 17:00:49] Word opened
+[2026-02-16 17:00:49] Template path: C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx
+[2026-02-16 17:00:51] Template inspection: opened
+[2026-02-16 17:00:53] Template FormFields (1): Delegate
+[2026-02-16 17:00:53] Template ContentControls (0): 
+[2026-02-16 17:00:56] Row 2 start: RITM0483422_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 17:00:56] Row 2 values: Name='Angoi Ludovic N'guessan N'GORAN' Ticket='RITM0483422' PI='MUSTBRUN2424012' Equipment='Laptop'
+[2026-02-16 17:00:56] Row 2: Opening copied doc
+[2026-02-16 17:00:58] Row 2: Doc opened
+[2026-02-16 17:01:00] Row 2: Doc Text Placeholders (6): FieldDelegateCheckbox, FieldDisplayName, FieldITEquipment, FieldPINumber, FieldTicketNumber, FieldUniqueIdentifier
+[2026-02-16 17:01:00] Row 2: ProtectionType=-1 (Unknown)
+[2026-02-16 17:01:00] Row 2: Document protected, attempting unprotect
+[2026-02-16 17:01:00] Row 2: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-16 17:01:00] Row 2: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-16 17:01:36] Row 2: Set FieldITEquipment -> True via FindReplace (replacements=1)
+[2026-02-16 17:02:07] Row 2: Set FieldTicketNumber -> True via FindReplace (replacements=1)
+[2026-02-16 17:02:37] Row 2: Set FieldPINumber -> True via FindReplace (replacements=1)
+[2026-02-16 17:03:01] Row 2: Set FieldDisplayName -> True via FindReplace (replacements=1)
+[2026-02-16 17:03:01] Row 2: Saving
+[2026-02-16 17:03:01] Row 2: Saved
+[2026-02-16 17:03:02] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 17:03:02] Row 3 start: RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 17:03:02] Row 3 values: Name='Angoi Ludovic N'guessan N'GORAN' Ticket='RITM0483421' PI='MUSTBRUN2424012' Equipment='Laptop'
+[2026-02-16 17:03:02] Row 3: Opening copied doc
+[2026-02-16 17:03:02] Row 3: Doc opened
+[2026-02-16 17:03:03] Row 3: Doc Text Placeholders (6): FieldDelegateCheckbox, FieldDisplayName, FieldITEquipment, FieldPINumber, FieldTicketNumber, FieldUniqueIdentifier
+[2026-02-16 17:03:03] Row 3: ProtectionType=-1 (Unknown)
+[2026-02-16 17:03:03] Row 3: Document protected, attempting unprotect
+[2026-02-16 17:03:03] Row 3: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-16 17:03:03] Row 3: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-16 17:03:06] Row 3: Set FieldITEquipment -> True via FindReplace (replacements=1)
+[2026-02-16 17:03:07] Row 3: Set FieldTicketNumber -> False via NotFound (replacements=0)
+[2026-02-16 17:03:07] Row 3: Set FieldPINumber -> False via NotFound (replacements=0)
+[2026-02-16 17:03:07] Row 3: Set FieldDisplayName -> False via NotFound (replacements=0)
+[2026-02-16 17:03:07] Row 3: Saving
+[2026-02-16 17:03:07] Row 3 ERROR: Call was rejected by callee. (Exception from HRESULT: 0x80010001 (RPC_E_CALL_REJECTED))
+[2026-02-16 17:03:08] Excel saved
+[2026-02-16 17:03:08] === RUN END === Total=20 Saved=1 Skipped=1 Errors=1
