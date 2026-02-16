@@ -35,3 +35,100 @@
 [2026-02-16 18:50:44] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.docx
 [2026-02-16 18:50:45] Excel saved
 [2026-02-16 18:50:45] === RUN END === Total=20 Saved=3 Skipped=0 Errors=0
+[2026-02-16 19:06:29] User clicked Start.
+[2026-02-16 19:06:29] === RUN START ===
+[2026-02-16 19:06:29] Opening Excel
+[2026-02-16 19:06:30] Excel opened
+[2026-02-16 19:06:30] Using sheet: BRU
+[2026-02-16 19:06:30] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 19:06:30] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 19:06:30] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 19:06:30] Rows detected: 20
+[2026-02-16 19:06:32] Row 2 start: RITM0483422_Juan Dioses.docx
+[2026-02-16 19:06:36] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Juan Dioses.pdf
+[2026-02-16 19:06:36] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Juan Dioses.docx
+[2026-02-16 19:06:36] Row 3 start: RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 19:06:38] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.pdf
+[2026-02-16 19:06:38] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 19:06:38] Row 4 start: RITM0323421_Priyadharshini GOWRISANKAR.docx
+[2026-02-16 19:06:40] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.pdf
+[2026-02-16 19:06:40] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.docx
+[2026-02-16 19:06:40] Excel saved
+[2026-02-16 19:06:40] === RUN END === Total=20 Saved=3 Skipped=0 Errors=0
+[2026-02-16 19:29:50] User clicked Start.
+[2026-02-16 19:29:50] === RUN START ===
+[2026-02-16 19:29:50] Opening Excel
+[2026-02-16 19:29:51] Excel opened
+[2026-02-16 19:29:51] Using sheet: BRU
+[2026-02-16 19:29:52] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 19:29:52] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 19:29:52] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 19:29:52] Rows detected: 20
+[2026-02-16 19:29:54] Row 2 start: RITM0483422_Juan Dioses.docx
+[2026-02-16 19:29:59] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Juan Dioses.pdf
+[2026-02-16 19:29:59] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Juan Dioses.docx
+[2026-02-16 19:29:59] Row 3 start: RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 19:30:00] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.pdf
+[2026-02-16 19:30:00] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 19:30:00] Row 4 start: RITM0323421_Priyadharshini GOWRISANKAR.docx
+[2026-02-16 19:30:02] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.pdf
+[2026-02-16 19:30:02] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.docx
+[2026-02-16 19:30:02] Excel saved
+[2026-02-16 19:30:02] === RUN END === Total=20 Saved=3 Skipped=0 Errors=0
+[2026-02-16 19:57:49] User clicked Start.
+[2026-02-16 19:57:49] === RUN START ===
+[2026-02-16 19:57:49] Opening Excel
+[2026-02-16 19:57:50] Excel opened
+[2026-02-16 19:57:50] Using sheet: BRU
+[2026-02-16 19:57:52] Row 2 start: RITM0483422_Juan Dioses.docx
+[2026-02-16 19:57:56] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Juan Dioses.pdf
+[2026-02-16 19:57:56] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483422_Juan Dioses.docx
+[2026-02-16 19:57:56] Row 3 start: RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 19:57:58] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.pdf
+[2026-02-16 19:57:58] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0483421_Angoi Ludovic Nguessan NGORAN.docx
+[2026-02-16 19:57:59] Row 4 start: RITM0323421_Priyadharshini GOWRISANKAR.docx
+[2026-02-16 19:58:01] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.pdf
+[2026-02-16 19:58:01] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0323421_Priyadharshini GOWRISANKAR.docx
+[2026-02-16 19:58:01] Excel saved
+[2026-02-16 19:58:01] === RUN END === Total=20 Saved=3 Skipped=0 Errors=0
+[2026-02-16 20:43:56] Running auto-excel.ps1 before PDF generation.
+[2026-02-16 20:44:22] User clicked Start.
+[2026-02-16 20:44:23] === RUN START ===
+[2026-02-16 20:44:23] Opening Excel
+[2026-02-16 20:44:23] Excel opened
+[2026-02-16 20:44:23] Using sheet: BRU
+[2026-02-16 20:44:23] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 20:44:23] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 20:44:23] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 20:44:23] FATAL: System.Management.Automation.RuntimeException: Missing required headers. Required: Name, Ticket, PI.
+[2026-02-16 20:46:41] Running auto-excel.ps1 before PDF generation.
+[2026-02-16 20:47:19] User clicked Start.
+[2026-02-16 20:47:19] === RUN START ===
+[2026-02-16 20:47:19] Opening Excel
+[2026-02-16 20:47:20] Excel opened
+[2026-02-16 20:47:20] Using sheet: BRU
+[2026-02-16 20:47:20] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 20:47:20] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 20:47:20] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 20:47:20] FATAL: System.Management.Automation.RuntimeException: Missing required headers. Required: Name, Ticket, PI.
+[2026-02-16 20:54:20] Running auto-excel.ps1 before PDF generation.
+[2026-02-16 20:54:42] User clicked Start.
+[2026-02-16 20:54:42] === RUN START ===
+[2026-02-16 20:54:42] Opening Excel
+[2026-02-16 20:54:42] Excel opened
+[2026-02-16 20:54:42] Using sheet: BRU
+[2026-02-16 20:54:42] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 20:54:42] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 20:54:42] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 20:54:42] Rows detected: 20
+[2026-02-16 20:54:44] Row 2 start: RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-16 20:54:47] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.pdf
+[2026-02-16 20:54:47] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-16 20:54:47] Row 3 start: RITM0493919_Ledio AHMETAJ.docx
+[2026-02-16 20:54:49] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.pdf
+[2026-02-16 20:54:49] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.docx
+[2026-02-16 20:54:49] Row 4 start: RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 20:54:51] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.pdf
+[2026-02-16 20:54:51] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 20:54:52] Excel saved
+[2026-02-16 20:54:52] === RUN END === Total=20 Saved=3 Skipped=0 Errors=0

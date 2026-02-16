@@ -1,4 +1,14 @@
 #Requires -Version 5.1
+param(
+  # >>> CHANGE EXCEL DEFAULT NAME HERE if the planning file is renamed again <<<
+  [string]$ExcelPath = (Join-Path $PSScriptRoot "The Human List.xlsx"),
+  [string]$TemplatePath = (Join-Path $PSScriptRoot "Reception_ITequipment.docx"),
+  [string]$OutDir = (Join-Path $PSScriptRoot "WORD files"),
+  [string]$LogPath = (Join-Path $PSScriptRoot "Generate-Schuman-Words.log"),
+  [string]$PreferredSheet = "BRU",
+  [string]$AutoExcelScript = (Join-Path $PSScriptRoot "auto-excel.ps1")
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -7,12 +17,7 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 # ----------------------------
 # Config
 # ----------------------------
-$BaseDir      = (Get-Location).Path
-$ExcelPath    = Join-Path $BaseDir "Schuman List.xlsx"
-$TemplatePath = Join-Path $BaseDir "Reception_ITequipment.docx"
-$OutDir       = Join-Path $BaseDir "WORD files"
-$LogPath      = Join-Path $BaseDir "Generate-Schuman-Words.log"
-$PreferredSheet = "BRU"
+# Values are parameterized above.
 
 # ----------------------------
 # Logging (never crash)
@@ -25,6 +30,75 @@ function Write-Log([string]$Message) {
     # swallow - log must never kill the app
   }
 }
+
+function Resolve-ExcelPath {
+  param(
+    [string]$CurrentExcelPath
+  )
+
+  if ($CurrentExcelPath -and (Test-Path -LiteralPath $CurrentExcelPath)) {
+    return $CurrentExcelPath
+  }
+
+  $dlg = New-Object System.Windows.Forms.OpenFileDialog
+  $dlg.InitialDirectory = $PSScriptRoot
+  $dlg.FileName = "The Human List.xlsx"
+  $dlg.Filter = "Excel Files (*.xlsx)|*.xlsx"
+  $dlg.Multiselect = $false
+  $dlg.Title = "Select Excel planning file"
+
+  if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
+    throw "No Excel file selected."
+  }
+
+  return $dlg.FileName
+}
+
+try {
+  $ExcelPath = Resolve-ExcelPath -CurrentExcelPath $ExcelPath
+
+  if (-not (Test-Path -LiteralPath $AutoExcelScript)) {
+    [System.Windows.Forms.MessageBox]::Show(
+      "auto-excel.ps1 was not found. Please place it next to Generate-pdf.ps1.",
+      "Schuman Automation",
+      [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Error
+    ) | Out-Null
+    return
+  }
+
+  Write-Log "Running auto-excel.ps1 before PDF generation."
+  $global:LASTEXITCODE = $null
+  & $AutoExcelScript `
+    -ExcelPath $ExcelPath `
+    -SheetName $PreferredSheet `
+    -TicketHeader "Number" `
+    -TicketColumn 4 `
+    -NameHeader "Name" `
+    -PhoneHeader "PI" `
+    -ActionHeader "Estado de RITM"
+
+  if (($global:LASTEXITCODE -ne $null) -and ($global:LASTEXITCODE -ne 0)) {
+    throw "auto-excel.ps1 exited with code $global:LASTEXITCODE"
+  }
+}
+catch {
+  Write-Log ("Autofill failed: " + $_.Exception.Message)
+  [System.Windows.Forms.MessageBox]::Show(
+    "Autofill failed. PDFs were not generated. Check the log.",
+    "Schuman Automation",
+    [System.Windows.Forms.MessageBoxButtons]::OK,
+    [System.Windows.Forms.MessageBoxIcon]::Error
+  ) | Out-Null
+  return
+}
+
+[System.Windows.Forms.MessageBox]::Show(
+  "Excel is ready. Choose the file format (DOCX/PDF), then click Generate Documents.",
+  "Schuman Automation",
+  [System.Windows.Forms.MessageBoxButtons]::OK,
+  [System.Windows.Forms.MessageBoxIcon]::Information
+) | Out-Null
 
 # ----------------------------
 # Preflight (UI will also show message)
@@ -50,11 +124,11 @@ $Theme = @{
     Shadow = [Drawing.Color]::FromArgb(235,235,240)
   }
   Dark = @{
-    Bg = [Drawing.Color]::FromArgb(20,20,22)
-    Card = [Drawing.Color]::FromArgb(32,32,36)
-    Text = [Drawing.Color]::FromArgb(240,240,240)
+    Bg = [Drawing.Color]::FromArgb(30,30,30) # #1E1E1E
+    Card = [Drawing.Color]::FromArgb(37,37,38)
+    Text = [Drawing.Color]::FromArgb(230,230,230)
     Sub  = [Drawing.Color]::FromArgb(170,170,170)
-    Border = [Drawing.Color]::FromArgb(55,55,60)
+    Border = [Drawing.Color]::FromArgb(60,60,60)
     Accent = [Drawing.Color]::FromArgb(10,132,255)
     Success = [Drawing.Color]::FromArgb(32,60,45)
     Error = [Drawing.Color]::FromArgb(70,36,36)
@@ -66,342 +140,434 @@ $Theme = @{
 # ----------------------------
 # UI
 # ----------------------------
+class ThemeManager {
+  [hashtable]$Palette
+  ThemeManager([hashtable]$palette){ $this.Palette = $palette }
+  [void]SetPalette([hashtable]$palette){ $this.Palette = $palette }
+  [void]ApplyControl($c){
+    $p = $this.Palette
+    switch ($c.GetType().Name) {
+      "Form" { $c.BackColor = $p.Bg; $c.ForeColor = $p.Text }
+      "Panel" { $c.BackColor = $p.Card; $c.ForeColor = $p.Text }
+      "TableLayoutPanel" { $c.BackColor = $p.Bg; $c.ForeColor = $p.Text }
+      "Label" { $c.ForeColor = $p.Text }
+      "CheckBox" { $c.ForeColor = $p.Sub }
+      "Button" {
+        $c.BackColor = $p.Card
+        $c.ForeColor = $p.Text
+        $c.FlatAppearance.BorderColor = $p.Border
+        $c.FlatAppearance.BorderSize = 1
+      }
+      "RichTextBox" { $c.BackColor = $p.Bg; $c.ForeColor = $p.Text; $c.BorderStyle = "None" }
+      "DataGridView" {
+        $c.BackgroundColor = $p.Bg
+        $c.GridColor = $p.Border
+      }
+      default { $c.ForeColor = $p.Text }
+    }
+    foreach($child in $c.Controls){ $this.ApplyControl($child) }
+  }
+  [void]ApplyCard($p){
+    $p.BackColor = $this.Palette.Card
+    $p.ForeColor = $this.Palette.Text
+  }
+}
+
 $form = New-Object Windows.Forms.Form
 $form.Text = "Schuman Word Generator"
-$form.Size = New-Object Drawing.Size(980, 640)
+$form.Size = New-Object Drawing.Size(1120, 720)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "Sizable"
 $form.MaximizeBox = $true
-$form.MinimumSize = New-Object Drawing.Size(860, 520)
+$form.MinimumSize = New-Object Drawing.Size(980, 640)
 try {
   $prop = $form.GetType().GetProperty("DoubleBuffered", "NonPublic,Instance")
   if ($prop) { $prop.SetValue($form, $true, $null) }
-} catch {
-  # ignore if DoubleBuffered isn't available in this context
-}
-$form.Font = New-Object Drawing.Font("Segoe UI", 9)
+} catch {}
+$form.Font = New-Object Drawing.Font("Segoe UI", 10)
 
-$script:RowWidgets = @{}  # rowIndex -> object with shimmer panels
+$themeMgr = [ThemeManager]::new($Theme.Dark)
 
+$root = New-Object Windows.Forms.TableLayoutPanel
+$root.Dock = "Fill"
+$root.Padding = New-Object Windows.Forms.Padding(16,16,16,16)
+$root.RowCount = 3
+$root.ColumnCount = 1
+$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100)))
+$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+$form.Controls.Add($root)
 
-$chkDark = New-Object Windows.Forms.CheckBox
-$chkDark.Text = "Dark mode"
-$chkDark.AutoSize = $true
-$chkDark.Checked = $true
+# Header card
+$headerCard = New-Object Windows.Forms.Panel
+$headerCard.Dock = "Fill"
+$headerCard.Padding = New-Object Windows.Forms.Padding(16,16,16,12)
+$headerCard.Margin = New-Object Windows.Forms.Padding(0,0,0,12)
+$root.Controls.Add($headerCard, 0, 0)
 
-$header = New-Object Windows.Forms.Panel
-$header.Dock = "Top"
-$header.Height = 130
-$header.Padding = New-Object Windows.Forms.Padding(16,14,16,14)
-$header.BorderStyle = "None"
-$form.Controls.Add($header)
+$headerGrid = New-Object Windows.Forms.TableLayoutPanel
+$headerGrid.Dock = "Fill"
+$headerGrid.ColumnCount = 2
+$headerGrid.RowCount = 2
+$headerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 70)))
+$headerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 30)))
+$headerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+$headerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+$headerCard.Controls.Add($headerGrid)
 
 $lblTitle = New-Object Windows.Forms.Label
+$lblTitle.Text = "Schuman Word Generator"
+$lblTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 13)
 $lblTitle.AutoSize = $true
-$lblTitle.Font = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
-$lblTitle.Text = "Reception IT Equipment -> Word (.docx)"
-$lblTitle.Location = New-Object Drawing.Point(16, 10)
-$header.Controls.Add($lblTitle)
+$headerGrid.Controls.Add($lblTitle, 0, 0)
 
-$lblStatus = New-Object Windows.Forms.Label
-$lblStatus.AutoSize = $false
-$lblStatus.Size = New-Object Drawing.Size(820, 22)
-$lblStatus.Location = New-Object Drawing.Point(16, 52)
-$lblStatus.Font = New-Object Drawing.Font("Segoe UI", 9)
-$lblStatus.Text = "Ready."
-$lblStatus.Anchor = "Top,Left,Right"
-$header.Controls.Add($lblStatus)
+$statusPill = New-Object Windows.Forms.Panel
+$statusPill.AutoSize = $true
+$statusPill.Padding = New-Object Windows.Forms.Padding(10,4,10,4)
+$statusPill.Margin = New-Object Windows.Forms.Padding(0,4,0,0)
+$statusPill.Anchor = "Top,Right"
+$statusPill.BorderStyle = "None"
+$headerGrid.Controls.Add($statusPill, 1, 0)
 
-$lblCounters = New-Object Windows.Forms.Label
-$lblCounters.AutoSize = $false
-$lblCounters.Size = New-Object Drawing.Size(820, 16)
-$lblCounters.Location = New-Object Drawing.Point(16, 78)
-$lblCounters.Text = "Total: 0 | Saved: 0 | Skipped: 0 | Errors: 0"
-$lblCounters.Anchor = "Top,Left,Right"
-$header.Controls.Add($lblCounters)
+$lblStatusPill = New-Object Windows.Forms.Label
+$lblStatusPill.Text = "Idle"
+$lblStatusPill.AutoSize = $true
+$lblStatusPill.TextAlign = "MiddleCenter"
+$statusPill.Controls.Add($lblStatusPill)
 
-$lblElapsed = New-Object Windows.Forms.Label
-$lblElapsed.AutoSize = $false
-$lblElapsed.Size = New-Object Drawing.Size(260, 16)
-$lblElapsed.Location = New-Object Drawing.Point(740, 78)
-$lblElapsed.TextAlign = "MiddleRight"
-$lblElapsed.Text = "Elapsed: 00:00"
-$lblElapsed.Anchor = "Top,Right"
-$header.Controls.Add($lblElapsed)
+$lblStatusText = New-Object Windows.Forms.Label
+$lblStatusText.Text = "Ready."
+$lblStatusText.AutoSize = $true
+$lblStatusText.Margin = New-Object Windows.Forms.Padding(0,2,0,0)
+$lblStatusText.TextAlign = "MiddleRight"
+$lblStatusText.Anchor = "Top,Right"
+$headerGrid.Controls.Add($lblStatusText, 1, 1)
 
-$lblAvg = New-Object Windows.Forms.Label
-$lblAvg.AutoSize = $false
-$lblAvg.Size = New-Object Drawing.Size(260, 16)
-$lblAvg.Location = New-Object Drawing.Point(740, 58)
-$lblAvg.TextAlign = "MiddleRight"
-$lblAvg.Text = "Avg: --:--"
-$lblAvg.Anchor = "Top,Right"
-$header.Controls.Add($lblAvg)
+$lblMetrics = New-Object Windows.Forms.Label
+$lblMetrics.Text = "Total: 0 | Saved: 0 | Skipped: 0 | Errors: 0"
+$lblMetrics.AutoSize = $true
+$lblMetrics.Margin = New-Object Windows.Forms.Padding(0,6,0,0)
+$headerGrid.Controls.Add($lblMetrics, 0, 1)
 
-$lblEta = New-Object Windows.Forms.Label
-$lblEta.AutoSize = $false
-$lblEta.Size = New-Object Drawing.Size(260, 16)
-$lblEta.Location = New-Object Drawing.Point(740, 40)
-$lblEta.TextAlign = "MiddleRight"
-$lblEta.Text = "ETA: --:--"
-$lblEta.Anchor = "Top,Right"
-$header.Controls.Add($lblEta)
+# Main content (progress + dynamic area)
+$centerGrid = New-Object Windows.Forms.TableLayoutPanel
+$centerGrid.Dock = "Fill"
+$centerGrid.ColumnCount = 1
+$centerGrid.RowCount = 2
+$centerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Absolute, 20)))
+$centerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100)))
+$root.Controls.Add($centerGrid, 0, 1)
 
-$progOverall = New-Object Windows.Forms.ProgressBar
-$progOverall.Location = New-Object Drawing.Point(16, 100)
-$progOverall.Size = New-Object Drawing.Size(940, 8)
-$progOverall.Minimum = 0
-$progOverall.Maximum = 100
-$progOverall.Value = 0
-$progOverall.Anchor = "Top,Left,Right"
-$header.Controls.Add($progOverall)
+$progressHost = New-Object Windows.Forms.Panel
+$progressHost.Height = 20
+$progressHost.Dock = "Fill"
+$progressHost.Margin = New-Object Windows.Forms.Padding(0,0,0,12)
+$centerGrid.Controls.Add($progressHost, 0, 0)
 
-$chkDark.Location = New-Object Drawing.Point(870, 60)
-$header.Controls.Add($chkDark)
+$progressFill = New-Object Windows.Forms.Panel
+$progressFill.Height = 20
+$progressFill.Width = 0
+$progressFill.Dock = "Left"
+$progressHost.Controls.Add($progressFill)
 
 $listCard = New-Object Windows.Forms.Panel
 $listCard.Dock = "Fill"
-$listCard.Padding = New-Object Windows.Forms.Padding(14,14,14,14)
-$listCard.BorderStyle = "None"
-$form.Controls.Add($listCard)
+$listCard.Padding = New-Object Windows.Forms.Padding(15)
+$centerGrid.Controls.Add($listCard, 0, 1)
 
-$panel = New-Object Windows.Forms.FlowLayoutPanel
-$panel.Dock = "Fill"
-$panel.AutoScroll = $true
-$panel.WrapContents = $false
-$panel.FlowDirection = "TopDown"
-$listCard.Controls.Add($panel)
+$grid = New-Object Windows.Forms.DataGridView
+$grid.Dock = "Fill"
+$grid.ReadOnly = $true
+$grid.AllowUserToAddRows = $false
+$grid.AllowUserToDeleteRows = $false
+$grid.AllowUserToResizeRows = $false
+$grid.RowHeadersVisible = $false
+$grid.SelectionMode = "FullRowSelect"
+$grid.MultiSelect = $false
+$grid.AutoSizeColumnsMode = "Fill"
+$grid.EnableHeadersVisualStyles = $false
+$grid.ColumnHeadersHeight = 32
+$grid.RowTemplate.Height = 28
+try {
+  $prop = $grid.GetType().GetProperty("DoubleBuffered", "NonPublic,Instance")
+  if ($prop) { $prop.SetValue($grid, $true, $null) }
+} catch {}
+$listCard.Controls.Add($grid)
 
-$panel.Add_Resize({
-  foreach($k in $script:RowWidgets.Keys){
-    $w = $script:RowWidgets[$k]
-    $w.Card.Width = [Math]::Max(600, $panel.ClientSize.Width - 24)
-  }
-})
+[void]$grid.Columns.Add("Row", "Row #")
+[void]$grid.Columns.Add("Ticket", "Ticket/RITM")
+[void]$grid.Columns.Add("User", "User")
+[void]$grid.Columns.Add("File", "Output File")
+[void]$grid.Columns.Add("Status", "Status")
+[void]$grid.Columns.Add("Message", "Message")
+[void]$grid.Columns.Add("Progress", "Progress")
+$grid.Columns["Row"].FillWeight = 8
+$grid.Columns["Ticket"].FillWeight = 16
+$grid.Columns["User"].FillWeight = 16
+$grid.Columns["File"].FillWeight = 24
+$grid.Columns["Status"].FillWeight = 12
+$grid.Columns["Message"].FillWeight = 24
+$grid.Columns["Progress"].FillWeight = 10
+$grid.Columns["Status"].DefaultCellStyle.Alignment = "MiddleLeft"
+$grid.Columns["Progress"].DefaultCellStyle.Alignment = "MiddleRight"
 
+$logPanel = New-Object Windows.Forms.Panel
+$logPanel.Dock = "Bottom"
+$logPanel.Padding = New-Object Windows.Forms.Padding(15)
+$logPanel.Margin = New-Object Windows.Forms.Padding(0,12,0,0)
+$logPanel.Height = 0
+$logPanel.Visible = $false
+$listCard.Controls.Add($logPanel)
+
+$logBox = New-Object Windows.Forms.RichTextBox
+$logBox.Dock = "Fill"
+$logBox.ReadOnly = $true
+$logBox.HideSelection = $false
+$logBox.BorderStyle = "None"
+$logPanel.Controls.Add($logBox)
+
+# Footer
 $footer = New-Object Windows.Forms.Panel
-$footer.Dock = "Bottom"
-$footer.Height = 56
-$footer.Padding = New-Object Windows.Forms.Padding(16,10,16,10)
-$footer.BorderStyle = "None"
-$form.Controls.Add($footer)
+$footer.Dock = "Fill"
+$footer.Padding = New-Object Windows.Forms.Padding(16,12,16,12)
+$root.Controls.Add($footer, 0, 2)
+
+$footerGrid = New-Object Windows.Forms.TableLayoutPanel
+$footerGrid.Dock = "Fill"
+$footerGrid.ColumnCount = 2
+$footerGrid.RowCount = 1
+$footerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 100)))
+$footerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::AutoSize)))
+$footer.Controls.Add($footerGrid)
+
+$buttonFlow = New-Object Windows.Forms.FlowLayoutPanel
+$buttonFlow.Dock = "Fill"
+$buttonFlow.AutoSize = $true
+$buttonFlow.WrapContents = $false
+$buttonFlow.FlowDirection = "LeftToRight"
+$buttonFlow.Padding = New-Object Windows.Forms.Padding(0,2,0,0)
+$footerGrid.Controls.Add($buttonFlow, 0, 0)
 
 $btnStart = New-Object Windows.Forms.Button
-$btnStart.Text = "Start"
-$btnStart.Width = 110
-$btnStart.Height = 26
+$btnStart.Text = "Generate Documents"
+$btnStart.Width = 170
+$btnStart.Height = 30
 $btnStart.FlatStyle = "Flat"
-$footer.Controls.Add($btnStart)
+$buttonFlow.Controls.Add($btnStart)
 
 $btnStop = New-Object Windows.Forms.Button
 $btnStop.Text = "Stop"
 $btnStop.Width = 110
-$btnStop.Height = 26
-$btnStop.Left = 120
+$btnStop.Height = 30
 $btnStop.FlatStyle = "Flat"
 $btnStop.Enabled = $false
-$footer.Controls.Add($btnStop)
+$buttonFlow.Controls.Add($btnStop)
 
 $btnOpen = New-Object Windows.Forms.Button
 $btnOpen.Text = "Open Output Folder"
 $btnOpen.Width = 170
-$btnOpen.Height = 26
-$btnOpen.Left = 240
+$btnOpen.Height = 30
 $btnOpen.FlatStyle = "Flat"
-$footer.Controls.Add($btnOpen)
+$btnOpen.Enabled = $false
+$buttonFlow.Controls.Add($btnOpen)
+
+$btnToggleLog = New-Object Windows.Forms.Button
+$btnToggleLog.Text = "Show Log"
+$btnToggleLog.Width = 110
+$btnToggleLog.Height = 30
+$btnToggleLog.FlatStyle = "Flat"
+$buttonFlow.Controls.Add($btnToggleLog)
+
+$optionsFlow = New-Object Windows.Forms.FlowLayoutPanel
+$optionsFlow.Dock = "Fill"
+$optionsFlow.AutoSize = $true
+$optionsFlow.WrapContents = $false
+$optionsFlow.FlowDirection = "RightToLeft"
+$optionsFlow.Padding = New-Object Windows.Forms.Padding(0,6,0,0)
+$footerGrid.Controls.Add($optionsFlow, 1, 0)
 
 $chkShowWord = New-Object Windows.Forms.CheckBox
-$chkShowWord.Text = "Show Word"
+$chkShowWord.Text = "Show Word after generation"
 $chkShowWord.AutoSize = $true
-$chkShowWord.Top = 5
 $chkShowWord.Checked = $false
-$footer.Controls.Add($chkShowWord)
+$optionsFlow.Controls.Add($chkShowWord)
 
 $chkSaveDocx = New-Object Windows.Forms.CheckBox
 $chkSaveDocx.Text = "Save DOCX"
 $chkSaveDocx.AutoSize = $true
-$chkSaveDocx.Top = 5
 $chkSaveDocx.Checked = $true
-$footer.Controls.Add($chkSaveDocx)
+$optionsFlow.Controls.Add($chkSaveDocx)
 
 $chkSavePdf = New-Object Windows.Forms.CheckBox
 $chkSavePdf.Text = "Save PDF"
 $chkSavePdf.AutoSize = $true
-$chkSavePdf.Top = 5
 $chkSavePdf.Checked = $true
-$footer.Controls.Add($chkSavePdf)
+$optionsFlow.Controls.Add($chkSavePdf)
+
+$chkDark = New-Object Windows.Forms.CheckBox
+$chkDark.Text = "Dark theme"
+$chkDark.AutoSize = $true
+$chkDark.Checked = $true
+$optionsFlow.Controls.Add($chkDark)
 
 $script:UseUltra = $true
 $script:UseFast = $true
 
 $btnOpen.Add_Click({ if (Test-Path -LiteralPath $OutDir) { Start-Process explorer.exe $OutDir } })
 
-function Layout-Footer {
-  $x = 16
-  $btnStart.Left = $x
-  $btnStart.Top = 10
-  $x += $btnStart.Width + 10
-
-  $btnStop.Left = $x
-  $btnStop.Top = 10
-  $x += $btnStop.Width + 10
-
-  $btnOpen.Left = $x
-  $btnOpen.Top = 10
-
-  $right = $footer.ClientSize.Width - 16
-  foreach($c in @($chkSavePdf,$chkSaveDocx,$chkShowWord)){
-    $c.Left = $right - $c.Width
-    $c.Top = 12
-    $right = $c.Left - 18
-  }
+function Start-Confetti {
+  return
 }
-$footer.Add_Resize({ Layout-Footer })
 
-function Resize-For-Total([int]$Total){
-  if($form.WindowState -ne "Normal"){ return }
-  $rowHeight = 64
-  $rowMargin = 12
-  $visible = [Math]::Min([Math]::Max($Total,1), 8)
-  $desired = $header.Height + $footer.Height + 40 + ($visible * ($rowHeight + $rowMargin))
-  $screen = [Windows.Forms.Screen]::FromControl($form).WorkingArea
-  $h = [Math]::Min($desired, $screen.Height - 40)
-  $w = [Math]::Min($form.Width, $screen.Width - 40)
-  $form.Size = New-Object Drawing.Size($w, $h)
+$script:StatusState = "idle"
+function Set-StatusPill([string]$text, [string]$state){
+  $script:StatusState = $state
+  $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+  $lblStatusPill.Text = $text
+  switch($state){
+    "running" { $statusPill.BackColor = $t.Accent }
+    "error" { $statusPill.BackColor = $t.Error }
+    "done" { $statusPill.BackColor = $t.Success }
+    default { $statusPill.BackColor = $t.Border }
+  }
+  $lblStatusPill.ForeColor = $t.BadgeText
 }
 
 function Apply-Theme {
   $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
-  $form.BackColor = $t.Bg
-  foreach ($c in @($header,$listCard,$footer)) { $c.BackColor = $t.Card; $c.ForeColor = $t.Text }
-  $panel.BackColor = $t.Card
-  $lblTitle.ForeColor = $t.Text
-  $lblStatus.ForeColor = $t.Sub
-  $lblCounters.ForeColor = $t.Sub
-  $lblElapsed.ForeColor = $t.Sub
-  $lblAvg.ForeColor = $t.Sub
-  $lblEta.ForeColor = $t.Sub
-  foreach ($b in @($btnStart,$btnStop,$btnOpen)) {
-    $b.BackColor = $t.Card
-    $b.ForeColor = $t.Text
-    $b.FlatAppearance.BorderColor = $t.Border
-    $b.FlatAppearance.BorderSize = 1
-  }
-  foreach ($c in @($chkDark,$chkShowWord,$chkSaveDocx,$chkSavePdf)) { $c.ForeColor = $t.Sub }
-  foreach ($k in $script:RowWidgets.Keys) {
-    $w = $script:RowWidgets[$k]
-    $w.Card.BackColor = $t.Bg
-    $w.Main.ForeColor = $t.Text
-    $w.Sub.ForeColor = $t.Sub
-    $w.Host.BackColor = $t.Border
-    $w.Fill.BackColor = $t.Accent
-    if($w.Badge){ $w.Badge.ForeColor = $t.BadgeText }
-  }
+  $themeMgr.SetPalette($t)
+  $themeMgr.ApplyControl($form)
+
+  $headerCard.BackColor = $t.Card
+  $listCard.BackColor = $t.Card
+  $footer.BackColor = $t.Card
+  $logPanel.BackColor = $t.Card
+
+  $progressHost.BackColor = $t.Border
+  $progressFill.BackColor = $t.Accent
+  $lblStatusText.ForeColor = $t.Sub
+  $lblMetrics.ForeColor = $t.Sub
+
+  $grid.ColumnHeadersDefaultCellStyle.BackColor = $t.Card
+  $grid.ColumnHeadersDefaultCellStyle.ForeColor = $t.Sub
+  $grid.DefaultCellStyle.BackColor = $t.Bg
+  $grid.DefaultCellStyle.ForeColor = $t.Text
+  $grid.DefaultCellStyle.SelectionBackColor = $t.Shadow
+  $grid.DefaultCellStyle.SelectionForeColor = $t.Text
+  $grid.AlternatingRowsDefaultCellStyle.BackColor = $t.Card
+  $grid.AlternatingRowsDefaultCellStyle.ForeColor = $t.Text
+
+  Set-StatusPill -text $lblStatusPill.Text -state $script:StatusState
 }
+
 $chkDark.Add_CheckedChanged({ Apply-Theme })
 Apply-Theme
-Layout-Footer
 
-# ----------------------------
-# Per-row card + shimmer (UI thread only)
-# ----------------------------
-$script:RowWidgets = @{}  # rowIndex -> object with shimmer panels
-function New-RowCard([int]$Row, [string]$FileName) {
-  $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+$script:RowMap = @{}
+$script:ActiveRow = $null
 
-  $card = New-Object Windows.Forms.Panel
-  $card.Width = [Math]::Max(600, $panel.ClientSize.Width - 24)
-  $card.Height = 64
-  $card.Margin = New-Object Windows.Forms.Padding(6,6,6,6)
-  $card.Padding = New-Object Windows.Forms.Padding(12,10,12,10)
-  $card.BackColor = $t.Bg
-  $card.BorderStyle = "None"
-
-  $lblMain = New-Object Windows.Forms.Label
-  $lblMain.AutoSize = $false
-  $lblMain.Width = 600
-  $lblMain.Height = 18
-  $lblMain.Text = "Row $Row - $FileName"
-  $lblMain.ForeColor = $t.Text
-  $lblMain.Location = New-Object Drawing.Point(10,10)
-  $card.Controls.Add($lblMain)
-
-  $lblBadge = New-Object Windows.Forms.Label
-  $lblBadge.AutoSize = $false
-  $lblBadge.Width = 80
-  $lblBadge.Height = 18
-  $lblBadge.TextAlign = "MiddleCenter"
-  $lblBadge.Text = "Pending"
-  $lblBadge.BackColor = $t.Bg
-  $lblBadge.ForeColor = $t.BadgeText
-  $lblBadge.Location = New-Object Drawing.Point(840,10)
-  $card.Controls.Add($lblBadge)
-
-  $lblSub = New-Object Windows.Forms.Label
-  $lblSub.AutoSize = $false
-  $lblSub.Width = 600
-  $lblSub.Height = 18
-  $lblSub.Text = "Pending"
-  $lblSub.ForeColor = $t.Sub
-  $lblSub.Location = New-Object Drawing.Point(10,32)
-  $lblSub.Visible = $true
-  $card.Controls.Add($lblSub)
-
-  $barHost = New-Object Windows.Forms.Panel
-  $barHost.Width = 300
-  $barHost.Height = 8
-  $barHost.Location = New-Object Drawing.Point(520, 28)
-  $barHost.BackColor = $t.Border
-  $card.Controls.Add($barHost)
-
-  $fill = New-Object Windows.Forms.Panel
-  $fill.Width = 70
-  $fill.Height = 8
-  $fill.Left = -70
-  $fill.Top = 0
-  $fill.BackColor = $t.Accent
-  $barHost.Controls.Add($fill)
-
-  $panel.Controls.Add($card)
-
-  return [pscustomobject]@{
-    Card=$card; Main=$lblMain; Sub=$lblSub; Host=$barHost; Fill=$fill; Badge=$lblBadge; Running=$false; File=$FileName
+$script:ProgressTarget = 0
+$script:ProgressCurrent = 0
+$progressTimer = New-Object Windows.Forms.Timer
+$progressTimer.Interval = 16
+$progressTimer.Add_Tick({
+  if($progressHost.Width -le 0){ return }
+  $delta = $script:ProgressTarget - $script:ProgressCurrent
+  if([Math]::Abs($delta) -lt 0.5){
+    $script:ProgressCurrent = $script:ProgressTarget
+  } else {
+    $script:ProgressCurrent += ($delta * 0.2)
   }
-}
-
-function Apply-RowDensity {
-  foreach($k in $script:RowWidgets.Keys){
-    $w = $script:RowWidgets[$k]
-    $w.Card.Height = 64
-    $w.Sub.Visible = $true
-    $w.Sub.Location = New-Object Drawing.Point(10,32)
-    $w.Host.Location = New-Object Drawing.Point(520,28)
-    if($w.Badge){ $w.Badge.Location = New-Object Drawing.Point(840,10) }
-  }
-}
-
-$script:AnimPhase = 0.0
-$animTimer = New-Object Windows.Forms.Timer
-$animTimer.Interval = 20
-$animTimer.Add_Tick({
-  $script:AnimPhase = ($script:AnimPhase + 0.04)
-  if($script:AnimPhase -gt 1.0){ $script:AnimPhase = 0.0 }
-  foreach ($k in $script:RowWidgets.Keys) {
-    $w = $script:RowWidgets[$k]
-    if (-not $w.Running) { continue }
-    $span = $w.Host.Width + $w.Fill.Width
-    $w.Fill.Left = [int](($script:AnimPhase * $span) - $w.Fill.Width)
-  }
+  $pct = [Math]::Max(0, [Math]::Min(1, $script:ProgressCurrent))
+  $progressFill.Width = [int]($progressHost.Width * $pct)
 })
 
-# Global status dots
-$script:Dots = 0
-$statusTimer = New-Object Windows.Forms.Timer
-$statusTimer.Interval = 250
-$statusTimer.Add_Tick({
-  if (-not $script:SyncHash.Running) { return }
-  $script:Dots = ($script:Dots + 1) % 4
-  $lblStatus.Text = "$($script:SyncHash.Status)" + ("." * $script:Dots)
+function Invoke-Ui([scriptblock]$action){
+  if($form.InvokeRequired){
+    [void]$form.BeginInvoke($action)
+  } else {
+    & $action
+  }
+}
+
+function Append-Log([string]$line){
+  Invoke-Ui {
+    $ts = Get-Date -Format "HH:mm:ss"
+    $logBox.AppendText("[$ts] $line`r`n")
+    $logBox.SelectionStart = $logBox.TextLength
+    $logBox.ScrollToCaret()
+  }
+}
+
+function Ensure-GridRow([int]$rowId, [string]$fileName, [string]$ticket, [string]$user){
+  if($script:RowMap.ContainsKey($rowId)){ return $script:RowMap[$rowId] }
+  $r = $grid.Rows.Add()
+  $row = $grid.Rows[$r]
+  $row.Cells["Row"].Value = $rowId
+  $row.Cells["Ticket"].Value = $ticket
+  $row.Cells["User"].Value = $user
+  $row.Cells["File"].Value = $fileName
+  $row.Cells["Status"].Value = "Pending"
+  $row.Cells["Message"].Value = "Queued"
+  $row.Cells["Progress"].Value = "-"
+  $script:RowMap[$rowId] = $row
+  return $row
+}
+
+function Set-RowStatus($row, [string]$status, [string]$message, [string]$state){
+  $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+  $icon = switch($state){
+    "active" { "o" }
+    "success" { "o" }
+    "error" { "o" }
+    "skipped" { "o" }
+    default { "o" }
+  }
+  $row.Cells["Status"].Value = "$icon $status"
+  $row.Cells["Message"].Value = $message
+  switch($state){
+    "active" {
+      $row.DefaultCellStyle.BackColor = $t.Shadow
+      $row.DefaultCellStyle.ForeColor = $t.Text
+      $row.Cells["Status"].Style.ForeColor = $t.Accent
+    }
+    "success" {
+      $row.DefaultCellStyle.BackColor = $t.Success
+      $row.DefaultCellStyle.ForeColor = $t.Text
+      $row.Cells["Status"].Style.ForeColor = $t.Accent
+    }
+    "error" {
+      $row.DefaultCellStyle.BackColor = $t.Error
+      $row.DefaultCellStyle.ForeColor = $t.Text
+      $row.Cells["Status"].Style.ForeColor = [Drawing.Color]::FromArgb(220,80,80)
+    }
+    "skipped" {
+      $row.DefaultCellStyle.BackColor = $t.Border
+      $row.DefaultCellStyle.ForeColor = $t.Text
+      $row.Cells["Status"].Style.ForeColor = $t.Sub
+    }
+    default {
+      $row.DefaultCellStyle.BackColor = $t.Bg
+      $row.DefaultCellStyle.ForeColor = $t.Text
+      $row.Cells["Status"].Style.ForeColor = $t.Sub
+    }
+  }
+}
+
+function Show-Toast([string]$title, [string]$body){
+  return
+}
+
+$btnToggleLog.Add_Click({
+  if($logPanel.Height -eq 0){
+    $logPanel.Height = 160
+    $logPanel.Visible = $true
+    $btnToggleLog.Text = "Hide Log"
+  } else {
+    $logPanel.Height = 0
+    $logPanel.Visible = $false
+    $btnToggleLog.Text = "Show Log"
+  }
 })
 
 # ----------------------------
@@ -750,6 +916,11 @@ $script:WorkerLogic = {
 
     $nameCol   = GetCol $sheet "Name"
     $ticketCol = GetCol $sheet "Ticket"
+    if(-not $ticketCol){ $ticketCol = GetCol $sheet "Number" }
+    if(-not $ticketCol){
+      $ticketCol = 4
+      WriteLog $Config.LogPath "Header 'Ticket/Number' not found. Falling back to column 4."
+    }
     $piCol     = GetCol $sheet "PI"
     $equipCol  = GetCol $sheet "Receive ID Equipment" # optional
 
@@ -765,9 +936,8 @@ $script:WorkerLogic = {
     WriteLog $Config.LogPath ("Excel column docx:   Col=" + $docxCol + " Created=" + $docxInfo.Created + " Score=" + $docxInfo.Score)
     WriteLog $Config.LogPath ("Excel column pdf:    Col=" + $pdfCol + " Created=" + $pdfInfo.Created + " Score=" + $pdfInfo.Score)
 
-    if(-not $nameCol -or -not $ticketCol -or -not $piCol){
-      throw "Missing required headers. Required: Name, Ticket, PI."
-    }
+    if(-not $nameCol){ WriteLog $Config.LogPath "Header 'Name' not found. FieldDisplayName will be left blank." }
+    if(-not $piCol){ WriteLog $Config.LogPath "Header 'PI' not found. FieldPINumber will be left blank." }
 
     $used = $sheet.UsedRange
     $lastRow = $used.Row + $used.Rows.Count - 1
@@ -819,20 +989,13 @@ $script:WorkerLogic = {
     for($r=2;$r -le $lastRow;$r++){
       if($SyncHash.Cancel){ break }
 
-      $name   = [string]$sheet.Cells.Item($r,$nameCol).Text
-      $ticket = [string]$sheet.Cells.Item($r,$ticketCol).Text
-      $pi     = [string]$sheet.Cells.Item($r,$piCol).Text
+      $name   = if($nameCol){ [string]$sheet.Cells.Item($r,$nameCol).Text } else { "" }
+      $ticket = if($ticketCol){ [string]$sheet.Cells.Item($r,$ticketCol).Text } else { "" }
+      $pi     = if($piCol){ [string]$sheet.Cells.Item($r,$piCol).Text } else { "" }
 
       if([string]::IsNullOrWhiteSpace($name) -and [string]::IsNullOrWhiteSpace($ticket) -and [string]::IsNullOrWhiteSpace($pi)){
         continue
       }
-      if([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($ticket) -or [string]::IsNullOrWhiteSpace($pi)){
-        $skipped++
-        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowSkip"; Row=$r; File="Skipped (missing data)" })
-        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=$saved; Skipped=$skipped; Errors=$errors })
-        continue
-      }
-
       $equipment = "Laptop"
       if($equipCol){
         $tmp = [string]$sheet.Cells.Item($r,$equipCol).Text
@@ -850,7 +1013,9 @@ $script:WorkerLogic = {
       # UI row start
       $rowStart = Get-Date
       $SyncHash.Status = "Saving $fileName"
-      $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStart"; Row=$r; File=$fileName })
+      $SyncHash.UiEvents.Enqueue([pscustomobject]@{
+        Type="RowStart"; Row=$r; File=$fileName; Ticket=$ticket; User=$name
+      })
       $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Creating file..." })
       WriteLog $Config.LogPath "Row ${r} start: $fileName"
       if(-not $fast){
@@ -979,7 +1144,7 @@ $script:WorkerLogic = {
         }
         } catch {}
         WriteLog $Config.LogPath "Saved: $filePath"
-        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$true })
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$true; Message="Saved" })
       }
       catch {
         $errors++
@@ -991,7 +1156,7 @@ $script:WorkerLogic = {
         } catch {}
         try { if($doc){ $doc.Close($false) | Out-Null } } catch {}
         Release-Com $doc; $doc=$null
-        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$false; Error=$_.Exception.Message })
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$false; Error=$_.Exception.Message; Message="Error" })
       }
 
       $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=$saved; Skipped=$skipped; Errors=$errors })
@@ -1033,97 +1198,74 @@ $script:WorkerLogic = {
 # UI Timer consumes events
 # ----------------------------
 $uiTimer = New-Object Windows.Forms.Timer
-$uiTimer.Interval = 100
+$uiTimer.Interval = 80
 $uiTimer.Add_Tick({
   while($script:SyncHash.UiEvents.Count -gt 0){
     $p = $script:SyncHash.UiEvents.Dequeue()
     switch($p.Type){
       "Init" {
-        $panel.Controls.Clear()
-        $script:RowWidgets.Clear()
-        $lblCounters.Text = "Total: $($p.Total) | Saved: 0 | Skipped: 0 | Errors: 0"
-        if($p.Total -gt 0){
-          $progOverall.Maximum = $p.Total
-          $progOverall.Value = 0
-        }
-        Resize-For-Total -Total $p.Total
+        $grid.Rows.Clear()
+        $script:RowMap.Clear()
+        $lblMetrics.Text = "Total: $($p.Total) | Saved: 0 | Skipped: 0 | Errors: 0"
+        $script:ProgressTarget = 0
+        $script:ProgressCurrent = 0
+        Set-StatusPill -text "Running" -state "running"
+        Append-Log "Run initialized. Total rows: $($p.Total)"
       }
       "Counters" {
-        $lblCounters.Text = "Total: $($p.Total) | Saved: $($p.Saved) | Skipped: $($p.Skipped) | Errors: $($p.Errors)"
         $done = [int]$p.Saved + [int]$p.Skipped + [int]$p.Errors
-        if($progOverall.Maximum -ne $p.Total){ $progOverall.Maximum = [Math]::Max(1, [int]$p.Total) }
-        $progOverall.Value = [Math]::Min($progOverall.Maximum, $done)
+        $lblMetrics.Text = "Total: $($p.Total) | Saved: $($p.Saved) | Skipped: $($p.Skipped) | Errors: $($p.Errors)"
+        $script:ProgressTarget = if($p.Total -gt 0){ [double]$done / [double]$p.Total } else { 0 }
         $script:LastCounters.Total = [int]$p.Total
         $script:LastCounters.Saved = [int]$p.Saved
         $script:LastCounters.Skipped = [int]$p.Skipped
         $script:LastCounters.Errors = [int]$p.Errors
       }
       "RowStart" {
-        if(-not $script:RowWidgets.ContainsKey($p.Row)){
-          $script:RowWidgets[$p.Row] = New-RowCard -Row $p.Row -FileName $p.File
+        if($script:ActiveRow -and $script:RowMap.ContainsKey($script:ActiveRow)){
+          $prev = $script:RowMap[$script:ActiveRow]
+          if($prev.Cells["Status"].Value -eq "Processing"){
+            Set-RowStatus -row $prev -status "Pending" -message "Queued" -state "normal"
+          }
         }
-        $w = $script:RowWidgets[$p.Row]
-        $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
-        $w.Sub.Text = "Creating..."
-        $w.Running = $true
-        if($w.Badge){
-          $w.Badge.Text = "Working"
-          $w.Badge.BackColor = $t.Border
-        }
+        $row = Ensure-GridRow -rowId $p.Row -fileName $p.File -ticket $p.Ticket -user $p.User
+        Set-RowStatus -row $row -status "Processing" -message "Creating..." -state "active"
+        $row.Cells["Progress"].Value = "0%"
+        $script:ActiveRow = $p.Row
+        Append-Log "Row $($p.Row) started: $($p.File)"
       }
       "RowStage" {
-        if($script:RowWidgets.ContainsKey($p.Row)){
-          $w = $script:RowWidgets[$p.Row]
-          $w.Sub.Text = $p.Stage
+        if($script:RowMap.ContainsKey($p.Row)){
+          $row = $script:RowMap[$p.Row]
+          $row.Cells["Message"].Value = $p.Stage
+          $row.Cells["Progress"].Value = "Working"
         }
       }
       "RowDone" {
-        $w = $script:RowWidgets[$p.Row]
-        $w.Running = $false
-        $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
-        if($p.Ok){
-          $w.Sub.Text = "Done"
-          $w.Fill.Left = 0
-          $w.Fill.Width = $w.Host.Width
-          $w.Card.BackColor = $t.Success
-          if($w.Badge){
-            $w.Badge.Text = "Done"
-            $w.Badge.BackColor = $t.Success
+        if($script:RowMap.ContainsKey($p.Row)){
+          $row = $script:RowMap[$p.Row]
+          if($p.Ok){
+            Set-RowStatus -row $row -status "Done" -message "Saved" -state "success"
+            $row.Cells["Progress"].Value = "100%"
+          } else {
+            Set-RowStatus -row $row -status "Error" -message $p.Error -state "error"
+            $row.Cells["Progress"].Value = "Failed"
           }
-        } else {
-          $w.Sub.Text = "ERROR: $($p.Error)"
-          $w.Fill.Left = 0
-          $w.Fill.Width = 60
-          $w.Card.BackColor = $t.Error
-          if($w.Badge){
-            $w.Badge.Text = "Error"
-            $w.Badge.BackColor = $t.Error
-          }
+          Append-Log "Row $($p.Row): $($row.Cells["Status"].Value) - $($row.Cells["Message"].Value)"
         }
       }
       "RowSkip" {
-        if(-not $script:RowWidgets.ContainsKey($p.Row)){
-          $script:RowWidgets[$p.Row] = New-RowCard -Row $p.Row -FileName $p.File
-        }
-        $w = $script:RowWidgets[$p.Row]
-        $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
-        $w.Running = $false
-        $w.Sub.Text = "Skipped"
-        $w.Fill.Left = 0
-        $w.Fill.Width = 60
-        $w.Card.BackColor = $t.Border
-        if($w.Badge){
-          $w.Badge.Text = "Skipped"
-          $w.Badge.BackColor = $t.Border
-        }
+        $row = Ensure-GridRow -rowId $p.Row -fileName $p.File -ticket $p.Ticket -user $p.User
+        Set-RowStatus -row $row -status "Skipped" -message $p.Message -state "skipped"
+        $row.Cells["Progress"].Value = "-"
+        Append-Log "Row $($p.Row) skipped: $($p.Message)"
       }
     }
   }
 
   if(-not $script:SyncHash.Running -and $script:PSInstance){
     $uiTimer.Stop()
-    $animTimer.Stop()
-    $statusTimer.Stop()
+    $progressTimer.Stop()
     $btnStart.Enabled = $true
     $btnStop.Enabled = $false
     $btnOpen.Enabled = $true
@@ -1131,63 +1273,18 @@ $uiTimer.Add_Tick({
     $script:PSInstance.Dispose()
     $script:PSInstance = $null
 
-    $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
-  foreach ($k in $script:RowWidgets.Keys) {
-    $w = $script:RowWidgets[$k]
-    if($w.Running){
-      $w.Running = $false
-      $w.Sub.Text = "Stopped"
-      $w.Fill.Left = 0
-      $w.Fill.Width = 60
-      $w.Card.BackColor = $t.Border
-      if($w.Badge){
-        $w.Badge.Text = "Stopped"
-        $w.Badge.BackColor = $t.Border
-      }
-    } elseif($w.Badge -and ($w.Badge.Text -eq "Pending" -or $w.Badge.Text -eq "Working")){
-      $exists = $false
-      try {
-        $exists = Test-Path -LiteralPath (Join-Path $OutDir $w.File)
-      } catch {}
-      if($exists){
-        $w.Badge.Text = "OK"
-        $w.Badge.BackColor = $t.Success
-        $w.Sub.Text = "Saved"
-      } else {
-        $w.Badge.Text = "Stopped"
-        $w.Badge.BackColor = $t.Border
-        $w.Sub.Text = "Stopped"
-      }
-    }
-  }
-
     if($script:SyncHash.Error){
-      $lblStatus.Text = "FAILED: " + $script:SyncHash.Error.Message
-      [Windows.Forms.MessageBox]::Show($script:SyncHash.Error.Message, "Error") | Out-Null
+      $lblStatusText.Text = "FAILED: " + $script:SyncHash.Error.Message
+      Set-StatusPill -text "Error" -state "error"
+      Show-Toast -title "Generation failed" -body "See log for details."
+      Append-Log "Run failed: $($script:SyncHash.Error.Message)"
     } else {
       $res = $script:SyncHash.Result
-      $lblStatus.Text = "Completed. Saved=$($res.Saved) Skipped=$($res.Skipped) Errors=$($res.Errors)"
-      [Windows.Forms.MessageBox]::Show($lblStatus.Text + "`r`n`r`nOutput: $OutDir", "Done") | Out-Null
-    }
-  }
-  if($script:RunStarted){
-    $elapsed = (Get-Date) - $script:RunStarted
-    $lblElapsed.Text = ("Elapsed: " + $elapsed.ToString("mm\:ss"))
-    $done = [int]$script:LastCounters.Saved + [int]$script:LastCounters.Skipped + [int]$script:LastCounters.Errors
-    if($done -gt 0){
-      $avgSec = [Math]::Max(1, [int]($elapsed.TotalSeconds / $done))
-      $avgTs = [TimeSpan]::FromSeconds($avgSec)
-      $lblAvg.Text = ("Avg: " + $avgTs.ToString("mm\:ss"))
-      $remaining = [Math]::Max(0, ([int]$script:LastCounters.Total - $done))
-      $etaTs = [TimeSpan]::FromSeconds($avgSec * $remaining)
-      $lblEta.Text = ("ETA: " + $etaTs.ToString("mm\:ss"))
-    } else {
-      $lblAvg.Text = "Avg: --:--"
-      if([int]$script:LastCounters.Total -gt 0){
-        $lblEta.Text = "ETA: calculating..."
-      } else {
-        $lblEta.Text = "ETA: --:--"
-      }
+      $lblStatusText.Text = "Completed. Saved=$($res.Saved) Skipped=$($res.Skipped) Errors=$($res.Errors)"
+      Set-StatusPill -text "Completed" -state "done"
+      Show-Toast -title "Generation completed" -body "Saved: $($res.Saved), Skipped: $($res.Skipped), Errors: $($res.Errors)"
+      if($res.Errors -eq 0){ Start-Confetti }
+      Append-Log "Run completed: Saved=$($res.Saved) Skipped=$($res.Skipped) Errors=$($res.Errors)"
     }
   }
 })
@@ -1213,8 +1310,9 @@ $btnStart.Add_Click({
   $btnStop.Enabled = $true
   $btnOpen.Enabled = $false
 
-  $panel.Controls.Clear()
-  $script:RowWidgets.Clear()
+  $grid.Rows.Clear()
+  $script:RowMap.Clear()
+  $logBox.Clear()
 
   $script:SyncHash.Cancel = $false
   $script:SyncHash.Error = $null
@@ -1222,6 +1320,8 @@ $btnStart.Add_Click({
   $script:SyncHash.Running = $true
   $script:SyncHash.Status = "Starting"
   $script:RunStarted = Get-Date
+  $lblStatusText.Text = "Starting..."
+  Set-StatusPill -text "Running" -state "running"
 
   Write-Log "User clicked Start."
 
@@ -1252,13 +1352,14 @@ $btnStart.Add_Click({
   $script:PSInstance.BeginInvoke() | Out-Null
 
   $uiTimer.Start()
-  $animTimer.Start()
-  $statusTimer.Start()
+  $progressTimer.Start()
 })
 
 $btnStop.Add_Click({
   $script:SyncHash.Cancel = $true
   $script:SyncHash.Status = "Stopping"
+  $lblStatusText.Text = "Stopping..."
+  Set-StatusPill -text "Stopping" -state "running"
   if($script:PSInstance){
     try { $script:PSInstance.Stop() | Out-Null } catch {}
   }
@@ -1266,11 +1367,8 @@ $btnStop.Add_Click({
 })
 
 # Start timers idle-safe
-$animTimer.Start()
-$animTimer.Stop()
-$statusTimer.Start()
-$statusTimer.Stop()
-
+$progressTimer.Start()
+$progressTimer.Stop()
 Apply-Theme
 
 # Start app
