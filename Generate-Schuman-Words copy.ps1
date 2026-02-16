@@ -44,8 +44,6 @@ $Theme = @{
     Sub  = [Drawing.Color]::FromArgb(100,100,100)
     Border = [Drawing.Color]::FromArgb(228,228,232)
     Accent = [Drawing.Color]::FromArgb(0,122,255)
-    Success = [Drawing.Color]::FromArgb(220,245,231)
-    Error = [Drawing.Color]::FromArgb(255,230,230)
   }
   Dark = @{
     Bg = [Drawing.Color]::FromArgb(20,20,22)
@@ -54,8 +52,6 @@ $Theme = @{
     Sub  = [Drawing.Color]::FromArgb(170,170,170)
     Border = [Drawing.Color]::FromArgb(55,55,60)
     Accent = [Drawing.Color]::FromArgb(10,132,255)
-    Success = [Drawing.Color]::FromArgb(32,60,45)
-    Error = [Drawing.Color]::FromArgb(70,36,36)
   }
 }
 
@@ -109,30 +105,6 @@ $lblCounters.Size = New-Object Drawing.Size(820, 18)
 $lblCounters.Location = New-Object Drawing.Point(16, 76)
 $lblCounters.Text = "Total: 0 | Saved: 0 | Skipped: 0 | Errors: 0"
 $header.Controls.Add($lblCounters)
-
-$lblElapsed = New-Object Windows.Forms.Label
-$lblElapsed.AutoSize = $false
-$lblElapsed.Size = New-Object Drawing.Size(260, 18)
-$lblElapsed.Location = New-Object Drawing.Point(740, 76)
-$lblElapsed.TextAlign = "MiddleRight"
-$lblElapsed.Text = "Elapsed: 00:00"
-$header.Controls.Add($lblElapsed)
-
-$lblAvg = New-Object Windows.Forms.Label
-$lblAvg.AutoSize = $false
-$lblAvg.Size = New-Object Drawing.Size(260, 18)
-$lblAvg.Location = New-Object Drawing.Point(740, 58)
-$lblAvg.TextAlign = "MiddleRight"
-$lblAvg.Text = "Avg: --:--"
-$header.Controls.Add($lblAvg)
-
-$progOverall = New-Object Windows.Forms.ProgressBar
-$progOverall.Location = New-Object Drawing.Point(16, 96)
-$progOverall.Size = New-Object Drawing.Size(940, 8)
-$progOverall.Minimum = 0
-$progOverall.Maximum = 100
-$progOverall.Value = 0
-$header.Controls.Add($progOverall)
 
 $chkDark.Location = New-Object Drawing.Point(870, 60)
 $header.Controls.Add($chkDark)
@@ -190,30 +162,6 @@ $chkShowWord.Top = 5
 $chkShowWord.Checked = $false
 $footer.Controls.Add($chkShowWord)
 
-$chkExportPdf = New-Object Windows.Forms.CheckBox
-$chkExportPdf.Text = "Export PDF"
-$chkExportPdf.AutoSize = $true
-$chkExportPdf.Left = 540
-$chkExportPdf.Top = 5
-$chkExportPdf.Checked = $true
-$footer.Controls.Add($chkExportPdf)
-
-$chkCompact = New-Object Windows.Forms.CheckBox
-$chkCompact.Text = "Compact view"
-$chkCompact.AutoSize = $true
-$chkCompact.Left = 650
-$chkCompact.Top = 5
-$chkCompact.Checked = $false
-$footer.Controls.Add($chkCompact)
-
-$chkFast = New-Object Windows.Forms.CheckBox
-$chkFast.Text = "Fast mode"
-$chkFast.AutoSize = $true
-$chkFast.Left = 780
-$chkFast.Top = 5
-$chkFast.Checked = $false
-$footer.Controls.Add($chkFast)
-
 $btnOpen.Add_Click({ if (Test-Path -LiteralPath $OutDir) { Start-Process explorer.exe $OutDir } })
 
 function Apply-Theme {
@@ -224,15 +172,13 @@ function Apply-Theme {
   $lblTitle.ForeColor = $t.Text
   $lblStatus.ForeColor = $t.Sub
   $lblCounters.ForeColor = $t.Sub
-  $lblElapsed.ForeColor = $t.Sub
-  $lblAvg.ForeColor = $t.Sub
   foreach ($b in @($btnStart,$btnStop,$btnOpen)) {
     $b.BackColor = $t.Card
     $b.ForeColor = $t.Text
     $b.FlatAppearance.BorderColor = $t.Border
     $b.FlatAppearance.BorderSize = 1
   }
-  foreach ($c in @($chkDark,$chkShowWord,$chkExportPdf,$chkCompact,$chkFast)) { $c.ForeColor = $t.Sub }
+  foreach ($c in @($chkDark,$chkShowWord)) { $c.ForeColor = $t.Sub }
 }
 $chkDark.Add_CheckedChanged({ Apply-Theme })
 Apply-Theme
@@ -246,7 +192,7 @@ function New-RowCard([int]$Row, [string]$FileName) {
 
   $card = New-Object Windows.Forms.Panel
   $card.Width = 940
-  $card.Height = if($chkCompact.Checked){ 44 } else { 64 }
+  $card.Height = 64
   $card.Margin = New-Object Windows.Forms.Padding(6,6,6,6)
   $card.Padding = New-Object Windows.Forms.Padding(12,10,12,10)
   $card.BackColor = $t.Bg
@@ -267,14 +213,13 @@ function New-RowCard([int]$Row, [string]$FileName) {
   $lblSub.Height = 18
   $lblSub.Text = "Pending"
   $lblSub.ForeColor = $t.Sub
-  $lblSub.Location = if($chkCompact.Checked){ New-Object Drawing.Point(10,26) } else { New-Object Drawing.Point(10,32) }
-  $lblSub.Visible = (-not $chkCompact.Checked)
+  $lblSub.Location = New-Object Drawing.Point(10,32)
   $card.Controls.Add($lblSub)
 
   $barHost = New-Object Windows.Forms.Panel
   $barHost.Width = 300
   $barHost.Height = 8
-  $barHost.Location = if($chkCompact.Checked){ New-Object Drawing.Point(630, 20) } else { New-Object Drawing.Point(630, 26) }
+  $barHost.Location = New-Object Drawing.Point(630, 26)
   $barHost.BackColor = $t.Border
   $card.Controls.Add($barHost)
 
@@ -292,17 +237,6 @@ function New-RowCard([int]$Row, [string]$FileName) {
     Card=$card; Main=$lblMain; Sub=$lblSub; Host=$barHost; Fill=$fill; Running=$false
   }
 }
-
-function Apply-RowDensity {
-  foreach($k in $script:RowWidgets.Keys){
-    $w = $script:RowWidgets[$k]
-    $w.Card.Height = if($chkCompact.Checked){ 44 } else { 64 }
-    $w.Sub.Visible = (-not $chkCompact.Checked)
-    $w.Sub.Location = if($chkCompact.Checked){ New-Object Drawing.Point(10,26) } else { New-Object Drawing.Point(10,32) }
-    $w.Host.Location = if($chkCompact.Checked){ New-Object Drawing.Point(630,20) } else { New-Object Drawing.Point(630,26) }
-  }
-}
-$chkCompact.Add_CheckedChanged({ Apply-RowDensity })
 
 $animTimer = New-Object Windows.Forms.Timer
 $animTimer.Interval = 30
@@ -338,13 +272,6 @@ $script:SyncHash = [hashtable]::Synchronized(@{
 })
 
 $script:PSInstance = $null
-$script:RunStarted = $null
-$script:LastCounters = @{
-  Total = 0
-  Saved = 0
-  Skipped = 0
-  Errors = 0
-}
 
 # ----------------------------
 # Worker logic (STA runspace) - SAFE PowerShell execution
@@ -449,25 +376,20 @@ $script:WorkerLogic = {
       WriteLog $LogPath "${Prefix}: Doc Text Placeholders: <error scanning>"
     }
   }
-  function Set-WordPlaceholderValue($Doc, [string]$Key, [string]$Value, [string]$LogPath, [string]$LogPrefix, [bool]$FastMode){
+  function Set-WordPlaceholderValue($Doc, [string]$Key, [string]$Value, [string]$LogPath, [string]$LogPrefix){
     $changed = $false
     $method = "NotFound"
     $replaceCount = 0
 
-    function Count-Occurrences([string]$Text, [string]$Pattern, [bool]$WholeWord){
-      try {
-        if([string]::IsNullOrEmpty($Text)){ return 0 }
-        $escaped = [regex]::Escape($Pattern)
-        $regex = if($WholeWord){ "(?<!\\w)$escaped(?!\\w)" } else { $escaped }
-        return ([regex]::Matches($Text, $regex)).Count
-      } catch { return 0 }
-    }
-    function Replace-InRangeFast($Range, [string]$Pattern, [string]$ReplaceValue, [bool]$WholeWord, [ref]$Count){
+    function Replace-InRange($Range, [string]$Pattern, [string]$ReplaceValue, [bool]$WholeWord, [ref]$Count){
       try {
         $text = [string]$Range.Text
-        $c = Count-Occurrences -Text $text -Pattern $Pattern -WholeWord $WholeWord
-        if($c -gt 0){
-          $Count.Value += $c
+        if([string]::IsNullOrEmpty($text)){ return }
+        $escaped = [regex]::Escape($Pattern)
+        $regex = if($WholeWord){ "(?<!\\w)$escaped(?!\\w)" } else { $escaped }
+        $m = [regex]::Matches($text, $regex)
+        if($m.Count -gt 0){
+          $Count.Value += $m.Count
           $find = $Range.Find
           $find.ClearFormatting()
           $find.Replacement.ClearFormatting()
@@ -482,16 +404,66 @@ $script:WorkerLogic = {
         }
       } catch {}
     }
-    function Replace-InHeadersFooters($DocRef, [string]$Pattern, [string]$ReplaceValue, [bool]$WholeWord, [ref]$Count){
+
+    function Replace-InStoryRanges($DocRef, [string]$Pattern, [string]$ReplaceValue, [bool]$WholeWord, [ref]$Count){
+      $storyTypes = @(1,6,7,9,10,11,12)
+      foreach($stype in $storyTypes){
+        try {
+          $range = $DocRef.StoryRanges.Item($stype)
+          while($range -ne $null){
+            Replace-InRange -Range $range -Pattern $Pattern -ReplaceValue $ReplaceValue -WholeWord $WholeWord -Count $Count
+            $range = $range.NextStoryRange
+          }
+        } catch {}
+      }
+    }
+
+    function Replace-InTables($DocRef, [string]$Pattern, [string]$ReplaceValue, [bool]$WholeWord, [ref]$Count){
+      try {
+        foreach($tbl in $DocRef.Tables){
+          foreach($cell in $tbl.Range.Cells){
+            $r = $cell.Range
+            if($r.End -gt $r.Start){ $r.End = $r.End - 1 }
+            Replace-InRange -Range $r -Pattern $Pattern -ReplaceValue $ReplaceValue -WholeWord $WholeWord -Count $Count
+          }
+        }
+      } catch {}
+    }
+
+    function Replace-InShapes($DocRef, [string]$Pattern, [string]$ReplaceValue, [bool]$WholeWord, [ref]$Count){
+      try {
+        foreach($sh in $DocRef.Shapes){
+          try {
+            if($sh.TextFrame -and $sh.TextFrame.HasText -eq -1){
+              $r = $sh.TextFrame.TextRange
+              Replace-InRange -Range $r -Pattern $Pattern -ReplaceValue $ReplaceValue -WholeWord $WholeWord -Count $Count
+            }
+          } catch {}
+        }
+      } catch {}
       try {
         foreach($sec in $DocRef.Sections){
           foreach($hf in @($sec.Headers, $sec.Footers)){
             foreach($item in @($hf.Item(1), $hf.Item(2), $hf.Item(3))){
               try {
-                Replace-InRangeFast -Range $item.Range -Pattern $Pattern -ReplaceValue $ReplaceValue -WholeWord $WholeWord -Count $Count
+                foreach($sh in $item.Shapes){
+                  try {
+                    if($sh.TextFrame -and $sh.TextFrame.HasText -eq -1){
+                      $r = $sh.TextFrame.TextRange
+                      Replace-InRange -Range $r -Pattern $Pattern -ReplaceValue $ReplaceValue -WholeWord $WholeWord -Count $Count
+                    }
+                  } catch {}
+                }
               } catch {}
             }
           }
+        }
+      } catch {}
+      try {
+        foreach($ish in $DocRef.InlineShapes){
+          try {
+            if($ish.TextEffect){ continue }
+          } catch {}
         }
       } catch {}
     }
@@ -539,7 +511,7 @@ $script:WorkerLogic = {
       } catch {}
     }
 
-    # Literal Find/Replace for plain text placeholder (fast path)
+    # Literal Find/Replace for plain text placeholder (exact key and token variants)
     if(-not $changed){
       try {
         $tokens = @(
@@ -551,13 +523,15 @@ $script:WorkerLogic = {
           "[[${Key}]]"
         )
         foreach($t in $tokens){
-          Replace-InRangeFast -Range $Doc.Content -Pattern $t -ReplaceValue $Value -WholeWord $true -Count ([ref]$replaceCount)
-          Replace-InHeadersFooters -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $true -Count ([ref]$replaceCount)
+          Replace-InStoryRanges -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $true -Count ([ref]$replaceCount)
+          Replace-InTables -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $true -Count ([ref]$replaceCount)
+          Replace-InShapes -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $true -Count ([ref]$replaceCount)
         }
         if($replaceCount -eq 0){
           foreach($t in $tokens){
-            Replace-InRangeFast -Range $Doc.Content -Pattern $t -ReplaceValue $Value -WholeWord $false -Count ([ref]$replaceCount)
-            Replace-InHeadersFooters -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $false -Count ([ref]$replaceCount)
+            Replace-InStoryRanges -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $false -Count ([ref]$replaceCount)
+            Replace-InTables -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $false -Count ([ref]$replaceCount)
+            Replace-InShapes -DocRef $Doc -Pattern $t -ReplaceValue $Value -WholeWord $false -Count ([ref]$replaceCount)
           }
         }
         if($replaceCount -gt 0){
@@ -567,9 +541,7 @@ $script:WorkerLogic = {
       } catch {}
     }
 
-    if(-not $FastMode){
-      WriteLog $LogPath ("${LogPrefix}: Set $Key -> $changed via $method (replacements=$replaceCount)")
-    }
+    WriteLog $LogPath ("${LogPrefix}: Set $Key -> $changed via $method (replacements=$replaceCount)")
     return [pscustomobject]@{
       Success = [bool]$changed
       MethodUsed = $method
@@ -695,14 +667,11 @@ $script:WorkerLogic = {
     $word.Visible = [bool]$Config.ShowWord
     $word.DisplayAlerts = 0
     try {
-      $word.ScreenUpdating = $false
       $word.Options.ConfirmConversions = $false
       $word.Options.SaveNormalPrompt = $false
       $word.Options.BackgroundSave = $false
       $word.Options.AllowFastSave = $false
       $word.Options.UpdateLinksAtOpen = $false
-      $word.Options.CheckSpellingAsYouType = $false
-      $word.Options.CheckGrammarAsYouType = $false
     } catch {}
     try {
       # 3 = msoAutomationSecurityForceDisable (avoid macro prompts)
@@ -713,7 +682,7 @@ $script:WorkerLogic = {
     $wdFormatDOCX = 16
     $wdFormatPDF = 17
 
-    if(-not $templateInspected -and -not $Config.FastMode){
+    if(-not $templateInspected){
       Inspect-Template -WordApp $word -TemplatePath $Config.TemplatePath -LogPath $Config.LogPath
       $templateInspected = $true
     }
@@ -749,7 +718,6 @@ $script:WorkerLogic = {
       $filePath = Get-UniquePath -Dir $Config.OutDir -BaseName $fileName
 
       # UI row start
-      $rowStart = Get-Date
       $SyncHash.Status = "Saving $fileName"
       $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStart"; Row=$r; File=$fileName })
       WriteLog $Config.LogPath "Row ${r} start: $fileName"
@@ -764,9 +732,7 @@ $script:WorkerLogic = {
         # Open existing file (not template) so we can Save() directly
         $doc = $word.Documents.Open($filePath, $false, $false, $false)
         WriteLog $Config.LogPath "Row ${r}: Doc opened"
-        if(-not $Config.FastMode){
-          Log-DocPlaceholders -Doc $doc -LogPath $Config.LogPath -Prefix "Row ${r}"
-        }
+        Log-DocPlaceholders -Doc $doc -LogPath $Config.LogPath -Prefix "Row ${r}"
 
         try {
           $prot = $doc.ProtectionType
@@ -798,28 +764,23 @@ $script:WorkerLogic = {
         }
 
         foreach($key in $forced.Keys){
-          [void](Set-WordPlaceholderValue -Doc $doc -Key $key -Value $forced[$key] -LogPath $Config.LogPath -LogPrefix "Row ${r}" -FastMode $Config.FastMode)
+          [void](Set-WordPlaceholderValue -Doc $doc -Key $key -Value $forced[$key] -LogPath $Config.LogPath -LogPrefix "Row ${r}")
         }
 
         WriteLog $Config.LogPath "Row ${r}: Saving"
         $doc.Save()
         WriteLog $Config.LogPath "Row ${r}: Saved"
 
-        if($Config.ExportPdf){
-          # Export PDF
-          $pdfPath = [System.IO.Path]::ChangeExtension([string]$filePath, ".pdf")
-          try {
-            $doc.ExportAsFixedFormat($pdfPath, $wdFormatPDF)
-            WriteLog $Config.LogPath "Row ${r}: PDF saved -> $pdfPath"
-            $sheet.Cells.Item($r,$statusCol).Value2 = "OK"
-            $sheet.Cells.Item($r,$pdfCol).Value2 = $pdfPath
-          } catch {
-            WriteLog $Config.LogPath "Row ${r}: PDF export failed -> $($_.Exception.Message)"
-            $sheet.Cells.Item($r,$statusCol).Value2 = "FAILED: PDF export"
-            $sheet.Cells.Item($r,$pdfCol).Value2 = ""
-          }
-        } else {
+        # Export PDF
+        $pdfPath = [System.IO.Path]::ChangeExtension([string]$filePath, ".pdf")
+        try {
+          $doc.ExportAsFixedFormat($pdfPath, $wdFormatPDF)
+          WriteLog $Config.LogPath "Row ${r}: PDF saved -> $pdfPath"
           $sheet.Cells.Item($r,$statusCol).Value2 = "OK"
+          $sheet.Cells.Item($r,$pdfCol).Value2 = $pdfPath
+        } catch {
+          WriteLog $Config.LogPath "Row ${r}: PDF export failed -> $($_.Exception.Message)"
+          $sheet.Cells.Item($r,$statusCol).Value2 = "FAILED: PDF export"
           $sheet.Cells.Item($r,$pdfCol).Value2 = ""
         }
 
@@ -829,12 +790,6 @@ $script:WorkerLogic = {
         Release-Com $doc; $doc=$null
 
         $saved++
-        try {
-          $ms = [int]((Get-Date) - $rowStart).TotalMilliseconds
-          if(-not $Config.FastMode){
-            WriteLog $Config.LogPath ("Row ${r}: Done in ${ms} ms")
-          }
-        } catch {}
         WriteLog $Config.LogPath "Saved: $filePath"
         $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$true })
       }
@@ -897,20 +852,9 @@ $uiTimer.Add_Tick({
         $panel.Controls.Clear()
         $script:RowWidgets.Clear()
         $lblCounters.Text = "Total: $($p.Total) | Saved: 0 | Skipped: 0 | Errors: 0"
-        if($p.Total -gt 0){
-          $progOverall.Maximum = $p.Total
-          $progOverall.Value = 0
-        }
       }
       "Counters" {
         $lblCounters.Text = "Total: $($p.Total) | Saved: $($p.Saved) | Skipped: $($p.Skipped) | Errors: $($p.Errors)"
-        $done = [int]$p.Saved + [int]$p.Skipped + [int]$p.Errors
-        if($progOverall.Maximum -ne $p.Total){ $progOverall.Maximum = [Math]::Max(1, [int]$p.Total) }
-        $progOverall.Value = [Math]::Min($progOverall.Maximum, $done)
-        $script:LastCounters.Total = [int]$p.Total
-        $script:LastCounters.Saved = [int]$p.Saved
-        $script:LastCounters.Skipped = [int]$p.Skipped
-        $script:LastCounters.Errors = [int]$p.Errors
       }
       "RowStart" {
         if(-not $script:RowWidgets.ContainsKey($p.Row)){
@@ -956,18 +900,6 @@ $uiTimer.Add_Tick({
       [Windows.Forms.MessageBox]::Show($lblStatus.Text + "`r`n`r`nOutput: $OutDir", "Done") | Out-Null
     }
   }
-  if($script:RunStarted){
-    $elapsed = (Get-Date) - $script:RunStarted
-    $lblElapsed.Text = ("Elapsed: " + $elapsed.ToString("mm\:ss"))
-    $done = [int]$script:LastCounters.Saved + [int]$script:LastCounters.Skipped + [int]$script:LastCounters.Errors
-    if($done -gt 0){
-      $avgSec = [Math]::Max(1, [int]($elapsed.TotalSeconds / $done))
-      $avgTs = [TimeSpan]::FromSeconds($avgSec)
-      $lblAvg.Text = ("Avg: " + $avgTs.ToString("mm\:ss"))
-    } else {
-      $lblAvg.Text = "Avg: --:--"
-    }
-  }
 })
 
 # ----------------------------
@@ -995,7 +927,6 @@ $btnStart.Add_Click({
   $script:SyncHash.Result = $null
   $script:SyncHash.Running = $true
   $script:SyncHash.Status = "Starting"
-  $script:RunStarted = Get-Date
 
   Write-Log "User clicked Start."
 
@@ -1016,8 +947,6 @@ $btnStart.Add_Click({
     LogPath = $LogPath
     PreferredSheet = $PreferredSheet
     ShowWord = $chkShowWord.Checked
-    ExportPdf = $chkExportPdf.Checked
-    FastMode = $chkFast.Checked
   }) | Out-Null
 
   $script:PSInstance.BeginInvoke() | Out-Null
