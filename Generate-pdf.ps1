@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 param(
   # >>> CHANGE EXCEL DEFAULT NAME HERE if the planning file is renamed again <<<
-  [string]$ExcelPath = (Join-Path $PSScriptRoot "The Human List.xlsx"),
+  [string]$ExcelPath = (Join-Path $PSScriptRoot "Schuman List.xlsx"),
   [string]$TemplatePath = (Join-Path $PSScriptRoot "Reception_ITequipment.docx"),
   [string]$OutDir = (Join-Path $PSScriptRoot "WORD files"),
   [string]$LogPath = (Join-Path $PSScriptRoot "Generate-Schuman-Words.log"),
@@ -42,7 +42,7 @@ function Resolve-ExcelPath {
 
   $dlg = New-Object System.Windows.Forms.OpenFileDialog
   $dlg.InitialDirectory = $PSScriptRoot
-  $dlg.FileName = "The Human List.xlsx"
+  $dlg.FileName = "Schuman List.xlsx"
   $dlg.Filter = "Excel Files (*.xlsx)|*.xlsx"
   $dlg.Multiselect = $false
   $dlg.Title = "Select Excel planning file"

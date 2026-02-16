@@ -35,7 +35,7 @@ param(
   [string]$PhoneHeader = "PI",
   [string]$ActionHeader = "Estado de RITM",
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
-  [string]$DefaultExcelName = "The Human List.xlsx",
+  [string]$DefaultExcelName = "Schuman List.xlsx",
   [string]$DefaultStartDir = $PSScriptRoot
 )
 
@@ -617,6 +617,111 @@ function Extract-Ticket_JSONv2 {
       return s(rec.label || rec.value || "");
     }
 
+    function isTaskOpen(stateValue){
+      var sv = s(stateValue).toLowerCase();
+      if (!sv) return true;
+      if (sv === '3' || sv === '4' || sv === '7') return false;
+      if (sv === 'closed complete' || sv === 'closed incomplete' || sv === 'closed') return false;
+      if (sv === 'cancelled' || sv === 'canceled') return false;
+      return true;
+    }
+
+    function countOpenCatalogTasks(reqItemSysId, ritmNumber){
+      if (!looksSysId(reqItemSysId)) return 0;
+      var rowsAll = [];
+
+      var q1 = 'request_item=' + reqItemSysId;
+      var p1 = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(q1);
+      var o1 = httpGetJsonV2(p1);
+      var r1 = (o1 && o1.records) ? o1.records : ((o1 && o1.result) ? o1.result : []);
+      if (Array.isArray(r1)) rowsAll = rowsAll.concat(r1);
+
+      // Fallback: dot-walk by RITM number in case request_item sys_id query is ACL-limited.
+      if (s(ritmNumber)) {
+        var q2 = 'request_item.number=' + ritmNumber;
+        var p2 = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(q2);
+        var o2 = httpGetJsonV2(p2);
+        var r2 = (o2 && o2.records) ? o2.records : ((o2 && o2.result) ? o2.result : []);
+        if (Array.isArray(r2)) rowsAll = rowsAll.concat(r2);
+      }
+
+      // De-duplicate by task number/sys_id.
+      var seen = {};
+      var rows = [];
+      for (var i0 = 0; i0 < rowsAll.length; i0++) {
+        var k = s(rowsAll[i0].number || rowsAll[i0].sys_id || ("idx_" + i0));
+        if (!seen[k]) {
+          seen[k] = true;
+          rows.push(rowsAll[i0]);
+        }
+      }
+
+      if (!Array.isArray(rows)) return 0;
+      var open = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var st = s(rows[i].state || "");
+        if (isTaskOpen(st)) open++;
+      }
+      return open;
+    }
+
+    function getRows(path, query){
+      var p = path + '?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(query);
+      var o = httpGetJsonV2(p);
+      var rows = (o && o.records) ? o.records : ((o && o.result) ? o.result : []);
+      return Array.isArray(rows) ? rows : [];
+    }
+
+    function getRitmActivitiesText(reqItemSysId, ritmNumber){
+      var out = [];
+
+      // Standard activity/journal
+      if (looksSysId(reqItemSysId)) {
+        var j1 = getRows('/sys_journal_field.do', 'name=sc_req_item^element_id=' + reqItemSysId);
+        for (var i1 = 0; i1 < j1.length; i1++) {
+          var v1 = s(j1[i1].value || j1[i1].message || j1[i1].comments || j1[i1].work_notes || "");
+          if (v1) out.push(v1);
+        }
+      }
+
+      // Custom activity table provided by you
+      var activityTable = '/activity_ee4a85aa3bcf3e14ca382f37f4e45a20.do';
+      var aAll = [];
+      if (looksSysId(reqItemSysId)) {
+        aAll = aAll.concat(getRows(activityTable, 'request_item=' + reqItemSysId));
+        aAll = aAll.concat(getRows(activityTable, 'element_id=' + reqItemSysId));
+        aAll = aAll.concat(getRows(activityTable, 'parent=' + reqItemSysId));
+      }
+      if (s(ritmNumber)) {
+        aAll = aAll.concat(getRows(activityTable, 'number=' + ritmNumber));
+        aAll = aAll.concat(getRows(activityTable, 'documentkey=' + ritmNumber));
+      }
+      for (var i2 = 0; i2 < aAll.length; i2++) {
+        var v2 = s(
+          aAll[i2].value ||
+          aAll[i2].message ||
+          aAll[i2].comments ||
+          aAll[i2].work_notes ||
+          aAll[i2].text ||
+          aAll[i2].description ||
+          aAll[i2].u_message ||
+          ""
+        );
+        if (v2) out.push(v2);
+      }
+      return out.join(' ');
+    }
+
+    function extractMachineFromActivityText(activityText){
+      var txt = s(activityText);
+      if (!txt) return "";
+      var hasDeviceHint = /laptop|hybrid/i.test(txt);
+      if (!hasDeviceHint) return "";
+
+      var m = txt.match(/\b(?:02PI20[A-Z0-9_-]*|ITECBRUN[A-Z0-9_-]*|MUSTBRUN[A-Z0-9_-]*)\b/i);
+      return m ? s(m[0]).toUpperCase() : "";
+    }
+
     // --- Main record fetch ---
     var q1 = 'number=' + '$Ticket';
     var p1 = '/$table.do?JSONv2&sysparm_limit=1&sysparm_query=' + encodeURIComponent(q1);
@@ -646,6 +751,20 @@ function Extract-Ticket_JSONv2 {
       if (ciName) ciVal = ciName;
     }
 
+    // --- RITM-specific enrichments ---
+    var openTaskCount = 0;
+    if ('$table' === 'sc_req_item') {
+      openTaskCount = countOpenCatalogTasks(s(r1.sys_id || ""), '$Ticket');
+
+      // If activities mention laptop/hybrid and contain a PI machine id,
+      // prefer that value for Excel PI write-back.
+      var acts = getRitmActivitiesText(s(r1.sys_id || ""), '$Ticket');
+      var piFromActivity = extractMachineFromActivityText(acts);
+      if (piFromActivity) {
+        ciVal = piFromActivity;
+      }
+    }
+
     // --- Determine status (state) ---
     var stVal = s(r1.state || "");
     var stLabel = resolveStateLabel('$table', stVal);
@@ -658,6 +777,9 @@ function Extract-Ticket_JSONv2 {
     };
     var stFallback = (stMap['$table'] && stMap['$table'][stVal]) ? stMap['$table'][stVal] : "";
     var stOut = stLabel ? stLabel : (stFallback ? stFallback : stVal);
+    if ('$table' === 'sc_req_item' && openTaskCount > 0) {
+      stOut = 'Open:' + openTaskCount;
+    }
 
     // Return normalized object
     return JSON.stringify({
@@ -669,6 +791,7 @@ function Extract-Ticket_JSONv2 {
       status:stOut,
       status_value:stVal,
       status_label:stLabel,
+      open_tasks:openTaskCount,
       query:p1
     });
   } catch(e) {

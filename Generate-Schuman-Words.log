@@ -132,3 +132,54 @@
 [2026-02-16 20:54:51] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
 [2026-02-16 20:54:52] Excel saved
 [2026-02-16 20:54:52] === RUN END === Total=20 Saved=3 Skipped=0 Errors=0
+[2026-02-16 21:08:08] Running auto-excel.ps1 before PDF generation.
+[2026-02-16 21:08:36] User clicked Start.
+[2026-02-16 21:08:36] === RUN START ===
+[2026-02-16 21:08:36] Opening Excel
+[2026-02-16 21:08:37] Excel opened
+[2026-02-16 21:08:37] Using sheet: BRU
+[2026-02-16 21:08:37] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 21:08:37] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 21:08:37] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 21:08:37] Rows detected: 20
+[2026-02-16 21:08:39] Row 2 start: RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-16 21:08:42] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.pdf
+[2026-02-16 21:08:42] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-16 21:08:42] Row 3 start: RITM0493919_Ledio AHMETAJ.docx
+[2026-02-16 21:08:43] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.pdf
+[2026-02-16 21:08:44] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.docx
+[2026-02-16 21:08:44] Row 4 start: RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 21:08:46] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.pdf
+[2026-02-16 21:08:46] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 21:08:46] Row 5 start: RITM0493920_UNKNOWN_NAME.docx
+[2026-02-16 21:08:48] Row 5: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_UNKNOWN_NAME.pdf
+[2026-02-16 21:08:48] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_UNKNOWN_NAME.docx
+[2026-02-16 21:08:48] Excel saved
+[2026-02-16 21:08:48] === RUN END === Total=20 Saved=4 Skipped=0 Errors=0
+[2026-02-16 21:11:23] Running auto-excel.ps1 before PDF generation.
+[2026-02-16 21:11:43] User clicked Start.
+[2026-02-16 21:11:43] === RUN START ===
+[2026-02-16 21:11:43] Opening Excel
+[2026-02-16 21:11:44] Excel opened
+[2026-02-16 21:11:44] Using sheet: BRU
+[2026-02-16 21:11:44] Excel column status: Col=7 Created=False Score=2
+[2026-02-16 21:11:44] Excel column docx:   Col=8 Created=False Score=2
+[2026-02-16 21:11:44] Excel column pdf:    Col=9 Created=False Score=2
+[2026-02-16 21:11:44] Rows detected: 20
+[2026-02-16 21:11:48] Row 2 start: RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-16 21:11:52] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.pdf
+[2026-02-16 21:11:52] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-16 21:11:52] Row 3 start: RITM0493919_Ledio AHMETAJ.docx
+[2026-02-16 21:11:54] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.pdf
+[2026-02-16 21:11:54] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.docx
+[2026-02-16 21:11:54] Row 4 start: RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 21:11:55] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.pdf
+[2026-02-16 21:11:55] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 21:11:55] Row 5 start: RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 21:11:56] Row 5: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.pdf
+[2026-02-16 21:11:56] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-16 21:11:56] Row 6 start: RITM0427680_Juan Carlos DIOSES.docx
+[2026-02-16 21:11:57] Row 6: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0427680_Juan Carlos DIOSES.pdf
+[2026-02-16 21:11:57] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0427680_Juan Carlos DIOSES.docx
+[2026-02-16 21:11:58] Excel saved
+[2026-02-16 21:11:58] === RUN END === Total=20 Saved=5 Skipped=0 Errors=0
