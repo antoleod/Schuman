@@ -46,6 +46,8 @@ $Theme = @{
     Accent = [Drawing.Color]::FromArgb(0,122,255)
     Success = [Drawing.Color]::FromArgb(220,245,231)
     Error = [Drawing.Color]::FromArgb(255,230,230)
+    BadgeText = [Drawing.Color]::FromArgb(30,30,30)
+    Shadow = [Drawing.Color]::FromArgb(235,235,240)
   }
   Dark = @{
     Bg = [Drawing.Color]::FromArgb(20,20,22)
@@ -56,6 +58,8 @@ $Theme = @{
     Accent = [Drawing.Color]::FromArgb(10,132,255)
     Success = [Drawing.Color]::FromArgb(32,60,45)
     Error = [Drawing.Color]::FromArgb(70,36,36)
+    BadgeText = [Drawing.Color]::FromArgb(230,230,230)
+    Shadow = [Drawing.Color]::FromArgb(28,28,32)
   }
 }
 
@@ -64,10 +68,11 @@ $Theme = @{
 # ----------------------------
 $form = New-Object Windows.Forms.Form
 $form.Text = "Schuman Word Generator"
-$form.Size = New-Object Drawing.Size(1040, 720)
+$form.Size = New-Object Drawing.Size(1120, 780)
 $form.StartPosition = "CenterScreen"
-$form.FormBorderStyle = "FixedDialog"
-$form.MaximizeBox = $false
+$form.FormBorderStyle = "Sizable"
+$form.MaximizeBox = $true
+$form.MinimumSize = New-Object Drawing.Size(920, 680)
 try {
   $prop = $form.GetType().GetProperty("DoubleBuffered", "NonPublic,Instance")
   if ($prop) { $prop.SetValue($form, $true, $null) }
@@ -76,21 +81,22 @@ try {
 }
 $form.Font = New-Object Drawing.Font("Segoe UI", 9)
 
+
 $chkDark = New-Object Windows.Forms.CheckBox
 $chkDark.Text = "Dark mode"
 $chkDark.AutoSize = $true
 $chkDark.Checked = $true
 
 $header = New-Object Windows.Forms.Panel
-$header.Location = New-Object Drawing.Point(14, 14)
-$header.Size = New-Object Drawing.Size(996, 106)
+$header.Dock = "Top"
+$header.Height = 130
 $header.Padding = New-Object Windows.Forms.Padding(16,14,16,14)
-$header.BorderStyle = "FixedSingle"
+$header.BorderStyle = "None"
 $form.Controls.Add($header)
 
 $lblTitle = New-Object Windows.Forms.Label
 $lblTitle.AutoSize = $true
-$lblTitle.Font = New-Object Drawing.Font("Segoe UI", 16, [Drawing.FontStyle]::Bold)
+$lblTitle.Font = New-Object Drawing.Font("Segoe UI", 18, [Drawing.FontStyle]::Bold)
 $lblTitle.Text = "Reception IT Equipment -> Word (.docx)"
 $lblTitle.Location = New-Object Drawing.Point(16, 10)
 $header.Controls.Add($lblTitle)
@@ -101,21 +107,24 @@ $lblStatus.Size = New-Object Drawing.Size(820, 22)
 $lblStatus.Location = New-Object Drawing.Point(16, 52)
 $lblStatus.Font = New-Object Drawing.Font("Segoe UI", 10)
 $lblStatus.Text = "Ready."
+$lblStatus.Anchor = "Top,Left,Right"
 $header.Controls.Add($lblStatus)
 
 $lblCounters = New-Object Windows.Forms.Label
 $lblCounters.AutoSize = $false
 $lblCounters.Size = New-Object Drawing.Size(820, 18)
-$lblCounters.Location = New-Object Drawing.Point(16, 76)
+$lblCounters.Location = New-Object Drawing.Point(16, 78)
 $lblCounters.Text = "Total: 0 | Saved: 0 | Skipped: 0 | Errors: 0"
+$lblCounters.Anchor = "Top,Left,Right"
 $header.Controls.Add($lblCounters)
 
 $lblElapsed = New-Object Windows.Forms.Label
 $lblElapsed.AutoSize = $false
 $lblElapsed.Size = New-Object Drawing.Size(260, 18)
-$lblElapsed.Location = New-Object Drawing.Point(740, 76)
+$lblElapsed.Location = New-Object Drawing.Point(740, 78)
 $lblElapsed.TextAlign = "MiddleRight"
 $lblElapsed.Text = "Elapsed: 00:00"
+$lblElapsed.Anchor = "Top,Right"
 $header.Controls.Add($lblElapsed)
 
 $lblAvg = New-Object Windows.Forms.Label
@@ -124,24 +133,34 @@ $lblAvg.Size = New-Object Drawing.Size(260, 18)
 $lblAvg.Location = New-Object Drawing.Point(740, 58)
 $lblAvg.TextAlign = "MiddleRight"
 $lblAvg.Text = "Avg: --:--"
+$lblAvg.Anchor = "Top,Right"
 $header.Controls.Add($lblAvg)
 
+$lblEta = New-Object Windows.Forms.Label
+$lblEta.AutoSize = $false
+$lblEta.Size = New-Object Drawing.Size(260, 18)
+$lblEta.Location = New-Object Drawing.Point(740, 40)
+$lblEta.TextAlign = "MiddleRight"
+$lblEta.Text = "ETA: --:--"
+$lblEta.Anchor = "Top,Right"
+$header.Controls.Add($lblEta)
+
 $progOverall = New-Object Windows.Forms.ProgressBar
-$progOverall.Location = New-Object Drawing.Point(16, 96)
+$progOverall.Location = New-Object Drawing.Point(16, 100)
 $progOverall.Size = New-Object Drawing.Size(940, 8)
 $progOverall.Minimum = 0
 $progOverall.Maximum = 100
 $progOverall.Value = 0
+$progOverall.Anchor = "Top,Left,Right"
 $header.Controls.Add($progOverall)
 
 $chkDark.Location = New-Object Drawing.Point(870, 60)
 $header.Controls.Add($chkDark)
 
 $listCard = New-Object Windows.Forms.Panel
-$listCard.Location = New-Object Drawing.Point(14, 132)
-$listCard.Size = New-Object Drawing.Size(996, 496)
+$listCard.Dock = "Fill"
 $listCard.Padding = New-Object Windows.Forms.Padding(14,14,14,14)
-$listCard.BorderStyle = "FixedSingle"
+$listCard.BorderStyle = "None"
 $form.Controls.Add($listCard)
 
 $panel = New-Object Windows.Forms.FlowLayoutPanel
@@ -152,10 +171,10 @@ $panel.FlowDirection = "TopDown"
 $listCard.Controls.Add($panel)
 
 $footer = New-Object Windows.Forms.Panel
-$footer.Location = New-Object Drawing.Point(14, 642)
-$footer.Size = New-Object Drawing.Size(996, 46)
+$footer.Dock = "Bottom"
+$footer.Height = 56
 $footer.Padding = New-Object Windows.Forms.Padding(16,10,16,10)
-$footer.BorderStyle = "FixedSingle"
+$footer.BorderStyle = "None"
 $form.Controls.Add($footer)
 
 $btnStart = New-Object Windows.Forms.Button
@@ -185,7 +204,6 @@ $footer.Controls.Add($btnOpen)
 $chkShowWord = New-Object Windows.Forms.CheckBox
 $chkShowWord.Text = "Show Word"
 $chkShowWord.AutoSize = $true
-$chkShowWord.Left = 430
 $chkShowWord.Top = 5
 $chkShowWord.Checked = $false
 $footer.Controls.Add($chkShowWord)
@@ -193,7 +211,6 @@ $footer.Controls.Add($chkShowWord)
 $chkExportPdf = New-Object Windows.Forms.CheckBox
 $chkExportPdf.Text = "Export PDF"
 $chkExportPdf.AutoSize = $true
-$chkExportPdf.Left = 540
 $chkExportPdf.Top = 5
 $chkExportPdf.Checked = $true
 $footer.Controls.Add($chkExportPdf)
@@ -201,7 +218,6 @@ $footer.Controls.Add($chkExportPdf)
 $chkCompact = New-Object Windows.Forms.CheckBox
 $chkCompact.Text = "Compact view"
 $chkCompact.AutoSize = $true
-$chkCompact.Left = 650
 $chkCompact.Top = 5
 $chkCompact.Checked = $false
 $footer.Controls.Add($chkCompact)
@@ -209,12 +225,49 @@ $footer.Controls.Add($chkCompact)
 $chkFast = New-Object Windows.Forms.CheckBox
 $chkFast.Text = "Fast mode"
 $chkFast.AutoSize = $true
-$chkFast.Left = 780
 $chkFast.Top = 5
 $chkFast.Checked = $false
 $footer.Controls.Add($chkFast)
 
+$chkTurbo = New-Object Windows.Forms.CheckBox
+$chkTurbo.Text = "Turbo mode"
+$chkTurbo.AutoSize = $true
+$chkTurbo.Top = 5
+$chkTurbo.Checked = $false
+$footer.Controls.Add($chkTurbo)
+
+$chkUltra = New-Object Windows.Forms.CheckBox
+$chkUltra.Text = "Ultra mode"
+$chkUltra.AutoSize = $true
+$chkUltra.Top = 5
+$chkUltra.Checked = $false
+$footer.Controls.Add($chkUltra)
+
 $btnOpen.Add_Click({ if (Test-Path -LiteralPath $OutDir) { Start-Process explorer.exe $OutDir } })
+
+$script:RowWidgets = @{}  # rowIndex -> object with shimmer panels
+
+function Layout-Footer {
+  $x = 16
+  $btnStart.Left = $x
+  $btnStart.Top = 10
+  $x += $btnStart.Width + 10
+
+  $btnStop.Left = $x
+  $btnStop.Top = 10
+  $x += $btnStop.Width + 10
+
+  $btnOpen.Left = $x
+  $btnOpen.Top = 10
+
+  $right = $footer.ClientSize.Width - 16
+  foreach($c in @($chkUltra,$chkTurbo,$chkFast,$chkCompact,$chkExportPdf,$chkShowWord)){
+    $c.Left = $right - $c.Width
+    $c.Top = 12
+    $right = $c.Left - 18
+  }
+}
+$footer.Add_Resize({ Layout-Footer })
 
 function Apply-Theme {
   $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
@@ -226,16 +279,27 @@ function Apply-Theme {
   $lblCounters.ForeColor = $t.Sub
   $lblElapsed.ForeColor = $t.Sub
   $lblAvg.ForeColor = $t.Sub
+  $lblEta.ForeColor = $t.Sub
   foreach ($b in @($btnStart,$btnStop,$btnOpen)) {
     $b.BackColor = $t.Card
     $b.ForeColor = $t.Text
     $b.FlatAppearance.BorderColor = $t.Border
     $b.FlatAppearance.BorderSize = 1
   }
-  foreach ($c in @($chkDark,$chkShowWord,$chkExportPdf,$chkCompact,$chkFast)) { $c.ForeColor = $t.Sub }
+  foreach ($c in @($chkDark,$chkShowWord,$chkExportPdf,$chkCompact,$chkFast,$chkTurbo,$chkUltra)) { $c.ForeColor = $t.Sub }
+  foreach ($k in $script:RowWidgets.Keys) {
+    $w = $script:RowWidgets[$k]
+    $w.Card.BackColor = $t.Bg
+    $w.Main.ForeColor = $t.Text
+    $w.Sub.ForeColor = $t.Sub
+    $w.Host.BackColor = $t.Border
+    $w.Fill.BackColor = $t.Accent
+    if($w.Badge){ $w.Badge.ForeColor = $t.BadgeText }
+  }
 }
 $chkDark.Add_CheckedChanged({ Apply-Theme })
 Apply-Theme
+Layout-Footer
 
 # ----------------------------
 # Per-row card + shimmer (UI thread only)
@@ -261,6 +325,17 @@ function New-RowCard([int]$Row, [string]$FileName) {
   $lblMain.Location = New-Object Drawing.Point(10,10)
   $card.Controls.Add($lblMain)
 
+  $lblBadge = New-Object Windows.Forms.Label
+  $lblBadge.AutoSize = $false
+  $lblBadge.Width = 80
+  $lblBadge.Height = 18
+  $lblBadge.TextAlign = "MiddleCenter"
+  $lblBadge.Text = "Pending"
+  $lblBadge.BackColor = $t.Border
+  $lblBadge.ForeColor = $t.BadgeText
+  $lblBadge.Location = if($chkCompact.Checked){ New-Object Drawing.Point(840,8) } else { New-Object Drawing.Point(840,10) }
+  $card.Controls.Add($lblBadge)
+
   $lblSub = New-Object Windows.Forms.Label
   $lblSub.AutoSize = $false
   $lblSub.Width = 600
@@ -274,7 +349,7 @@ function New-RowCard([int]$Row, [string]$FileName) {
   $barHost = New-Object Windows.Forms.Panel
   $barHost.Width = 300
   $barHost.Height = 8
-  $barHost.Location = if($chkCompact.Checked){ New-Object Drawing.Point(630, 20) } else { New-Object Drawing.Point(630, 26) }
+  $barHost.Location = if($chkCompact.Checked){ New-Object Drawing.Point(520, 22) } else { New-Object Drawing.Point(520, 28) }
   $barHost.BackColor = $t.Border
   $card.Controls.Add($barHost)
 
@@ -289,7 +364,7 @@ function New-RowCard([int]$Row, [string]$FileName) {
   $panel.Controls.Add($card)
 
   return [pscustomobject]@{
-    Card=$card; Main=$lblMain; Sub=$lblSub; Host=$barHost; Fill=$fill; Running=$false
+    Card=$card; Main=$lblMain; Sub=$lblSub; Host=$barHost; Fill=$fill; Badge=$lblBadge; Running=$false; File=$FileName
   }
 }
 
@@ -299,19 +374,23 @@ function Apply-RowDensity {
     $w.Card.Height = if($chkCompact.Checked){ 44 } else { 64 }
     $w.Sub.Visible = (-not $chkCompact.Checked)
     $w.Sub.Location = if($chkCompact.Checked){ New-Object Drawing.Point(10,26) } else { New-Object Drawing.Point(10,32) }
-    $w.Host.Location = if($chkCompact.Checked){ New-Object Drawing.Point(630,20) } else { New-Object Drawing.Point(630,26) }
+    $w.Host.Location = if($chkCompact.Checked){ New-Object Drawing.Point(520,22) } else { New-Object Drawing.Point(520,28) }
+    if($w.Badge){ $w.Badge.Location = if($chkCompact.Checked){ New-Object Drawing.Point(840,8) } else { New-Object Drawing.Point(840,10) } }
   }
 }
 $chkCompact.Add_CheckedChanged({ Apply-RowDensity })
 
+$script:AnimPhase = 0.0
 $animTimer = New-Object Windows.Forms.Timer
-$animTimer.Interval = 30
+$animTimer.Interval = 20
 $animTimer.Add_Tick({
+  $script:AnimPhase = ($script:AnimPhase + 0.04)
+  if($script:AnimPhase -gt 1.0){ $script:AnimPhase = 0.0 }
   foreach ($k in $script:RowWidgets.Keys) {
     $w = $script:RowWidgets[$k]
     if (-not $w.Running) { continue }
-    $w.Fill.Left += 12
-    if ($w.Fill.Left -gt $w.Host.Width) { $w.Fill.Left = -$w.Fill.Width }
+    $span = $w.Host.Width + $w.Fill.Width
+    $w.Fill.Left = [int](($script:AnimPhase * $span) - $w.Fill.Width)
   }
 })
 
@@ -633,7 +712,8 @@ $script:WorkerLogic = {
     }
   }
 
-  $excel=$null; $wb=$null; $sheet=$null; $word=$null; $doc=$null
+  $excel=$null; $wb=$null; $sheet=$null; $word=$null; $doc=$null; $templateDoc=$null; $ultraDoc=$null
+  $excelCalc = $null
   $saved=0; $skipped=0; $errors=0; $total=0
   $templateInspected = $false
 
@@ -648,11 +728,19 @@ $script:WorkerLogic = {
 
     WriteLog $Config.LogPath "=== RUN START ==="
 
+    $fast = [bool]($Config.FastMode -or $Config.TurboMode)
+
     $SyncHash.Status = "Opening Excel"
     WriteLog $Config.LogPath "Opening Excel"
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
+    try {
+      $excel.ScreenUpdating = $false
+      $excel.EnableEvents = $false
+      $excelCalc = $excel.Calculation
+      $excel.Calculation = -4135 # xlCalculationManual
+    } catch {}
     # Open writable so we can update status/PDF path
     $wb = $excel.Workbooks.Open($Config.ExcelPath, $null, $false)
     WriteLog $Config.LogPath "Excel opened"
@@ -713,7 +801,20 @@ $script:WorkerLogic = {
     $wdFormatDOCX = 16
     $wdFormatPDF = 17
 
-    if(-not $templateInspected -and -not $Config.FastMode){
+    if($Config.TurboMode){
+      try {
+        $templateDoc = $word.Documents.Open($Config.TemplatePath, $false, $true, $false)
+        if(-not $fast){ WriteLog $Config.LogPath "Template opened in memory (Turbo)" }
+      } catch {
+        WriteLog $Config.LogPath ("Turbo template open failed: " + $_.Exception.Message)
+        $templateDoc = $null
+      }
+    }
+    if($Config.UltraMode -and -not $Config.TurboMode){
+      $SyncHash.Status = "Ultra requires Turbo mode"
+    }
+
+    if(-not $templateInspected -and -not $fast){
       Inspect-Template -WordApp $word -TemplatePath $Config.TemplatePath -LogPath $Config.LogPath
       $templateInspected = $true
     }
@@ -730,6 +831,7 @@ $script:WorkerLogic = {
       }
       if([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($ticket) -or [string]::IsNullOrWhiteSpace($pi)){
         $skipped++
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowSkip"; Row=$r; File="Skipped (missing data)" })
         $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=$saved; Skipped=$skipped; Errors=$errors })
         continue
       }
@@ -752,19 +854,47 @@ $script:WorkerLogic = {
       $rowStart = Get-Date
       $SyncHash.Status = "Saving $fileName"
       $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStart"; Row=$r; File=$fileName })
+      $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Creating file..." })
       WriteLog $Config.LogPath "Row ${r} start: $fileName"
-      WriteLog $Config.LogPath "Row ${r} values: Name='$name' Ticket='$ticket' PI='$pi' Equipment='$equipment'"
+      if(-not $fast){
+        WriteLog $Config.LogPath "Row ${r} values: Name='$name' Ticket='$ticket' PI='$pi' Equipment='$equipment'"
+      }
 
       try {
-        # overwrite target by copying template first (avoids SaveAs/SaveAs2 COM issues)
-        if(Test-Path -LiteralPath $filePath){ Remove-Item -LiteralPath $filePath -Force -ErrorAction SilentlyContinue }
-        Copy-Item -LiteralPath $Config.TemplatePath -Destination $filePath -Force
+        if($Config.TurboMode){
+          $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Creating from template..." })
+          if($Config.TurboMode -and $Config.UltraMode){
+            if(-not $ultraDoc){
+              $ultraDoc = $word.Documents.Open($Config.TemplatePath, $false, $false, $false)
+              if(-not $fast){ WriteLog $Config.LogPath "Ultra doc opened once" }
+            }
+            $doc = $ultraDoc
+          } else {
+            $doc = $word.Documents.Add()
+            if($templateDoc){
+              $doc.Range.FormattedText = $templateDoc.Range.FormattedText
+            } else {
+              $doc = $word.Documents.Add($Config.TemplatePath)
+            }
+            if(-not $fast){ WriteLog $Config.LogPath "Row ${r}: Doc created in memory" }
+          }
+        } else {
+          # overwrite target by copying template first (avoids SaveAs/SaveAs2 COM issues)
+          if(Test-Path -LiteralPath $filePath){ Remove-Item -LiteralPath $filePath -Force -ErrorAction SilentlyContinue }
+          Copy-Item -LiteralPath $Config.TemplatePath -Destination $filePath -Force
 
-        WriteLog $Config.LogPath "Row ${r}: Opening copied doc"
-        # Open existing file (not template) so we can Save() directly
-        $doc = $word.Documents.Open($filePath, $false, $false, $false)
-        WriteLog $Config.LogPath "Row ${r}: Doc opened"
-        if(-not $Config.FastMode){
+          WriteLog $Config.LogPath "Row ${r}: Opening copied doc"
+          $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Opening file..." })
+          # Open existing file (not template) so we can Save() directly
+          $doc = $word.Documents.Open($filePath, $false, $false, $false)
+          WriteLog $Config.LogPath "Row ${r}: Doc opened"
+        }
+        if($SyncHash.Cancel){
+          try { $doc.Close($false) | Out-Null } catch {}
+          Release-Com $doc; $doc=$null
+          break
+        }
+        if(-not $fast){
           Log-DocPlaceholders -Doc $doc -LogPath $Config.LogPath -Prefix "Row ${r}"
         }
 
@@ -797,18 +927,37 @@ $script:WorkerLogic = {
           "FieldITEquipment"  = $equipment
         }
 
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Filling fields..." })
         foreach($key in $forced.Keys){
-          [void](Set-WordPlaceholderValue -Doc $doc -Key $key -Value $forced[$key] -LogPath $Config.LogPath -LogPrefix "Row ${r}" -FastMode $Config.FastMode)
+          if($SyncHash.Cancel){ break }
+          [void](Set-WordPlaceholderValue -Doc $doc -Key $key -Value $forced[$key] -LogPath $Config.LogPath -LogPrefix "Row ${r}" -FastMode $fast)
+        }
+        if($SyncHash.Cancel){
+          try { $doc.Close($false) | Out-Null } catch {}
+          Release-Com $doc; $doc=$null
+          break
         }
 
-        WriteLog $Config.LogPath "Row ${r}: Saving"
-        $doc.Save()
-        WriteLog $Config.LogPath "Row ${r}: Saved"
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Saving..." })
+        if($Config.TurboMode){
+          $doc.SaveAs2([string]$filePath, $wdFormatDOCX)
+          if($Config.UltraMode){
+            try {
+              # reset content for next iteration
+              $doc.Range.FormattedText = $templateDoc.Range.FormattedText
+            } catch {}
+          }
+        } else {
+          WriteLog $Config.LogPath "Row ${r}: Saving"
+          $doc.Save()
+          WriteLog $Config.LogPath "Row ${r}: Saved"
+        }
 
         if($Config.ExportPdf){
           # Export PDF
           $pdfPath = [System.IO.Path]::ChangeExtension([string]$filePath, ".pdf")
           try {
+            $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Exporting PDF..." })
             $doc.ExportAsFixedFormat($pdfPath, $wdFormatPDF)
             WriteLog $Config.LogPath "Row ${r}: PDF saved -> $pdfPath"
             $sheet.Cells.Item($r,$statusCol).Value2 = "OK"
@@ -831,9 +980,9 @@ $script:WorkerLogic = {
         $saved++
         try {
           $ms = [int]((Get-Date) - $rowStart).TotalMilliseconds
-          if(-not $Config.FastMode){
-            WriteLog $Config.LogPath ("Row ${r}: Done in ${ms} ms")
-          }
+        if(-not $fast){
+          WriteLog $Config.LogPath ("Row ${r}: Done in ${ms} ms")
+        }
         } catch {}
         WriteLog $Config.LogPath "Saved: $filePath"
         $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$true })
@@ -870,9 +1019,13 @@ $script:WorkerLogic = {
   }
   finally {
     try { if($wb){ $wb.Close($false) | Out-Null } } catch {}
+    try { if($excel -and $excelCalc -ne $null){ $excel.Calculation = $excelCalc } } catch {}
     try { if($excel){ $excel.Quit() | Out-Null } } catch {}
     try { if($word){ $word.Quit() | Out-Null } } catch {}
 
+    try { if($ultraDoc){ $ultraDoc.Close($false) | Out-Null } } catch {}
+    Release-Com $ultraDoc
+    Release-Com $templateDoc
     Release-Com $sheet
     Release-Com $wb
     Release-Com $excel
@@ -917,20 +1070,58 @@ $uiTimer.Add_Tick({
           $script:RowWidgets[$p.Row] = New-RowCard -Row $p.Row -FileName $p.File
         }
         $w = $script:RowWidgets[$p.Row]
-        $w.Sub.Text = "Saving..."
+        $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+        $w.Sub.Text = "Creating..."
         $w.Running = $true
+        if($w.Badge){
+          $w.Badge.Text = "Working"
+          $w.Badge.BackColor = $t.Border
+        }
+      }
+      "RowStage" {
+        if($script:RowWidgets.ContainsKey($p.Row)){
+          $w = $script:RowWidgets[$p.Row]
+          $w.Sub.Text = $p.Stage
+        }
       }
       "RowDone" {
         $w = $script:RowWidgets[$p.Row]
         $w.Running = $false
+        $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
         if($p.Ok){
-          $w.Sub.Text = "Saved"
+          $w.Sub.Text = "Completed"
           $w.Fill.Left = 0
           $w.Fill.Width = $w.Host.Width
+          $w.Card.BackColor = $t.Success
+          if($w.Badge){
+            $w.Badge.Text = "OK"
+            $w.Badge.BackColor = $t.Success
+          }
         } else {
           $w.Sub.Text = "ERROR: $($p.Error)"
           $w.Fill.Left = 0
           $w.Fill.Width = 60
+          $w.Card.BackColor = $t.Error
+          if($w.Badge){
+            $w.Badge.Text = "Error"
+            $w.Badge.BackColor = $t.Error
+          }
+        }
+      }
+      "RowSkip" {
+        if(-not $script:RowWidgets.ContainsKey($p.Row)){
+          $script:RowWidgets[$p.Row] = New-RowCard -Row $p.Row -FileName $p.File
+        }
+        $w = $script:RowWidgets[$p.Row]
+        $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+        $w.Running = $false
+        $w.Sub.Text = "Skipped"
+        $w.Fill.Left = 0
+        $w.Fill.Width = 60
+        $w.Card.BackColor = $t.Border
+        if($w.Badge){
+          $w.Badge.Text = "Skipped"
+          $w.Badge.BackColor = $t.Border
         }
       }
     }
@@ -946,6 +1137,36 @@ $uiTimer.Add_Tick({
 
     $script:PSInstance.Dispose()
     $script:PSInstance = $null
+
+    $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+  foreach ($k in $script:RowWidgets.Keys) {
+    $w = $script:RowWidgets[$k]
+    if($w.Running){
+      $w.Running = $false
+      $w.Sub.Text = "Stopped"
+      $w.Fill.Left = 0
+      $w.Fill.Width = 60
+      $w.Card.BackColor = $t.Border
+      if($w.Badge){
+        $w.Badge.Text = "Stopped"
+        $w.Badge.BackColor = $t.Border
+      }
+    } elseif($w.Badge -and ($w.Badge.Text -eq "Pending" -or $w.Badge.Text -eq "Working")){
+      $exists = $false
+      try {
+        $exists = Test-Path -LiteralPath (Join-Path $OutDir $w.File)
+      } catch {}
+      if($exists){
+        $w.Badge.Text = "OK"
+        $w.Badge.BackColor = $t.Success
+        $w.Sub.Text = "Saved"
+      } else {
+        $w.Badge.Text = "Stopped"
+        $w.Badge.BackColor = $t.Border
+        $w.Sub.Text = "Stopped"
+      }
+    }
+  }
 
     if($script:SyncHash.Error){
       $lblStatus.Text = "FAILED: " + $script:SyncHash.Error.Message
@@ -964,8 +1185,16 @@ $uiTimer.Add_Tick({
       $avgSec = [Math]::Max(1, [int]($elapsed.TotalSeconds / $done))
       $avgTs = [TimeSpan]::FromSeconds($avgSec)
       $lblAvg.Text = ("Avg: " + $avgTs.ToString("mm\:ss"))
+      $remaining = [Math]::Max(0, ([int]$script:LastCounters.Total - $done))
+      $etaTs = [TimeSpan]::FromSeconds($avgSec * $remaining)
+      $lblEta.Text = ("ETA: " + $etaTs.ToString("mm\:ss"))
     } else {
       $lblAvg.Text = "Avg: --:--"
+      if([int]$script:LastCounters.Total -gt 0){
+        $lblEta.Text = "ETA: calculating..."
+      } else {
+        $lblEta.Text = "ETA: --:--"
+      }
     }
   }
 })
@@ -1018,6 +1247,8 @@ $btnStart.Add_Click({
     ShowWord = $chkShowWord.Checked
     ExportPdf = $chkExportPdf.Checked
     FastMode = $chkFast.Checked
+    TurboMode = $chkTurbo.Checked
+    UltraMode = $chkUltra.Checked
   }) | Out-Null
 
   $script:PSInstance.BeginInvoke() | Out-Null
@@ -1030,6 +1261,9 @@ $btnStart.Add_Click({
 $btnStop.Add_Click({
   $script:SyncHash.Cancel = $true
   $script:SyncHash.Status = "Stopping"
+  if($script:PSInstance){
+    try { $script:PSInstance.Stop() | Out-Null } catch {}
+  }
   Write-Log "User clicked Stop."
 })
 
