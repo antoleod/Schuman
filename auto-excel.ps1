@@ -34,6 +34,7 @@ param(
   [string]$NameHeader = "Name",
   [string]$PhoneHeader = "PI",
   [string]$ActionHeader = "Estado de RITM",
+  [string]$DetectedPIHeader = "Detected PI / Machine",
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
   [string]$DefaultStartDir = $PSScriptRoot
@@ -61,7 +62,26 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 # ServiceNow base URL
 # ----------------------------
 # Change this if your SNOW instance differs.
-$ServiceNowBase = "https://europarl.service-now.com"
+$InstanceBaseUrl = "https://europarl.service-now.com"
+$ServiceNowBase = $InstanceBaseUrl
+
+# Consistent URL templates
+$RitmRecordUrlTemplate         = "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_req_item.do%3Fsys_id%3D{0}%26sysparm_view%3D"
+$SctaskRecordUrlTemplate       = "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task.do%3Fsys_id%3D{0}"
+$SctaskListByNumberUrlTemplate = "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task_list.do%3Fsysparm_query%3Dnumber%3D{0}"
+
+# Closed-state handling for SCTASK open/closed detection
+$ClosedTaskStates = @(
+  "Closed Complete",
+  "Closed Incomplete",
+  "Closed Skipped",
+  "Complete",
+  "Closed"
+)
+
+# Activity Stream PI/Machine extraction behavior
+$EnableActivityStreamSearch = $true
+$WriteNotFoundText = $false
 
 # Entry point to begin SNOW navigation.
 # nav_to.do is a safe starting URL that typically triggers the app shell after SSO.
@@ -77,6 +97,12 @@ $LoginUrl = "$ServiceNowBase/nav_to.do"
 # ----------------------------
 # If true, script will open Excel in write mode and fill empty cells with extracted values.
 $WriteBackExcel = $true
+$KillExcelBeforeOpen = $true
+$StopScanAfterEmptyRows = 50
+$MaxRowsAfterFirstTicket = 300
+$ReadProgressEveryRows = 2000
+$DebugActivityTicket = "RITM0427680"
+$DebugActivityMaxChars = 4000
 
 # NameHeader/PhoneHeader/ActionHeader are provided via param().
 
@@ -108,6 +134,24 @@ function Log([string]$level, [string]$msg) {
 
   # Also write to run log file (best effort; do not crash if file write fails).
   try { Add-Content -Path $LogPath -Value $line } catch {}
+}
+
+function Close-ExcelProcessesIfRequested {
+  param([string]$Reason = "")
+  if (-not $KillExcelBeforeOpen) { return }
+  try {
+    $procs = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue)
+    if ($procs.Count -eq 0) {
+      Log "INFO" "No EXCEL process to kill. $Reason"
+      return
+    }
+    Log "INFO" "Killing EXCEL processes: $($procs.Count). $Reason"
+    $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 400
+  }
+  catch {
+    Log "ERROR" "Failed to kill EXCEL processes. $Reason error='$($_.Exception.Message)'"
+  }
 }
 
 Log "INFO" "Output folder: $OutDir"
@@ -354,25 +398,36 @@ function Read-TicketsFromExcel {
   )
 
   Log "INFO" "Opening Excel: $ExcelPath"
+  Close-ExcelProcessesIfRequested -Reason "before read open"
+  Log "INFO" "Creating Excel COM (read)..."
 
   # Excel COM object: keep invisible.
   $excel = New-Object -ComObject Excel.Application
   $excel.Visible = $false
+  $excel.DisplayAlerts = $false
+  try { $excel.AskToUpdateLinks = $false } catch {}
+  try { $excel.EnableEvents = $false } catch {}
 
   # Open workbook read-only to safely read tickets without locking for edits.
-  $wb = $excel.Workbooks.Open($ExcelPath, $null, $true) # read-only ok
+  Log "INFO" "Excel COM created (read), opening workbook..."
+  $wb = $excel.Workbooks.Open($ExcelPath, $null, $true) # read-only
+  Log "INFO" "Workbook opened (read)."
 
   # Get worksheet by name.
+  Log "INFO" "Opening worksheet '$SheetName'..."
   $ws = $wb.Worksheets.Item($SheetName)
+  Log "INFO" "Worksheet opened."
 
   # --- Build header map from first row ---
   # map[headerText] = columnNumber
   $map = @{}
+  Log "INFO" "Building header map..."
   $cols = $ws.UsedRange.Columns.Count
   for ($c = 1; $c -le $cols; $c++) {
     $h = ("" + $ws.Cells.Item(1, $c).Text).Trim()
     if ($h) { $map[$h] = $c }
   }
+  Log "INFO" "Header map built. Columns=$cols"
 
   # --- Determine ticket column ---
   $ticketCol = $null
@@ -385,22 +440,56 @@ function Read-TicketsFromExcel {
   else {
     throw "Missing header '$TicketHeader' and no TicketColumn provided. Found: $($map.Keys -join ', ')"
   }
+  Log "INFO" "Ticket column resolved: $ticketCol"
 
   # --- Collect ticket numbers ---
   # Use HashSet to avoid duplicates.
   $tickets = New-Object System.Collections.Generic.HashSet[string]
-  $rows = $ws.UsedRange.Rows.Count
+  $xlUp = -4162
+  $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ticketCol).End($xlUp).Row
+  if ($rows -lt 2) { $rows = 2 }
+  Log "INFO" "Scanning ticket rows 2..$rows"
 
-  for ($r = 2; $r -le $rows; $r++) {
-    $t = ("" + $ws.Cells.Item($r, $ticketCol).Text).Trim()
+  $emptyStreak = 0
+  $firstFoundRow = $null
+  $ticketRange = $ws.Range($ws.Cells.Item(2, $ticketCol), $ws.Cells.Item($rows, $ticketCol))
+  $ticketVals = $ticketRange.Value2
+  $countRows = if ($ticketVals -is [System.Array]) { $ticketVals.GetLength(0) } else { 1 }
+  for ($i = 1; $i -le $countRows; $i++) {
+    $r = $i + 1
+    $raw = if ($ticketVals -is [System.Array]) { $ticketVals[$i, 1] } else { $ticketVals }
+    $t = ("" + $raw).Trim()
 
     # Accept INC/RITM/SCTASK + 6-8 digits.
     if ($t -match '^(INC|RITM|SCTASK)\d{6,8}$') {
       [void]$tickets.Add($t)
+      if (-not $firstFoundRow) { $firstFoundRow = $r }
+      $emptyStreak = 0
+    }
+    elseif ([string]::IsNullOrWhiteSpace($t)) {
+      $emptyStreak++
+      if ($tickets.Count -gt 0 -and $emptyStreak -ge $StopScanAfterEmptyRows) {
+        Log "INFO" "Stopping read scan at row=$r after $emptyStreak consecutive empty rows."
+        break
+      }
+    }
+    else {
+      $emptyStreak = 0
+    }
+
+    if ($firstFoundRow -and (($r - $firstFoundRow) -ge $MaxRowsAfterFirstTicket) -and ($emptyStreak -ge 10)) {
+      Log "INFO" "Stopping read scan at row=$r after first ticket window ($MaxRowsAfterFirstTicket rows)."
+      break
+    }
+
+    if (($r % $ReadProgressEveryRows) -eq 0) {
+      Log "INFO" "Read progress row=$r/$rows found=$($tickets.Count)"
     }
   }
+  Log "INFO" "Ticket scan completed. Found=$($tickets.Count)"
 
   # --- Cleanup COM objects to prevent Excel.exe zombie processes ---
+  [System.Runtime.InteropServices.Marshal]::ReleaseComObject($ticketRange) | Out-Null
   $wb.Close($false) | Out-Null
   $excel.Quit() | Out-Null
   [System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) | Out-Null
@@ -424,6 +513,206 @@ function Is-EmptyOrPlaceholder([string]$CellText, [string]$Ticket) {
   return $false
 }
 
+function Get-OrCreateHeaderColumn {
+  param($ws, [hashtable]$map, [string]$Header)
+  if ($map.ContainsKey($Header)) {
+    return [int]$map[$Header]
+  }
+  $newCol = [int]$ws.UsedRange.Columns.Count + 1
+  $ws.Cells.Item(1, $newCol) = $Header
+  $map[$Header] = $newCol
+  return $newCol
+}
+
+function Build-RitmRecordUrl([string]$SysId) {
+  if ([string]::IsNullOrWhiteSpace($SysId)) { return "" }
+  return [string]::Format($RitmRecordUrlTemplate, $SysId.Trim())
+}
+
+function Build-SCTaskRecordUrl([string]$SysId) {
+  if ([string]::IsNullOrWhiteSpace($SysId)) { return "" }
+  return [string]::Format($SctaskRecordUrlTemplate, $SysId.Trim())
+}
+
+function Build-SCTaskFallbackUrl([string]$TaskNumber) {
+  if ([string]::IsNullOrWhiteSpace($TaskNumber)) { return "" }
+  $safeNumber = [System.Uri]::EscapeDataString($TaskNumber.Trim())
+  return [string]::Format($SctaskListByNumberUrlTemplate, $safeNumber)
+}
+
+function Build-SCTaskBestUrl([string]$SysId, [string]$TaskNumber) {
+  $u = Build-SCTaskRecordUrl $SysId
+  if (-not [string]::IsNullOrWhiteSpace($u)) { return $u }
+  return Build-SCTaskFallbackUrl $TaskNumber
+}
+
+function Get-DetectedPiFromActivityText {
+  param([string]$ActivityText)
+  if (-not $EnableActivityStreamSearch) { return "" }
+  if ([string]::IsNullOrWhiteSpace($ActivityText)) {
+    return $(if ($WriteNotFoundText) { "Not found" } else { "" })
+  }
+
+  $matches = [regex]::Matches(
+    $ActivityText,
+    '\b(?:02PI20[A-Z0-9_-]*|ITECBRUN[A-Z0-9_-]*|MUSTBRUN[A-Z0-9_-]*)\b',
+    'IgnoreCase'
+  )
+
+  $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+  $vals = New-Object System.Collections.Generic.List[string]
+  foreach ($m in $matches) {
+    $v = ("" + $m.Value).Trim().ToUpperInvariant()
+    if ($v -and $seen.Add($v)) {
+      [void]$vals.Add($v)
+    }
+  }
+
+  if ($vals.Count -eq 0) {
+    return $(if ($WriteNotFoundText) { "Not found" } else { "" })
+  }
+  return ($vals -join ", ")
+}
+
+function Set-ExcelHyperlinkSafe {
+  param(
+    $ws,
+    [int]$Row,
+    [int]$Col,
+    [string]$DisplayText,
+    [string]$Url,
+    [string]$TicketForLog
+  )
+  $cell = $ws.Cells.Item($Row, $Col)
+  try {
+    if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() }
+  } catch {}
+
+  $missing = [System.Type]::Missing
+  try {
+    $cell.Value2 = $DisplayText
+    $null = $ws.Hyperlinks.Add($cell, $Url, $missing, $missing, $DisplayText)
+  }
+  catch {
+    try {
+      $cell.Value2 = $DisplayText
+      $null = $cell.Hyperlinks.Add($cell, $Url, $missing, $missing, $DisplayText)
+    }
+    catch {
+      Log "ERROR" "Hyperlink failed for $TicketForLog at row=$Row col=$Col url='$Url' error='$($_.Exception.Message)'"
+      $cell.Value2 = $Url
+    }
+  }
+}
+
+function Get-RitmActivityTextFromUiPage {
+  param($wv, [string]$RitmSysId)
+
+  if ([string]::IsNullOrWhiteSpace($RitmSysId)) { return "" }
+  $ritmUrl = Build-RitmRecordUrl -SysId $RitmSysId
+  if ([string]::IsNullOrWhiteSpace($ritmUrl)) { return "" }
+
+  try {
+    $wv.CoreWebView2.Navigate($ritmUrl)
+  }
+  catch {
+    Log "ERROR" "RITM UI navigate failed sys_id='$RitmSysId': $($_.Exception.Message)"
+    return ""
+  }
+
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt 15000) {
+    Start-Sleep -Milliseconds 250
+    $isReady = Parse-WV2Json (ExecJS $wv "document.readyState==='complete'" 2000)
+    if ($isReady -eq $true) { break }
+  }
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function collectFromDoc(doc, out, seen){
+      if (!doc) return;
+      var selectors = [
+        'h-card-wrapper activities-form',
+        'h-card-wrapper .activities-form',
+        '.activities-form',
+        'activities-form',
+        '.sn-widget-textblock-body',
+        '.sn-widget-textblock-body_formatted',
+        '.sn-card-component_accent-bar',
+        '.sn-card-component_accent-bar_dark'
+      ];
+      for (var si = 0; si < selectors.length; si++) {
+        var nodes = doc.querySelectorAll(selectors[si]);
+        for (var ni = 0; ni < nodes.length; ni++) {
+          var t = s(nodes[ni].innerText || nodes[ni].textContent || '');
+          if (t && !seen[t]) { seen[t] = true; out.push(t); }
+        }
+      }
+      var bodyTxt = s(doc.body && (doc.body.innerText || doc.body.textContent));
+      if (bodyTxt && !seen[bodyTxt]) { seen[bodyTxt] = true; out.push(bodyTxt); }
+    }
+    var shellOut = [];
+    var shellSeen = {};
+    collectFromDoc(document, shellOut, shellSeen);
+    var shellText = shellOut.join(' ');
+
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var frameText = '';
+    var frameReady = false;
+    if (frame && frame.contentDocument) {
+      var fdoc = frame.contentDocument;
+      var readyState = s(fdoc.readyState || '');
+      var frameOut = [];
+      var frameSeen = {};
+      collectFromDoc(fdoc, frameOut, frameSeen);
+      frameText = frameOut.join(' ');
+      if (readyState === 'complete' && frameText.length > 50) frameReady = true;
+    }
+
+    return JSON.stringify({
+      ok:true,
+      text: frameText ? frameText : shellText,
+      frame_text: frameText,
+      shell_text: shellText,
+      frame_ready: frameReady
+    });
+  } catch(e) {
+    return JSON.stringify({ ok:false, error:''+e, text:'' });
+  }
+})();
+"@
+  $o = $null
+  $frameReady = $false
+  for ($attempt = 1; $attempt -le 12; $attempt++) {
+    $o = Parse-WV2Json (ExecJS $wv $js 7000)
+    if ($o -and $o.PSObject.Properties["frame_ready"] -and $o.frame_ready -eq $true) {
+      $frameReady = $true
+      break
+    }
+    Start-Sleep -Milliseconds 500
+  }
+  if (-not $o) { return "" }
+  if ($o.ok -ne $true -and $o.PSObject.Properties["error"]) {
+    Log "ERROR" "RITM UI activity read failed sys_id='$RitmSysId': $($o.error)"
+  }
+  if ($o.PSObject.Properties["frame_text"]) {
+    $ft = "" + $o.frame_text
+    Log "INFO" "RITM UI frame text length sys_id='$RitmSysId': $($ft.Length) ready=$frameReady"
+  }
+  if ($o.PSObject.Properties["shell_text"]) {
+    $st = "" + $o.shell_text
+    Log "INFO" "RITM UI shell text length sys_id='$RitmSysId': $($st.Length)"
+  }
+  if ($o.PSObject.Properties["frame_text"]) {
+    $ft = ("" + $o.frame_text)
+    if (-not [string]::IsNullOrWhiteSpace($ft)) { return $ft }
+  }
+  if ($o.PSObject.Properties["text"]) { return ("" + $o.text) }
+  return ""
+}
+
 # =============================================================================
 # EXCEL: WRITE BACK RESULTS (optional)
 # =============================================================================
@@ -436,15 +725,23 @@ function Write-BackToExcel {
     [string]$NameHeader,
     [string]$PhoneHeader,
     [string]$ActionHeader,
+    [string]$DetectedPIHeader,
     [hashtable]$ResultMap
   )
 
   Log "INFO" "Writing back to Excel: $ExcelPath"
+  Close-ExcelProcessesIfRequested -Reason "before write open"
+  Log "INFO" "Creating Excel COM (write)..."
 
   # Open Excel in write mode.
   $excel = New-Object -ComObject Excel.Application
   $excel.Visible = $false
+  $excel.DisplayAlerts = $false
+  try { $excel.AskToUpdateLinks = $false } catch {}
+  try { $excel.EnableEvents = $false } catch {}
+  Log "INFO" "Excel COM created (write), opening workbook..."
   $wb = $excel.Workbooks.Open($ExcelPath, $null, $false)
+  Log "INFO" "Workbook opened (write)."
   $ws = $wb.Worksheets.Item($SheetName)
 
   # --- Build header map ---
@@ -471,12 +768,48 @@ function Write-BackToExcel {
   if (-not $map.ContainsKey($NameHeader))   { throw "Missing header '$NameHeader'." }
   if (-not $map.ContainsKey($PhoneHeader))  { throw "Missing header '$PhoneHeader'." }
   if (-not $map.ContainsKey($ActionHeader)) { throw "Missing header '$ActionHeader'." }
+  $detectedPiCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header $DetectedPIHeader
+  $sctaskFirstCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "SCTask 1"
+  $sctaskColMap = @{ 1 = $sctaskFirstCol }
+  $sctaskColNums = New-Object System.Collections.Generic.List[int]
+  foreach ($k in @($map.Keys)) {
+    if ($k -match '^SCTask\s+(\d+)$') {
+      [void]$sctaskColNums.Add([int]$matches[1])
+      if (-not $sctaskColMap.ContainsKey([int]$matches[1])) {
+        $sctaskColMap[[int]$matches[1]] = [int]$map[$k]
+      }
+    }
+  }
+  if (-not $sctaskColNums.Contains(1)) { [void]$sctaskColNums.Add(1) }
 
   # --- Iterate rows and fill values (only if empty/placeholder) ---
-  $rows = $ws.UsedRange.Rows.Count
-  for ($r = 2; $r -le $rows; $r++) {
-    $ticket = ("" + $ws.Cells.Item($r, $ticketCol).Text).Trim()
-    if (-not $ticket) { continue }
+  $xlUp = -4162
+  $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ticketCol).End($xlUp).Row
+  if ($rows -lt 2) { $rows = 2 }
+  Log "INFO" "Write-back scan rows 2..$rows"
+  $emptyStreak = 0
+  $firstFoundRow = $null
+  $ticketRange = $ws.Range($ws.Cells.Item(2, $ticketCol), $ws.Cells.Item($rows, $ticketCol))
+  $ticketVals = $ticketRange.Value2
+  $countRows = if ($ticketVals -is [System.Array]) { $ticketVals.GetLength(0) } else { 1 }
+  for ($i = 1; $i -le $countRows; $i++) {
+    $r = $i + 1
+    $rawTicket = if ($ticketVals -is [System.Array]) { $ticketVals[$i, 1] } else { $ticketVals }
+    $ticket = ("" + $rawTicket).Trim()
+    if (-not $ticket) {
+      $emptyStreak++
+      if ($emptyStreak -ge $StopScanAfterEmptyRows) {
+        Log "INFO" "Stopping write-back scan at row=$r after $emptyStreak consecutive empty rows."
+        break
+      }
+      continue
+    }
+    if ($ticket -match '^(INC|RITM|SCTASK)\d{6,8}$' -and -not $firstFoundRow) { $firstFoundRow = $r }
+    $emptyStreak = 0
+    if ($firstFoundRow -and (($r - $firstFoundRow) -ge $MaxRowsAfterFirstTicket) -and ($emptyStreak -ge 10)) {
+      Log "INFO" "Stopping write-back scan at row=$r after first ticket window ($MaxRowsAfterFirstTicket rows)."
+      break
+    }
     if (-not $ResultMap.ContainsKey($ticket)) { continue }
 
     $res = $ResultMap[$ticket]
@@ -504,9 +837,68 @@ function Write-BackToExcel {
 
       $ws.Cells.Item($r, $map[$ActionHeader]) = $statusOut
     }
+
+    # Fill "Detected PI / Machine"
+    $detectedPiOut = ""
+    if ($res.PSObject.Properties["detected_pi_machine"]) {
+      $detectedPiOut = ("" + $res.detected_pi_machine).Trim()
+    }
+    $detectedPiCell = "" + $ws.Cells.Item($r, $detectedPiCol).Text
+    if (Is-EmptyOrPlaceholder $detectedPiCell $ticket -and $detectedPiOut) {
+      $ws.Cells.Item($r, $detectedPiCol) = $detectedPiOut
+    }
+
+    # Fill open SCTASK hyperlinks as "SCTask 1", "SCTask 2", ...
+    $openTasks = @()
+    if ($res.PSObject.Properties["open_task_items"] -and $res.open_task_items) {
+      $openTasks = @($res.open_task_items)
+    }
+
+    if ($ticket -like "RITM*") {
+      if ($openTasks.Count -gt 0) {
+        for ($idx = 1; $idx -le $openTasks.Count; $idx++) {
+          if (-not $sctaskColMap.ContainsKey($idx)) {
+            $sctaskColMap[$idx] = Get-OrCreateHeaderColumn -ws $ws -map $map -Header ("SCTask " + $idx)
+            if (-not $sctaskColNums.Contains($idx)) { [void]$sctaskColNums.Add($idx) }
+          }
+          $taskObj = $openTasks[$idx - 1]
+          $taskNumber = if ($taskObj.PSObject.Properties["number"]) { "" + $taskObj.number } else { "" }
+          $taskSysId = if ($taskObj.PSObject.Properties["sys_id"]) { "" + $taskObj.sys_id } else { "" }
+          $taskUrl = Build-SCTaskBestUrl -SysId $taskSysId -TaskNumber $taskNumber
+          if ([string]::IsNullOrWhiteSpace($taskUrl)) {
+            $taskUrl = Build-SCTaskFallbackUrl -TaskNumber $taskNumber
+          }
+          Set-ExcelHyperlinkSafe -ws $ws -Row $r -Col $sctaskColMap[$idx] -DisplayText ("SCTask " + $idx) -Url $taskUrl -TicketForLog $ticket
+        }
+        foreach ($idx in @($sctaskColNums)) {
+          if ($idx -le $openTasks.Count) { continue }
+          if (-not $sctaskColMap.ContainsKey($idx)) { continue }
+          $cell = $ws.Cells.Item($r, $sctaskColMap[$idx])
+          try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
+          $cell.Value2 = ""
+        }
+      }
+      else {
+        foreach ($idx in @($sctaskColNums)) {
+          if (-not $sctaskColMap.ContainsKey($idx)) { continue }
+          $cell = $ws.Cells.Item($r, $sctaskColMap[$idx])
+          try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
+          $cell.Value2 = if ($idx -eq 1) { "No open tasks." } else { "" }
+        }
+      }
+    }
+    else {
+      foreach ($idx in @($sctaskColNums)) {
+        if (-not $sctaskColMap.ContainsKey($idx)) { continue }
+        $cell = $ws.Cells.Item($r, $sctaskColMap[$idx])
+        try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
+        $cell.Value2 = ""
+      }
+    }
   }
 
   # Save changes
+  [System.Runtime.InteropServices.Marshal]::ReleaseComObject($ticketRange) | Out-Null
   $wb.Save()
   $wb.Close($false) | Out-Null
   $excel.Quit() | Out-Null
@@ -541,6 +933,8 @@ function Extract-Ticket_JSONv2 {
 
   # Determine which table we query for this ticket.
   $table = Ticket-ToTable $Ticket
+  $closedStatesJson = ($ClosedTaskStates | ConvertTo-Json -Compress)
+  $enableActivitySearchJs = if ($EnableActivityStreamSearch) { "true" } else { "false" }
 
   # ---------------------------------------------------------------------------
   # JS block executed inside WebView2
@@ -617,24 +1011,46 @@ function Extract-Ticket_JSONv2 {
       return s(rec.label || rec.value || "");
     }
 
-    function isTaskOpen(stateValue){
-      var sv = s(stateValue).toLowerCase();
-      if (!sv) return true;
+    var CLOSED_TASK_STATES = $closedStatesJson;
+
+    function normalizeStateToken(v){
+      return s(v).toLowerCase().replace(/[\s_-]+/g, ' ').trim();
+    }
+
+    function buildClosedStateSets(){
+      var labels = {};
+      var values = {};
+      if (!Array.isArray(CLOSED_TASK_STATES)) return { labels:labels, values:values };
+      for (var i = 0; i < CLOSED_TASK_STATES.length; i++) {
+        var n = normalizeStateToken(CLOSED_TASK_STATES[i]);
+        if (!n) continue;
+        if (/^\d+$/.test(n)) values[n] = true; else labels[n] = true;
+      }
+      return { labels:labels, values:values };
+    }
+
+    var CLOSED_STATE_SETS = buildClosedStateSets();
+
+    function isTaskOpen(stateValue, stateLabel){
+      var sv = normalizeStateToken(stateValue);
+      var sl = normalizeStateToken(stateLabel);
       if (sv === '3' || sv === '4' || sv === '7') return false;
-      if (sv === 'closed complete' || sv === 'closed incomplete' || sv === 'closed') return false;
-      if (sv === 'cancelled' || sv === 'canceled') return false;
+      if (sv && CLOSED_STATE_SETS.values[sv]) return false;
+      if (sv && CLOSED_STATE_SETS.labels[sv]) return false;
+      if (sl && CLOSED_STATE_SETS.labels[sl]) return false;
       return true;
     }
 
-    function countOpenCatalogTasks(reqItemSysId, ritmNumber){
-      if (!looksSysId(reqItemSysId)) return 0;
+    function getOpenCatalogTasks(reqItemSysId, ritmNumber){
       var rowsAll = [];
 
-      var q1 = 'request_item=' + reqItemSysId;
-      var p1 = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(q1);
-      var o1 = httpGetJsonV2(p1);
-      var r1 = (o1 && o1.records) ? o1.records : ((o1 && o1.result) ? o1.result : []);
-      if (Array.isArray(r1)) rowsAll = rowsAll.concat(r1);
+      if (looksSysId(reqItemSysId)) {
+        var q1 = 'request_item=' + reqItemSysId;
+        var p1 = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(q1);
+        var o1 = httpGetJsonV2(p1);
+        var r1 = (o1 && o1.records) ? o1.records : ((o1 && o1.result) ? o1.result : []);
+        if (Array.isArray(r1)) rowsAll = rowsAll.concat(r1);
+      }
 
       // Fallback: dot-walk by RITM number in case request_item sys_id query is ACL-limited.
       if (s(ritmNumber)) {
@@ -649,21 +1065,31 @@ function Extract-Ticket_JSONv2 {
       var seen = {};
       var rows = [];
       for (var i0 = 0; i0 < rowsAll.length; i0++) {
-        var k = s(rowsAll[i0].number || rowsAll[i0].sys_id || ("idx_" + i0));
+        var k = s(rowsAll[i0].sys_id || rowsAll[i0].number || ("idx_" + i0));
         if (!seen[k]) {
           seen[k] = true;
           rows.push(rowsAll[i0]);
         }
       }
 
-      if (!Array.isArray(rows)) return 0;
-      var open = 0;
+      if (!Array.isArray(rows)) return [];
+      var openTasks = [];
       for (var i = 0; i < rows.length; i++) {
-        var st = s(rows[i].state || "");
-        if (isTaskOpen(st)) open++;
+        var stVal = s(rows[i].state || "");
+        var stLabel = resolveStateLabel('sc_task', stVal);
+        if (isTaskOpen(stVal, stLabel)) {
+          openTasks.push({
+            number: s(rows[i].number || ""),
+            sys_id: s(rows[i].sys_id || ""),
+            state_value: stVal,
+            state_label: stLabel
+          });
+        }
       }
-      return open;
+      return openTasks;
     }
+
+    var activityRetrievalError = "";
 
     function getRows(path, query){
       var p = path + '?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(query);
@@ -675,48 +1101,107 @@ function Extract-Ticket_JSONv2 {
     function getRitmActivitiesText(reqItemSysId, ritmNumber){
       var out = [];
 
-      // Standard activity/journal
-      if (looksSysId(reqItemSysId)) {
-        var j1 = getRows('/sys_journal_field.do', 'name=sc_req_item^element_id=' + reqItemSysId);
-        for (var i1 = 0; i1 < j1.length; i1++) {
-          var v1 = s(j1[i1].value || j1[i1].message || j1[i1].comments || j1[i1].work_notes || "");
-          if (v1) out.push(v1);
+      // Preferred: backend journal entries for this RITM
+      try {
+        if (looksSysId(reqItemSysId)) {
+          var jAll = [];
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'name=sc_req_item^element_id=' + reqItemSysId));
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + reqItemSysId));
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + reqItemSysId + '^elementINcomments,work_notes'));
+          for (var i1 = 0; i1 < jAll.length; i1++) {
+            var v1 = s(jAll[i1].value || jAll[i1].message || jAll[i1].comments || jAll[i1].work_notes || "");
+            if (v1) out.push(v1);
+          }
         }
-      }
+      } catch(ej) { activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";journal") : "journal"; }
+
+      // UI container fallback: h-card-wrapper activities-form
+      try {
+        var selectors = [
+          'h-card-wrapper activities-form',
+          'h-card-wrapper .activities-form',
+          '.activities-form',
+          'activities-form',
+          '.sn-widget-textblock-body',
+          '.sn-widget-textblock-body_formatted',
+          '.sn-card-component_accent-bar',
+          '.sn-card-component_accent-bar_dark'
+        ];
+        var seenText = {};
+        for (var si = 0; si < selectors.length; si++) {
+          var nodes = document.querySelectorAll(selectors[si]);
+          for (var ni = 0; ni < nodes.length; ni++) {
+            var tx = s(nodes[ni].innerText || nodes[ni].textContent || "");
+            if (tx && !seenText[tx]) {
+              seenText[tx] = true;
+              out.push(tx);
+            }
+          }
+        }
+      } catch(ed) { activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";dom") : "dom"; }
+
+      // Also attempt inside the SNOW main iframe when present.
+      try {
+        var f = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+        var fdoc = (f && f.contentDocument) ? f.contentDocument : null;
+        if (fdoc) {
+          var selectorsF = [
+            'h-card-wrapper activities-form',
+            'h-card-wrapper .activities-form',
+            '.activities-form',
+            'activities-form',
+            '.sn-widget-textblock-body',
+            '.sn-widget-textblock-body_formatted',
+            '.sn-card-component_accent-bar',
+            '.sn-card-component_accent-bar_dark'
+          ];
+          var seenTextF = {};
+          for (var sf = 0; sf < selectorsF.length; sf++) {
+            var nodesF = fdoc.querySelectorAll(selectorsF[sf]);
+            for (var nf = 0; nf < nodesF.length; nf++) {
+              var txf = s(nodesF[nf].innerText || nodesF[nf].textContent || "");
+              if (txf && !seenTextF[txf]) {
+                seenTextF[txf] = true;
+                out.push(txf);
+              }
+            }
+          }
+        }
+      } catch(ef) { activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";dom_iframe") : "dom_iframe"; }
 
       // Custom activity table provided by you
       var activityTable = '/activity_ee4a85aa3bcf3e14ca382f37f4e45a20.do';
       var aAll = [];
-      if (looksSysId(reqItemSysId)) {
-        aAll = aAll.concat(getRows(activityTable, 'request_item=' + reqItemSysId));
-        aAll = aAll.concat(getRows(activityTable, 'element_id=' + reqItemSysId));
-        aAll = aAll.concat(getRows(activityTable, 'parent=' + reqItemSysId));
-      }
-      if (s(ritmNumber)) {
-        aAll = aAll.concat(getRows(activityTable, 'number=' + ritmNumber));
-        aAll = aAll.concat(getRows(activityTable, 'documentkey=' + ritmNumber));
-      }
-      for (var i2 = 0; i2 < aAll.length; i2++) {
-        var v2 = s(
-          aAll[i2].value ||
-          aAll[i2].message ||
-          aAll[i2].comments ||
-          aAll[i2].work_notes ||
-          aAll[i2].text ||
-          aAll[i2].description ||
-          aAll[i2].u_message ||
-          ""
-        );
-        if (v2) out.push(v2);
-      }
+      try {
+        if (looksSysId(reqItemSysId)) {
+          aAll = aAll.concat(getRows(activityTable, 'request_item=' + reqItemSysId));
+          aAll = aAll.concat(getRows(activityTable, 'element_id=' + reqItemSysId));
+          aAll = aAll.concat(getRows(activityTable, 'parent=' + reqItemSysId));
+        }
+        if (s(ritmNumber)) {
+          aAll = aAll.concat(getRows(activityTable, 'number=' + ritmNumber));
+          aAll = aAll.concat(getRows(activityTable, 'documentkey=' + ritmNumber));
+        }
+        for (var i2 = 0; i2 < aAll.length; i2++) {
+          var v2 = s(
+            aAll[i2].value ||
+            aAll[i2].message ||
+            aAll[i2].comments ||
+            aAll[i2].work_notes ||
+            aAll[i2].text ||
+            aAll[i2].description ||
+            aAll[i2].u_message ||
+            ""
+          );
+          if (v2) out.push(v2);
+        }
+      } catch(ea) { activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";custom_activity") : "custom_activity"; }
       return out.join(' ');
     }
 
     function extractMachineFromActivityText(activityText){
       var txt = s(activityText);
       if (!txt) return "";
-      var hasDeviceHint = /laptop|hybrid/i.test(txt);
-      if (!hasDeviceHint) return "";
 
       var m = txt.match(/\b(?:02PI20[A-Z0-9_-]*|ITECBRUN[A-Z0-9_-]*|MUSTBRUN[A-Z0-9_-]*)\b/i);
       return m ? s(m[0]).toUpperCase() : "";
@@ -753,15 +1238,19 @@ function Extract-Ticket_JSONv2 {
 
     // --- RITM-specific enrichments ---
     var openTaskCount = 0;
+    var openTasks = [];
+    var acts = "";
     if ('$table' === 'sc_req_item') {
-      openTaskCount = countOpenCatalogTasks(s(r1.sys_id || ""), '$Ticket');
+      openTasks = getOpenCatalogTasks(s(r1.sys_id || ""), '$Ticket');
+      openTaskCount = openTasks.length;
 
-      // If activities mention laptop/hybrid and contain a PI machine id,
-      // prefer that value for Excel PI write-back.
-      var acts = getRitmActivitiesText(s(r1.sys_id || ""), '$Ticket');
-      var piFromActivity = extractMachineFromActivityText(acts);
-      if (piFromActivity) {
-        ciVal = piFromActivity;
+      // If activities contain a PI machine id, prefer that value for CI output.
+      if ($enableActivitySearchJs) {
+        acts = getRitmActivitiesText(s(r1.sys_id || ""), '$Ticket');
+        var piFromActivity = extractMachineFromActivityText(acts);
+        if (piFromActivity) {
+          ciVal = piFromActivity;
+        }
       }
     }
 
@@ -786,12 +1275,16 @@ function Extract-Ticket_JSONv2 {
       ok:true,
       ticket:'$Ticket',
       table:'$table',
+      sys_id:s(r1.sys_id || ""),
       affected_user:userName,
       configuration_item:ciVal,
       status:stOut,
       status_value:stVal,
       status_label:stLabel,
       open_tasks:openTaskCount,
+      open_task_items:openTasks,
+      activity_text:acts,
+      activity_error:activityRetrievalError,
       query:p1
     });
   } catch(e) {
@@ -811,8 +1304,13 @@ function Extract-Ticket_JSONv2 {
     reason             = "no_js_response"
     ticket             = $Ticket
     table              = $table
+    sys_id             = ""
     affected_user      = ""
     configuration_item = ""
+    open_tasks         = 0
+    open_task_items    = @()
+    activity_text      = ""
+    activity_error     = ""
     href               = "" + $wv.Source
   }
 }
@@ -853,6 +1351,61 @@ try {
     # Extract fields via JSONv2 in authenticated session
     $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t
 
+    if (($r.ok -eq $true) -and ($t -like "RITM*")) {
+      try {
+        $activityText = if ($r.PSObject.Properties["activity_text"]) { "" + $r.activity_text } else { "" }
+        $uiActivityText = ""
+        $activityError = if ($r.PSObject.Properties["activity_error"]) { "" + $r.activity_error } else { "" }
+        Log "INFO" "$t activity backend text length: $($activityText.Length)"
+        if ($activityError) {
+          Log "ERROR" "$t activity retrieval issue: $activityError"
+        }
+        $detectedPi = Get-DetectedPiFromActivityText -ActivityText $activityText
+        if ([string]::IsNullOrWhiteSpace($detectedPi) -and $EnableActivityStreamSearch) {
+          $ritmSysId = if ($r.PSObject.Properties["sys_id"]) { "" + $r.sys_id } else { "" }
+          $uiActivityText = Get-RitmActivityTextFromUiPage -wv $wv -RitmSysId $ritmSysId
+          Log "INFO" "$t activity UI text length: $($uiActivityText.Length)"
+          if (-not [string]::IsNullOrWhiteSpace($uiActivityText)) {
+            Log "INFO" "$t activity UI fallback text collected (len=$($uiActivityText.Length))"
+            $detectedPi = Get-DetectedPiFromActivityText -ActivityText $uiActivityText
+          }
+        }
+        if ($t -eq $DebugActivityTicket) {
+          $backendDump = $activityText
+          if ($backendDump.Length -gt $DebugActivityMaxChars) { $backendDump = $backendDump.Substring(0, $DebugActivityMaxChars) }
+          $uiDump = $uiActivityText
+          if ($uiDump.Length -gt $DebugActivityMaxChars) { $uiDump = $uiDump.Substring(0, $DebugActivityMaxChars) }
+          $r | Add-Member -NotePropertyName activity_text_backend_debug -NotePropertyValue $backendDump -Force
+          $r | Add-Member -NotePropertyName activity_text_ui_debug -NotePropertyValue $uiDump -Force
+          Log "INFO" "$t backend debug text: [$backendDump]"
+          Log "INFO" "$t UI debug text: [$uiDump]"
+        }
+        if ([string]::IsNullOrWhiteSpace($detectedPi)) {
+          Log "INFO" "$t PI not found in activity stream"
+        }
+        $r | Add-Member -NotePropertyName detected_pi_machine -NotePropertyValue $detectedPi -Force
+      }
+      catch {
+        Log "ERROR" "$t activity parsing failed: $($_.Exception.Message)"
+        $r | Add-Member -NotePropertyName detected_pi_machine -NotePropertyValue $(if ($WriteNotFoundText) { "Not found" } else { "" }) -Force
+      }
+
+      $openTaskItems = @()
+      if ($r.PSObject.Properties["open_task_items"] -and $r.open_task_items) {
+        $openTaskItems = @($r.open_task_items)
+      }
+      Log "INFO" "$t open SCTASK count: $($openTaskItems.Count)"
+      foreach ($ot in $openTaskItems) {
+        $taskNo = if ($ot.PSObject.Properties["number"]) { "" + $ot.number } else { "" }
+        $taskSys = if ($ot.PSObject.Properties["sys_id"]) { "" + $ot.sys_id } else { "" }
+        $taskUrl = Build-SCTaskBestUrl -SysId $taskSys -TaskNumber $taskNo
+        Log "INFO" "$t open SCTASK number='$taskNo' sys_id='$taskSys' url='$taskUrl'"
+      }
+    }
+    elseif ($r.ok -eq $true) {
+      $r | Add-Member -NotePropertyName detected_pi_machine -NotePropertyValue "" -Force
+    }
+
     # Log quick summary line
     $status = if ($r.ok -eq $true) { "OK" } else { "FAIL" }
     $reason = if ($r -and $r.PSObject.Properties["reason"]) { "" + $r.reason } else { "" }
@@ -883,7 +1436,7 @@ try {
     foreach ($r in $results) { $map[$r.ticket] = $r }
 
     Write-BackToExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
-      -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -ResultMap $map
+      -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -DetectedPIHeader $DetectedPIHeader -ResultMap $map
   }
 
   # 8) Final success popup
