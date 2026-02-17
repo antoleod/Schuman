@@ -3794,3 +3794,1588 @@
 2026-02-17 23:21:38 [INFO] Dashboard search query='' => matches=6
 2026-02-17 23:21:39 [INFO] Dashboard task resolution start ritm='RITM0496748'
 2026-02-17 23:21:39 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:25:08 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_232508
+2026-02-17 23:25:08 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:25:08 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:25:08 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:25:08 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:25:08 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:25:08 [INFO] Starting SSO login...
+2026-02-17 23:25:11 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:25:11 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:25:11 [INFO] No EXCEL process to kill. before read open
+2026-02-17 23:25:11 [INFO] Creating Excel COM (read)...
+2026-02-17 23:25:12 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:25:12 [INFO] Workbook opened (read).
+2026-02-17 23:25:12 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:25:12 [INFO] Worksheet opened.
+2026-02-17 23:25:12 [INFO] Building header map...
+2026-02-17 23:25:12 [INFO] Header map built. Columns=15
+2026-02-17 23:25:12 [INFO] Ticket column resolved: 4
+2026-02-17 23:25:12 [INFO] Scanning ticket rows 2..4
+2026-02-17 23:25:12 [INFO] Ticket scan completed. Found=3
+2026-02-17 23:25:13 [INFO] Tickets found: 3
+2026-02-17 23:25:13 [INFO] Processing scope: RITM only (no INC detected). Count=3
+2026-02-17 23:25:13 [INFO] [1/3] Open + extract: RITM0496748
+2026-02-17 23:25:14 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:25:14 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:25:21 [INFO] RITM0496748 PI not found in activity stream
+2026-02-17 23:25:21 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-17 23:25:21 [INFO] [2/3] Open + extract: RITM0405052
+2026-02-17 23:25:28 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-17 23:25:28 [INFO] [3/3] Open + extract: RITM0493120
+2026-02-17 23:25:29 [INFO] RITM0493120 user resolved from sys_id => 'Aneta KORZENIECKA'
+2026-02-17 23:25:29 [INFO] RITM0493120 open SCTASK fallback recovered count=1 tasks='SCTASK0880081'
+2026-02-17 23:25:37 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 23:25:37 [INFO] Workbook opened (write).
+2026-02-17 23:25:37 [INFO] Write-back scan rows 2..4
+2026-02-17 23:25:37 [INFO] RITM0496748 PI force-updated in 'PI' => ''
+2026-02-17 23:25:37 [INFO] RITM0405052 PI force-updated in 'PI' => 'MUSTBRUN2425601'
+2026-02-17 23:25:37 [INFO] RITM0493120 PI force-updated in 'PI' => ''
+2026-02-17 23:25:38 [INFO] Excel updated.
+2026-02-17 23:26:19 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_232619
+2026-02-17 23:26:19 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:26:19 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:26:19 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:26:19 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:26:19 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:26:19 [INFO] Starting SSO login...
+2026-02-17 23:26:22 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:26:22 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:26:22 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:26:22 [INFO] Killing EXCEL processes: 1. before dashboard ensure columns
+2026-02-17 23:26:25 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:26:28 [INFO] Dashboard search query='' => matches=6
+2026-02-17 23:26:28 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:26:28 [INFO] Dashboard task resolution start ritm='RITM0405052'
+2026-02-17 23:26:28 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:26:29 [INFO] Dashboard task resolution start ritm='RITM0493120'
+2026-02-17 23:26:29 [INFO] Dashboard task resolution end ritm='RITM0493120' open_count=0
+2026-02-17 23:26:29 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:26:29 [INFO] Dashboard task resolution end ritm='RITM0405052' open_count=0
+2026-02-17 23:26:30 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:36:15 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_233615
+2026-02-17 23:36:15 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:36:15 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:36:15 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:36:15 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:36:15 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:36:15 [INFO] Starting SSO login...
+2026-02-17 23:36:16 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:36:16 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:36:16 [INFO] Killing EXCEL processes: 2. before read open
+2026-02-17 23:36:16 [INFO] Creating Excel COM (read)...
+2026-02-17 23:36:17 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:36:17 [INFO] Workbook opened (read).
+2026-02-17 23:36:17 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:36:17 [INFO] Worksheet opened.
+2026-02-17 23:36:17 [INFO] Header map built. Columns=15
+2026-02-17 23:36:17 [INFO] Ticket column resolved: 4
+2026-02-17 23:36:17 [INFO] Scanning ticket rows 2..304
+2026-02-17 23:36:17 [INFO] Ticket scan completed. Found=183
+2026-02-17 23:36:18 [INFO] Tickets found: 183
+2026-02-17 23:36:18 [INFO] Processing scope: INC + RITM (INC detected). Count=183
+2026-02-17 23:36:18 [INFO] [1/183] Open + extract: RITM0496748
+2026-02-17 23:36:19 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:36:19 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:36:26 [INFO] RITM0405052 user resolved from sys_id => 'Alexandra DE TORNACO'
+2026-02-17 23:36:27 [INFO] RITM0405052 open SCTASK fallback recovered count=4 tasks='SCTASK0708535, SCTASK0762732, SCTASK0784120, SCTASK0784119'
+2026-02-17 23:36:33 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-17 23:36:33 [INFO] [3/183] Open + extract: RITM0493120
+2026-02-17 23:36:41 [INFO] RITM0493120 PI not found in activity stream
+2026-02-17 23:36:41 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-17 23:36:41 [INFO] [4/183] Open + extract: INC0404030
+2026-02-17 23:36:41 [INFO] INC0404030 user resolved from sys_id => 'Natalia Maria VALENCIA AGUIRRE'
+2026-02-17 23:36:44 [INFO] INC0404030 => OK reason= user='Natalia Maria VALENCIA AGUIRRE' ci='9ca027c0c32e52d014211f4bb0013182' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404030'
+2026-02-17 23:36:44 [INFO] [5/183] Open + extract: INC0405320
+2026-02-17 23:36:45 [INFO] INC0405320 user resolved from sys_id => 'Georgiana SANDU'
+2026-02-17 23:36:47 [INFO] INC0405320 => OK reason= user='Georgiana SANDU' ci='b78dbcc797c73554440eb717f053af1f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0405320'
+2026-02-17 23:36:47 [INFO] [6/183] Open + extract: INC0404913
+2026-02-17 23:36:48 [INFO] INC0404913 user resolved from sys_id => 'Klaudia ARBETOVA'
+2026-02-17 23:36:50 [INFO] INC0404913 => OK reason= user='Klaudia ARBETOVA' ci='c30d0def97d25610440eb717f053afba' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404913'
+2026-02-17 23:36:51 [INFO] [7/183] Open + extract: INC0404662
+2026-02-17 23:36:51 [INFO] INC0404662 user resolved from sys_id => 'Gabriel Stanislav Vladimir LITERA'
+2026-02-17 23:36:53 [INFO] INC0404662 PI not found in activity stream
+2026-02-17 23:36:53 [INFO] INC0404662 => OK reason= user='Gabriel Stanislav Vladimir LITERA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404662'
+2026-02-17 23:36:53 [INFO] [8/183] Open + extract: INC0403929
+2026-02-17 23:36:54 [INFO] INC0403929 user resolved from sys_id => 'Sandrina MARCUZZO'
+2026-02-17 23:36:56 [INFO] INC0403929 => OK reason= user='Sandrina MARCUZZO' ci='85906f80c32e52d014211f4bb0013197' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0403929'
+2026-02-17 23:36:56 [INFO] [9/183] Open + extract: INC0404073
+2026-02-17 23:36:57 [INFO] INC0404073 user resolved from sys_id => 'Marika SULANKO'
+2026-02-17 23:36:59 [INFO] INC0404073 => OK reason= user='Marika SULANKO' ci='d2dc89af97d25610440eb717f053af43' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404073'
+2026-02-17 23:36:59 [INFO] [10/183] Open + extract: INC0398334
+2026-02-17 23:37:00 [INFO] INC0398334 user resolved from sys_id => 'Anastasia COUCOURATOS'
+2026-02-17 23:37:02 [INFO] INC0398334 => OK reason= user='Anastasia COUCOURATOS' ci='8b4bedb41be3705032980ed1604bcbb6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398334'
+2026-02-17 23:37:02 [INFO] [11/183] Open + extract: INC0400192
+2026-02-17 23:37:03 [INFO] INC0400192 user resolved from sys_id => 'Liselotte JENSEN'
+2026-02-17 23:37:05 [INFO] INC0400192 PI not found in activity stream
+2026-02-17 23:37:05 [INFO] INC0400192 => OK reason= user='Liselotte JENSEN' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0400192'
+2026-02-17 23:37:05 [INFO] [12/183] Open + extract: INC0399952
+2026-02-17 23:37:06 [INFO] INC0399952 user resolved from sys_id => 'Lucie Agnès Marie Olga MAISTRELLI'
+2026-02-17 23:37:08 [INFO] INC0399952 PI not found in activity stream
+2026-02-17 23:37:08 [INFO] INC0399952 => OK reason= user='Lucie Agnès Marie Olga MAISTRELLI' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399952'
+2026-02-17 23:37:08 [INFO] [13/183] Open + extract: INC0399909
+2026-02-17 23:37:09 [INFO] INC0399909 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-17 23:37:11 [INFO] INC0399909 PI not found in activity stream
+2026-02-17 23:37:11 [INFO] INC0399909 => OK reason= user='Kristýna MATÁTKOVÁ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399909'
+2026-02-17 23:37:11 [INFO] [14/183] Open + extract: INC0399906
+2026-02-17 23:37:12 [INFO] INC0399906 user resolved from sys_id => 'Ana RADOCAJ'
+2026-02-17 23:37:14 [INFO] INC0399906 PI not found in activity stream
+2026-02-17 23:37:14 [INFO] INC0399906 => OK reason= user='Ana RADOCAJ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399906'
+2026-02-17 23:37:14 [INFO] [15/183] Open + extract: INC0398797
+2026-02-17 23:37:15 [INFO] INC0398797 user resolved from sys_id => 'Angelika KISS'
+2026-02-17 23:37:17 [INFO] INC0398797 => OK reason= user='Angelika KISS' ci='9aec01ef97d25610440eb717f053af92' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398797'
+2026-02-17 23:37:17 [INFO] [16/183] Open + extract: INC0399068
+2026-02-17 23:37:18 [INFO] INC0399068 user resolved from sys_id => 'Maria Nazareth ECHART ORUS'
+2026-02-17 23:37:20 [INFO] INC0399068 => OK reason= user='Maria Nazareth ECHART ORUS' ci='626d7c8797c73554440eb717f053afce' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399068'
+2026-02-17 23:37:20 [INFO] [17/183] Open + extract: INC0398566
+2026-02-17 23:37:20 [INFO] INC0398566 user resolved from sys_id => 'Krista DANKERE'
+2026-02-17 23:37:23 [INFO] INC0398566 => OK reason= user='Krista DANKERE' ci='28aaeec01beff01032980ed1604bcb76' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398566'
+2026-02-17 23:37:23 [INFO] [18/183] Open + extract: INC0397938
+2026-02-17 23:37:23 [INFO] INC0397938 user resolved from sys_id => 'Maja SABOL'
+2026-02-17 23:37:25 [INFO] INC0397938 PI not found in activity stream
+2026-02-17 23:37:25 [INFO] INC0397938 => OK reason= user='Maja SABOL' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0397938'
+2026-02-17 23:37:25 [INFO] [19/183] Open + extract: INC0396829
+2026-02-17 23:37:26 [INFO] INC0396829 user resolved from sys_id => 'Cristina SANCHEZ VILLA'
+2026-02-17 23:37:28 [INFO] INC0396829 => OK reason= user='Cristina SANCHEZ VILLA' ci='5a2d704797c73554440eb717f053af91' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396829'
+2026-02-17 23:37:28 [INFO] [20/183] Open + extract: INC0390677
+2026-02-17 23:37:29 [INFO] INC0390677 user resolved from sys_id => 'Wojciech KUZMA'
+2026-02-17 23:37:31 [INFO] INC0390677 PI not found in activity stream
+2026-02-17 23:37:31 [INFO] INC0390677 => OK reason= user='Wojciech KUZMA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0390677'
+2026-02-17 23:37:32 [INFO] [21/183] Open + extract: INC0384484
+2026-02-17 23:37:32 [INFO] INC0384484 user resolved from sys_id => 'Tajana LJUBICIC'
+2026-02-17 23:37:34 [INFO] INC0384484 => OK reason= user='Tajana LJUBICIC' ci='b88d38c797c73554440eb717f053af67' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0384484'
+2026-02-17 23:37:34 [INFO] [22/183] Open + extract: INC0396867
+2026-02-17 23:37:35 [INFO] INC0396867 user resolved from sys_id => 'Luc JEUNESSE'
+2026-02-17 23:37:37 [INFO] INC0396867 => OK reason= user='Luc JEUNESSE' ci='eafc32c5c3e29a1414211f4bb0013102' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396867'
+2026-02-17 23:37:37 [INFO] [23/183] Open + extract: INC0393533
+2026-02-17 23:37:38 [INFO] INC0393533 user resolved from sys_id => 'Maria Antoaneta NEAG'
+2026-02-17 23:37:41 [INFO] INC0393533 => OK reason= user='Maria Antoaneta NEAG' ci='0ef06784c32e52d014211f4bb00131c3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393533'
+2026-02-17 23:37:41 [INFO] [24/183] Open + extract: INC0393530
+2026-02-17 23:37:41 [INFO] INC0393530 user resolved from sys_id => 'Katerina HEROUTOVÁ'
+2026-02-17 23:37:43 [INFO] INC0393530 => OK reason= user='Katerina HEROUTOVÁ' ci='c9fc05ef97d25610440eb717f053af88' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393530'
+2026-02-17 23:37:43 [INFO] [25/183] Open + extract: INC0393057
+2026-02-17 23:37:44 [INFO] INC0393057 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-17 23:37:46 [INFO] INC0393057 => OK reason= user='Igor DEQUECKER' ci='e3b895381b2f305032980ed1604bcba0' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393057'
+2026-02-17 23:37:46 [INFO] [26/183] Open + extract: INC0392998
+2026-02-17 23:37:47 [INFO] INC0392998 user resolved from sys_id => 'Christos PAPAGIANNIS'
+2026-02-17 23:37:49 [INFO] INC0392998 => OK reason= user='Christos PAPAGIANNIS' ci='d6506f00c32e52d014211f4bb0013138' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0392998'
+2026-02-17 23:37:49 [INFO] [27/183] Open + extract: INC0386947
+2026-02-17 23:37:49 [INFO] INC0386947 user resolved from sys_id => 'Nicolas DORGERET'
+2026-02-17 23:37:52 [INFO] INC0386947 => OK reason= user='Nicolas DORGERET' ci='976aa20c2b172690ca61fe63ce91bf8a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0386947'
+2026-02-17 23:37:52 [INFO] [28/183] Open + extract: INC0381429
+2026-02-17 23:37:53 [INFO] INC0381429 user resolved from sys_id => 'Ramune TAMASAUSKAITE'
+2026-02-17 23:37:55 [INFO] INC0381429 => OK reason= user='Ramune TAMASAUSKAITE' ci='e26dbc8797c73554440eb717f053af12' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381429'
+2026-02-17 23:37:55 [INFO] [29/183] Open + extract: INC0381995
+2026-02-17 23:37:56 [INFO] INC0381995 user resolved from sys_id => 'Cesar Augusto CASTELLO MORENO'
+2026-02-17 23:37:58 [INFO] INC0381995 => OK reason= user='Cesar Augusto CASTELLO MORENO' ci='51d0a344c32e52d014211f4bb001316a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381995'
+2026-02-17 23:37:58 [INFO] [30/183] Open + extract: INC0377661
+2026-02-17 23:37:58 [INFO] INC0377661 user resolved from sys_id => 'Alina Leandra Ó RIADA'
+2026-02-17 23:38:01 [INFO] INC0377661 => OK reason= user='Alina Leandra Ó RIADA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377661'
+2026-02-17 23:38:01 [INFO] [31/183] Open + extract: INC0376136
+2026-02-17 23:38:02 [INFO] INC0376136 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-17 23:38:04 [INFO] INC0376136 => OK reason= user='Igor DEQUECKER' ci='cf0d0def97d25610440eb717f053afdd' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376136'
+2026-02-17 23:38:04 [INFO] [32/183] Open + extract: INC0377128
+2026-02-17 23:38:05 [INFO] INC0377128 user resolved from sys_id => 'Francesco BARCHIELLI'
+2026-02-17 23:38:08 [INFO] INC0377128 => OK reason= user='Francesco BARCHIELLI' ci='21406300c32e52d014211f4bb00131c8' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377128'
+2026-02-17 23:38:08 [INFO] [33/183] Open + extract: INC0376121
+2026-02-17 23:38:08 [INFO] INC0376121 user resolved from sys_id => 'Anna ARESU'
+2026-02-17 23:38:11 [INFO] INC0376121 => OK reason= user='Anna ARESU' ci='97b02704c32e52d014211f4bb00131cf' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376121'
+2026-02-17 23:38:11 [INFO] [34/183] Open + extract: INC0375309
+2026-02-17 23:38:12 [INFO] INC0375309 user resolved from sys_id => 'Stephanie HONNEFELDER'
+2026-02-17 23:38:14 [INFO] INC0375309 => OK reason= user='Stephanie HONNEFELDER' ci='a76aa20c2b172690ca61fe63ce91bfe1' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0375309'
+2026-02-17 23:38:14 [INFO] [35/183] Open + extract: INC0372528
+2026-02-17 23:38:15 [INFO] INC0372528 user resolved from sys_id => 'Philine SCHOLZE'
+2026-02-17 23:38:17 [INFO] INC0372528 => OK reason= user='Philine SCHOLZE' ci='847ae20c2b172690ca61fe63ce91bf8f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372528'
+2026-02-17 23:38:17 [INFO] [36/183] Open + extract: INC0373224
+2026-02-17 23:38:17 [INFO] INC0373224 user resolved from sys_id => 'Ariane DEBYSER'
+2026-02-17 23:38:20 [INFO] INC0373224 => OK reason= user='Ariane DEBYSER' ci='0490eb80c32e52d014211f4bb0013160' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0373224'
+2026-02-17 23:38:20 [INFO] [37/183] Open + extract: INC0374026
+2026-02-17 23:38:21 [INFO] INC0374026 user resolved from sys_id => 'Rachid AHAJJAM'
+2026-02-17 23:38:23 [INFO] INC0374026 => OK reason= user='Rachid AHAJJAM' ci='d20dc9ef97d25610440eb717f053afc9' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0374026'
+2026-02-17 23:38:23 [INFO] [38/183] Open + extract: INC0370735
+2026-02-17 23:38:24 [INFO] INC0370735 user resolved from sys_id => 'Gianna GRIGÒ'
+2026-02-17 23:38:26 [INFO] INC0370735 => OK reason= user='Gianna GRIGÒ' ci='e30d4def97d25610440eb717f053af64' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370735'
+2026-02-17 23:38:26 [INFO] [39/183] Open + extract: INC0365085
+2026-02-17 23:38:26 [INFO] INC0365085 user resolved from sys_id => 'Fabiola VALENTINI'
+2026-02-17 23:38:28 [INFO] INC0365085 => OK reason= user='Fabiola VALENTINI' ci='c150ab00c32e52d014211f4bb00131c7' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0365085'
+2026-02-17 23:38:28 [INFO] [40/183] Open + extract: INC0368029
+2026-02-17 23:38:29 [INFO] INC0368029 user resolved from sys_id => 'Maria TOADER'
+2026-02-17 23:38:32 [INFO] INC0368029 => OK reason= user='Maria TOADER' ci='9fbc01af97d25610440eb717f053afa6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0368029'
+2026-02-17 23:38:32 [INFO] [41/183] Open + extract: INC0370558
+2026-02-17 23:38:33 [INFO] INC0370558 user resolved from sys_id => 'Samuel DE LEMOS PEIXOTO'
+2026-02-17 23:38:35 [INFO] INC0370558 => OK reason= user='Samuel DE LEMOS PEIXOTO' ci='2a7dd11947dcf550de328c37e26d43ef' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370558'
+2026-02-17 23:38:35 [INFO] [42/183] Open + extract: INC0372344
+2026-02-17 23:38:35 [INFO] INC0372344 user resolved from sys_id => 'Elise HANCOTTE'
+2026-02-17 23:38:38 [INFO] INC0372344 PI not found in activity stream
+2026-02-17 23:38:38 [INFO] INC0372344 => OK reason= user='Elise HANCOTTE' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372344'
+2026-02-17 23:38:38 [INFO] [43/183] Open + extract: INC0353533
+2026-02-17 23:38:38 [INFO] INC0353533 user resolved from sys_id => 'Ellen Sarah VAN NIEUWENHUYZE'
+2026-02-17 23:38:41 [INFO] INC0353533 => OK reason= user='Ellen Sarah VAN NIEUWENHUYZE' ci='530d4def97d25610440eb717f053af21' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0353533'
+2026-02-17 23:38:41 [INFO] [44/183] Open + extract: INC0367376
+2026-02-17 23:38:42 [INFO] INC0367376 user resolved from sys_id => 'Anastasia MITRONATSIOU'
+2026-02-17 23:38:44 [INFO] INC0367376 => OK reason= user='Anastasia MITRONATSIOU' ci='7db06304c32e52d014211f4bb0013164' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0367376'
+2026-02-17 23:38:44 [INFO] [45/183] Open + extract: INC0350488
+2026-02-17 23:38:46 [INFO] INC0350488 => OK reason= user='5c7518931beb241018d65398624bcb08' ci='7fb0a704c32e52d014211f4bb00131e3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0350488'
+2026-02-17 23:38:46 [INFO] [46/183] Open + extract: INC0346775
+2026-02-17 23:38:47 [INFO] INC0346775 user resolved from sys_id => 'David SCHWANDER'
+2026-02-17 23:38:49 [INFO] INC0346775 => OK reason= user='David SCHWANDER' ci='2ca067c0c32e52d014211f4bb001316e' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0346775'
+2026-02-17 23:38:49 [INFO] [47/183] Open + extract: INC0370773
+2026-02-17 23:38:50 [INFO] INC0370773 user resolved from sys_id => 'Karin SAUERTEIG'
+2026-02-17 23:38:53 [INFO] INC0370773 => OK reason= user='Karin SAUERTEIG' ci='aa2bae041beb78103a0e8518624bcb1c' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370773'
+2026-02-17 23:38:53 [INFO] [48/183] Open + extract: INC0370852
+2026-02-17 23:38:53 [INFO] INC0370852 user resolved from sys_id => 'Barbara KRAFT'
+2026-02-17 23:38:56 [INFO] INC0370852 => OK reason= user='Barbara KRAFT' ci='960d340797c73554440eb717f053af4f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370852'
+2026-02-17 23:38:56 [INFO] [49/183] Open + extract: INC0370721
+2026-02-17 23:38:56 [INFO] INC0370721 user resolved from sys_id => 'Virginie REMACLE'
+2026-02-17 23:38:58 [INFO] INC0370721 => OK reason= user='Virginie REMACLE' ci='3ad06744c32e52d014211f4bb00131ad' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370721'
+2026-02-17 23:38:58 [INFO] [50/183] Open + extract: INC0357741
+2026-02-17 23:38:59 [INFO] INC0357741 user resolved from sys_id => 'Ana SÁEZ-BENITO CAUVILLA'
+2026-02-17 23:39:01 [INFO] INC0357741 PI not found in activity stream
+2026-02-17 23:39:01 [INFO] INC0357741 => OK reason= user='Ana SÁEZ-BENITO CAUVILLA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357741'
+2026-02-17 23:39:01 [INFO] [51/183] Open + extract: INC0240792
+2026-02-17 23:39:02 [INFO] INC0240792 user resolved from sys_id => 'Bettina BLASIG'
+2026-02-17 23:39:04 [INFO] INC0240792 => OK reason= user='Bettina BLASIG' ci='9774010b1b63f0903a0e8518624bcb7d' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0240792'
+2026-02-17 23:39:04 [INFO] [52/183] Open + extract: INC0357389
+2026-02-17 23:39:04 [INFO] INC0357389 user resolved from sys_id => 'Cedric Franz K GOOR'
+2026-02-17 23:39:07 [INFO] INC0357389 => OK reason= user='Cedric Franz K GOOR' ci='1fe027021b3c019032980ed1604bcb40' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357389'
+2026-02-17 23:39:07 [INFO] [53/183] Open + extract: INC0354452
+2026-02-17 23:39:07 [INFO] INC0354452 user resolved from sys_id => 'Maria-teresa GONZALEZ CABALLERO'
+2026-02-17 23:39:10 [INFO] INC0354452 PI not found in activity stream
+2026-02-17 23:39:10 [INFO] INC0354452 => OK reason= user='Maria-teresa GONZALEZ CABALLERO' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0354452'
+2026-02-17 23:39:10 [INFO] [54/183] Open + extract: RITM0395760
+2026-02-17 23:39:10 [INFO] RITM0395760 user resolved from sys_id => 'Tania DE POORTER'
+2026-02-17 23:39:11 [INFO] RITM0395760 open SCTASK fallback recovered count=3 tasks='SCTASK0689026, SCTASK0689820, SCTASK0689819'
+2026-02-17 23:39:17 [INFO] RITM0395760 => OK reason= user='Tania DE POORTER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0395760'
+2026-02-17 23:39:17 [INFO] [55/183] Open + extract: RITM0400363
+2026-02-17 23:39:18 [INFO] RITM0400363 user resolved from sys_id => 'Dora Cristina BARREIRA RAMOS'
+2026-02-17 23:39:18 [INFO] RITM0400363 open SCTASK fallback recovered count=4 tasks='SCTASK0698388, SCTASK0729977, SCTASK0754274, SCTASK0754275'
+2026-02-17 23:39:26 [INFO] RITM0400363 => OK reason= user='Dora Cristina BARREIRA RAMOS' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400363'
+2026-02-17 23:39:26 [INFO] [56/183] Open + extract: RITM0400334
+2026-02-17 23:39:26 [INFO] RITM0400334 user resolved from sys_id => 'Devrim ATES'
+2026-02-17 23:39:27 [INFO] RITM0400334 open SCTASK fallback recovered count=4 tasks='SCTASK0698363, SCTASK0730017, SCTASK0754300, SCTASK0754299'
+2026-02-17 23:39:33 [INFO] RITM0400334 => OK reason= user='Devrim ATES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400334'
+2026-02-17 23:39:33 [INFO] [57/183] Open + extract: RITM0429435
+2026-02-17 23:39:34 [INFO] RITM0429435 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:39:34 [INFO] RITM0429435 open SCTASK fallback recovered count=2 tasks='SCTASK0756216, SCTASK0756219'
+2026-02-17 23:39:41 [INFO] RITM0429435 PI not found in activity stream
+2026-02-17 23:39:41 [INFO] RITM0429435 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0429435'
+2026-02-17 23:39:41 [INFO] [58/183] Open + extract: RITM0430321
+2026-02-17 23:39:42 [INFO] RITM0430321 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:39:50 [INFO] RITM0430321 PI not found in activity stream
+2026-02-17 23:39:50 [INFO] RITM0430321 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430321'
+2026-02-17 23:39:50 [INFO] [59/183] Open + extract: RITM0430778
+2026-02-17 23:39:50 [INFO] RITM0430778 user resolved from sys_id => 'Satu Simona POUTANEN'
+2026-02-17 23:39:51 [INFO] RITM0430778 open SCTASK fallback recovered count=2 tasks='SCTASK0758952, SCTASK0759231'
+2026-02-17 23:39:58 [INFO] RITM0430778 PI not found in activity stream
+2026-02-17 23:39:58 [INFO] RITM0430778 => OK reason= user='Satu Simona POUTANEN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430778'
+2026-02-17 23:39:59 [INFO] [60/183] Open + extract: RITM0400091
+2026-02-17 23:39:59 [INFO] RITM0400091 user resolved from sys_id => 'Lina BARSTYTE'
+2026-02-17 23:40:06 [INFO] RITM0400091 => OK reason= user='Lina BARSTYTE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400091'
+2026-02-17 23:40:06 [INFO] [61/183] Open + extract: RITM0400088
+2026-02-17 23:40:07 [INFO] RITM0400088 user resolved from sys_id => 'Johannes LITZELMANN'
+2026-02-17 23:40:07 [INFO] RITM0400088 open SCTASK fallback recovered count=4 tasks='SCTASK0698108, SCTASK0782359, SCTASK0782358, SCTASK0760831'
+2026-02-17 23:40:14 [INFO] RITM0400088 => OK reason= user='Johannes LITZELMANN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400088'
+2026-02-17 23:40:14 [INFO] [62/183] Open + extract: RITM0420978
+2026-02-17 23:40:14 [INFO] RITM0420978 user resolved from sys_id => 'Michael Alexander SPEISER'
+2026-02-17 23:40:15 [INFO] RITM0420978 open SCTASK fallback recovered count=3 tasks='SCTASK0739497, SCTASK0761769, SCTASK0761768'
+2026-02-17 23:40:22 [INFO] RITM0420978 => OK reason= user='Michael Alexander SPEISER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420978'
+2026-02-17 23:40:22 [INFO] [63/183] Open + extract: RITM0405042
+2026-02-17 23:40:22 [INFO] RITM0405042 user resolved from sys_id => 'Susan NITSCHE'
+2026-02-17 23:40:23 [INFO] RITM0405042 open SCTASK fallback recovered count=4 tasks='SCTASK0708526, SCTASK0784097, SCTASK0784096, SCTASK0762707'
+2026-02-17 23:40:29 [INFO] RITM0405042 PI not found in activity stream
+2026-02-17 23:40:29 [INFO] RITM0405042 => OK reason= user='Susan NITSCHE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405042'
+2026-02-17 23:40:29 [INFO] [64/183] Open + extract: RITM0433027
+2026-02-17 23:40:30 [INFO] RITM0433027 user resolved from sys_id => 'Giulia PASCUZZI'
+2026-02-17 23:40:30 [INFO] RITM0433027 open SCTASK fallback recovered count=1 tasks='SCTASK0763066'
+2026-02-17 23:40:37 [INFO] RITM0433027 PI not found in activity stream
+2026-02-17 23:40:38 [INFO] RITM0433027 => OK reason= user='Giulia PASCUZZI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433027'
+2026-02-17 23:40:38 [INFO] [65/183] Open + extract: RITM0433109
+2026-02-17 23:40:38 [INFO] RITM0433109 user resolved from sys_id => 'Léa Lucie Léontine SAUBION'
+2026-02-17 23:40:38 [INFO] RITM0433109 open SCTASK fallback recovered count=2 tasks='SCTASK0763194, SCTASK0763190'
+2026-02-17 23:40:45 [INFO] RITM0433109 PI not found in activity stream
+2026-02-17 23:40:45 [INFO] RITM0433109 => OK reason= user='Léa Lucie Léontine SAUBION' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433109'
+2026-02-17 23:40:45 [INFO] [66/183] Open + extract: RITM0433132
+2026-02-17 23:40:46 [INFO] RITM0433132 user resolved from sys_id => 'Noémie Kerfalie Helena Jane-Nolwe NGANGA'
+2026-02-17 23:40:46 [INFO] RITM0433132 open SCTASK fallback recovered count=2 tasks='SCTASK0763230, SCTASK0763252'
+2026-02-17 23:40:53 [INFO] RITM0433132 PI not found in activity stream
+2026-02-17 23:40:53 [INFO] RITM0433132 => OK reason= user='Noémie Kerfalie Helena Jane-Nolwe NGANGA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433132'
+2026-02-17 23:40:53 [INFO] [67/183] Open + extract: RITM0433154
+2026-02-17 23:40:53 [INFO] RITM0433154 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:41:00 [INFO] RITM0433154 PI not found in activity stream
+2026-02-17 23:41:00 [INFO] RITM0433154 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433154'
+2026-02-17 23:41:00 [INFO] [68/183] Open + extract: RITM0433331
+2026-02-17 23:41:01 [INFO] RITM0433331 user resolved from sys_id => 'Jauram REISNER'
+2026-02-17 23:41:08 [INFO] RITM0433331 PI not found in activity stream
+2026-02-17 23:41:08 [INFO] RITM0433331 => OK reason= user='Jauram REISNER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433331'
+2026-02-17 23:41:08 [INFO] [69/183] Open + extract: RITM0420972
+2026-02-17 23:41:09 [INFO] RITM0420972 user resolved from sys_id => 'Laura PROIETTI'
+2026-02-17 23:41:16 [INFO] RITM0420972 => OK reason= user='Laura PROIETTI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420972'
+2026-02-17 23:41:16 [INFO] [70/183] Open + extract: RITM0434588
+2026-02-17 23:41:17 [INFO] RITM0434588 user resolved from sys_id => 'New EP User'
+2026-02-17 23:41:17 [INFO] RITM0434588 open SCTASK fallback recovered count=2 tasks='SCTASK0765919, SCTASK0765924'
+2026-02-17 23:41:25 [INFO] RITM0434588 SCTASK UI list scanned, PI not found (len=5846)
+2026-02-17 23:41:25 [INFO] RITM0434588 deep SCTASK scan starting. tasks=2 limit=2 new_ep_user=True
+2026-02-17 23:41:30 [INFO] RITM0434588 prepare-device task not found in scanned SCTASK records
+2026-02-17 23:41:30 [INFO] RITM0434588 PI not found in activity stream
+2026-02-17 23:41:30 [INFO] RITM0434588 => OK reason= user='New EP User' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0434588'
+2026-02-17 23:41:30 [INFO] [71/183] Open + extract: RITM0434592
+2026-02-17 23:41:30 [INFO] RITM0434592 user resolved from sys_id => 'New EP User'
+2026-02-17 23:41:31 [INFO] RITM0434592 open SCTASK fallback recovered count=2 tasks='SCTASK0765928, SCTASK0766049'
+2026-02-17 23:41:39 [INFO] RITM0434592 SCTASK UI list scanned, PI not found (len=5118)
+2026-02-17 23:41:39 [INFO] RITM0434592 deep SCTASK scan starting. tasks=2 limit=2 new_ep_user=True
+2026-02-17 23:41:44 [INFO] RITM0434592 prepare-device task not found in scanned SCTASK records
+2026-02-17 23:41:44 [INFO] RITM0434592 PI not found in activity stream
+2026-02-17 23:41:44 [INFO] RITM0434592 => OK reason= user='New EP User' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0434592'
+2026-02-17 23:41:44 [INFO] [72/183] Open + extract: RITM0434593
+2026-02-17 23:41:44 [INFO] RITM0434593 user resolved from sys_id => 'New EP User'
+2026-02-17 23:41:52 [INFO] RITM0434593 SCTASK UI list scanned, PI not found (len=7204)
+2026-02-17 23:41:52 [INFO] RITM0434593 deep SCTASK scan starting. tasks=3 limit=3 new_ep_user=True
+2026-02-17 23:42:00 [INFO] RITM0434593 prepare-device task not found in scanned SCTASK records
+2026-02-17 23:42:00 [INFO] RITM0434593 PI not found in activity stream
+2026-02-17 23:42:00 [INFO] RITM0434593 => OK reason= user='New EP User' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0434593'
+2026-02-17 23:42:00 [INFO] [73/183] Open + extract: RITM0395758
+2026-02-17 23:42:00 [INFO] RITM0395758 user resolved from sys_id => 'Jana CÍBIKOVÁ'
+2026-02-17 23:42:08 [INFO] RITM0395758 => OK reason= user='Jana CÍBIKOVÁ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0395758'
+2026-02-17 23:42:08 [INFO] [74/183] Open + extract: RITM0405069
+2026-02-17 23:42:09 [INFO] RITM0405069 user resolved from sys_id => 'Hector BAYONAS HERNANDEZ'
+2026-02-17 23:42:09 [INFO] RITM0405069 open SCTASK fallback recovered count=4 tasks='SCTASK0708553, SCTASK0795321, SCTASK0774177, SCTASK0795322'
+2026-02-17 23:42:16 [INFO] RITM0405069 => OK reason= user='Hector BAYONAS HERNANDEZ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405069'
+2026-02-17 23:42:16 [INFO] [75/183] Open + extract: RITM0400256
+2026-02-17 23:42:17 [INFO] RITM0400256 user resolved from sys_id => 'Veronica Elizabeth FERRARI NOVILE'
+2026-02-17 23:42:17 [INFO] RITM0400256 open SCTASK fallback recovered count=4 tasks='SCTASK0698283, SCTASK0776768, SCTASK0792435, SCTASK0792436'
+2026-02-17 23:42:24 [INFO] RITM0400256 => OK reason= user='Veronica Elizabeth FERRARI NOVILE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400256'
+2026-02-17 23:42:24 [INFO] [76/183] Open + extract: RITM0405051
+2026-02-17 23:42:25 [INFO] RITM0405051 user resolved from sys_id => 'Andrea MARESI'
+2026-02-17 23:42:25 [INFO] RITM0405051 open SCTASK fallback recovered count=4 tasks='SCTASK0708534, SCTASK0798763, SCTASK0778004, SCTASK0798761'
+2026-02-17 23:42:32 [INFO] RITM0405051 => OK reason= user='Andrea MARESI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405051'
+2026-02-17 23:42:32 [INFO] [77/183] Open + extract: RITM0400286
+2026-02-17 23:42:33 [INFO] RITM0400286 user resolved from sys_id => 'Giacomo LOI'
+2026-02-17 23:42:33 [INFO] RITM0400286 open SCTASK fallback recovered count=4 tasks='SCTASK0698313, SCTASK0795182, SCTASK0795181, SCTASK0778251'
+2026-02-17 23:42:40 [INFO] RITM0400286 => OK reason= user='Giacomo LOI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400286'
+2026-02-17 23:42:40 [INFO] [78/183] Open + extract: RITM0420945
+2026-02-17 23:42:41 [INFO] RITM0420945 user resolved from sys_id => 'Filipa AZEVEDO'
+2026-02-17 23:42:41 [INFO] RITM0420945 open SCTASK fallback recovered count=4 tasks='SCTASK0739463, SCTASK0798811, SCTASK0798810, SCTASK0778262'
+2026-02-17 23:42:49 [INFO] RITM0420945 => OK reason= user='Filipa AZEVEDO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420945'
+2026-02-17 23:42:49 [INFO] [79/183] Open + extract: RITM0420920
+2026-02-17 23:42:49 [INFO] RITM0420920 user resolved from sys_id => 'Ambra MINNEI'
+2026-02-17 23:42:50 [INFO] RITM0420920 open SCTASK fallback recovered count=4 tasks='SCTASK0739438, SCTASK0799959, SCTASK0799958, SCTASK0778610'
+2026-02-17 23:42:57 [INFO] RITM0420920 => OK reason= user='Ambra MINNEI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420920'
+2026-02-17 23:42:57 [INFO] [80/183] Open + extract: RITM0420921
+2026-02-17 23:42:58 [INFO] RITM0420921 user resolved from sys_id => 'Ana Maria NOGUEIRA'
+2026-02-17 23:42:58 [INFO] RITM0420921 open SCTASK fallback recovered count=4 tasks='SCTASK0739439, SCTASK0778614, SCTASK0798193, SCTASK0798192'
+2026-02-17 23:43:05 [INFO] RITM0420921 => OK reason= user='Ana Maria NOGUEIRA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420921'
+2026-02-17 23:43:05 [INFO] [81/183] Open + extract: RITM0438737
+2026-02-17 23:43:06 [INFO] RITM0438737 user resolved from sys_id => 'Kirke KINK'
+2026-02-17 23:43:06 [INFO] RITM0438737 open SCTASK fallback recovered count=4 tasks='SCTASK0779082, SCTASK0773662, SCTASK0792756, SCTASK0792757'
+2026-02-17 23:43:13 [INFO] RITM0438737 => OK reason= user='Kirke KINK' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0438737'
+2026-02-17 23:43:13 [INFO] [82/183] Open + extract: RITM0420937
+2026-02-17 23:43:14 [INFO] RITM0420937 user resolved from sys_id => 'Darren NEVILLE'
+2026-02-17 23:43:14 [INFO] RITM0420937 open SCTASK fallback recovered count=4 tasks='SCTASK0781075, SCTASK0792482, SCTASK0739456, SCTASK0792484'
+2026-02-17 23:43:21 [INFO] RITM0420937 => OK reason= user='Darren NEVILLE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420937'
+2026-02-17 23:43:21 [INFO] [83/183] Open + extract: RITM0439274
+2026-02-17 23:43:22 [INFO] RITM0439274 user resolved from sys_id => 'Kristi PÕLLUVEER'
+2026-02-17 23:43:22 [INFO] RITM0439274 open SCTASK fallback recovered count=4 tasks='SCTASK0774701, SCTASK0781393, SCTASK0793493, SCTASK0793495'
+2026-02-17 23:43:30 [INFO] RITM0439274 PI not found in activity stream
+2026-02-17 23:43:30 [INFO] RITM0439274 => OK reason= user='Kristi PÕLLUVEER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0439274'
+2026-02-17 23:43:30 [INFO] [84/183] Open + extract: RITM0420969
+2026-02-17 23:43:30 [INFO] RITM0420969 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-17 23:43:38 [INFO] RITM0420969 => OK reason= user='Kristýna MATÁTKOVÁ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420969'
+2026-02-17 23:43:38 [INFO] [85/183] Open + extract: RITM0420949
+2026-02-17 23:43:39 [INFO] RITM0420949 user resolved from sys_id => 'Gioconda MIELE'
+2026-02-17 23:43:39 [INFO] RITM0420949 open SCTASK fallback recovered count=4 tasks='SCTASK0739467, SCTASK0803923, SCTASK0803924, SCTASK0782761'
+2026-02-17 23:43:46 [INFO] RITM0420949 => OK reason= user='Gioconda MIELE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420949'
+2026-02-17 23:43:46 [INFO] [86/183] Open + extract: RITM0420954
+2026-02-17 23:43:47 [INFO] RITM0420954 user resolved from sys_id => 'Heike Sonja LEBERLE'
+2026-02-17 23:43:54 [INFO] RITM0420954 => OK reason= user='Heike Sonja LEBERLE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420954'
+2026-02-17 23:43:54 [INFO] [87/183] Open + extract: RITM0420964
+2026-02-17 23:43:55 [INFO] RITM0420964 user resolved from sys_id => 'Johannes KIERSCH'
+2026-02-17 23:44:03 [INFO] RITM0420964 => OK reason= user='Johannes KIERSCH' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420964'
+2026-02-17 23:44:03 [INFO] [88/183] Open + extract: RITM0420977
+2026-02-17 23:44:03 [INFO] RITM0420977 user resolved from sys_id => 'Magdalena GUZOWSKA'
+2026-02-17 23:44:04 [INFO] RITM0420977 open SCTASK fallback recovered count=4 tasks='SCTASK0739496, SCTASK0795196, SCTASK0785102, SCTASK0795198'
+2026-02-17 23:44:11 [INFO] RITM0420977 PI not found in activity stream
+2026-02-17 23:44:11 [INFO] RITM0420977 => OK reason= user='Magdalena GUZOWSKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420977'
+2026-02-17 23:44:11 [INFO] [89/183] Open + extract: RITM0444346
+2026-02-17 23:44:12 [INFO] RITM0444346 user resolved from sys_id => 'Karin SAUERTEIG'
+2026-02-17 23:44:19 [INFO] RITM0444346 => OK reason= user='Karin SAUERTEIG' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444346'
+2026-02-17 23:44:19 [INFO] [90/183] Open + extract: RITM0444432
+2026-02-17 23:44:20 [INFO] RITM0444432 user resolved from sys_id => 'Lisa MUTKE'
+2026-02-17 23:44:20 [INFO] RITM0444432 open SCTASK fallback recovered count=4 tasks='SCTASK0784675, SCTASK0786672, SCTASK0795162, SCTASK0795163'
+2026-02-17 23:44:27 [INFO] RITM0444432 => OK reason= user='Lisa MUTKE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444432'
+2026-02-17 23:44:27 [INFO] [91/183] Open + extract: RITM0445739
+2026-02-17 23:44:28 [INFO] RITM0445739 user resolved from sys_id => 'Michelle FLORIDIA'
+2026-02-17 23:44:35 [INFO] RITM0445739 PI not found in activity stream
+2026-02-17 23:44:35 [INFO] RITM0445739 => OK reason= user='Michelle FLORIDIA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0445739'
+2026-02-17 23:44:35 [INFO] [92/183] Open + extract: RITM0420981
+2026-02-17 23:44:35 [INFO] RITM0420981 user resolved from sys_id => 'Martina TOPLICANEC'
+2026-02-17 23:44:43 [INFO] RITM0420981 => OK reason= user='Martina TOPLICANEC' ci='b6dcc9af97d25610440eb717f053af38' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420981'
+2026-02-17 23:44:43 [INFO] [93/183] Open + extract: RITM0444440
+2026-02-17 23:44:44 [INFO] RITM0444440 user resolved from sys_id => 'Jasna TOSKOVA'
+2026-02-17 23:44:44 [INFO] RITM0444440 open SCTASK fallback recovered count=4 tasks='SCTASK0784683, SCTASK0802214, SCTASK0802213, SCTASK0787820'
+2026-02-17 23:44:51 [INFO] RITM0444440 => OK reason= user='Jasna TOSKOVA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444440'
+2026-02-17 23:44:51 [INFO] [94/183] Open + extract: RITM0444427
+2026-02-17 23:44:52 [INFO] RITM0444427 user resolved from sys_id => 'Emilia ASULTANEI'
+2026-02-17 23:44:52 [INFO] RITM0444427 open SCTASK fallback recovered count=3 tasks='SCTASK0784670, SCTASK0788546, SCTASK0788545'
+2026-02-17 23:45:00 [INFO] RITM0444427 => OK reason= user='Emilia ASULTANEI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444427'
+2026-02-17 23:45:00 [INFO] [95/183] Open + extract: RITM0444415
+2026-02-17 23:45:01 [INFO] RITM0444415 open SCTASK fallback recovered count=4 tasks='SCTASK0784656, SCTASK0802512, SCTASK0802511, SCTASK0788551'
+2026-02-17 23:45:08 [INFO] RITM0444415 PI not found in activity stream
+2026-02-17 23:45:08 [INFO] RITM0444415 => OK reason= user='dd9ec4d11b3a341032980ed1604bcb2f' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444415'
+2026-02-17 23:45:08 [INFO] [96/183] Open + extract: RITM0444436
+2026-02-17 23:45:09 [INFO] RITM0444436 user resolved from sys_id => 'Susana Pilar DELMAS COSTA'
+2026-02-17 23:45:09 [INFO] RITM0444436 open SCTASK fallback recovered count=4 tasks='SCTASK0784679, SCTASK0789345, SCTASK0793508, SCTASK0793510'
+2026-02-17 23:45:16 [INFO] RITM0444436 => OK reason= user='Susana Pilar DELMAS COSTA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444436'
+2026-02-17 23:45:16 [INFO] [97/183] Open + extract: RITM0444429
+2026-02-17 23:45:17 [INFO] RITM0444429 user resolved from sys_id => 'Thomas Jean Denis LANCIEN'
+2026-02-17 23:45:17 [INFO] RITM0444429 open SCTASK fallback recovered count=4 tasks='SCTASK0784672, SCTASK0804516, SCTASK0804517, SCTASK0790219'
+2026-02-17 23:45:24 [INFO] RITM0444429 => OK reason= user='Thomas Jean Denis LANCIEN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444429'
+2026-02-17 23:45:24 [INFO] [98/183] Open + extract: RITM0444421
+2026-02-17 23:45:25 [INFO] RITM0444421 user resolved from sys_id => 'Gustavo Jose LOPEZ CUTILLAS'
+2026-02-17 23:45:25 [INFO] RITM0444421 open SCTASK fallback recovered count=4 tasks='SCTASK0794080, SCTASK0794079, SCTASK0784663, SCTASK0790365'
+2026-02-17 23:45:33 [INFO] RITM0444421 => OK reason= user='Gustavo Jose LOPEZ CUTILLAS' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444421'
+2026-02-17 23:45:33 [INFO] [99/183] Open + extract: RITM0400104
+2026-02-17 23:45:33 [INFO] RITM0400104 user resolved from sys_id => 'Elwira Maria BORKOWSKA'
+2026-02-17 23:45:34 [INFO] RITM0400104 open SCTASK fallback recovered count=4 tasks='SCTASK0698124, SCTASK0769660, SCTASK0790440, SCTASK0790435'
+2026-02-17 23:45:41 [INFO] RITM0400104 => OK reason= user='Elwira Maria BORKOWSKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400104'
+2026-02-17 23:45:41 [INFO] [100/183] Open + extract: RITM0400110
+2026-02-17 23:45:42 [INFO] RITM0400110 user resolved from sys_id => 'Gai OREN'
+2026-02-17 23:45:49 [INFO] RITM0400110 => OK reason= user='Gai OREN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400110'
+2026-02-17 23:45:49 [INFO] [101/183] Open + extract: RITM0444394
+2026-02-17 23:45:50 [INFO] RITM0444394 user resolved from sys_id => 'Dirk VERBEKEN'
+2026-02-17 23:45:58 [INFO] RITM0444394 => OK reason= user='Dirk VERBEKEN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444394'
+2026-02-17 23:45:58 [INFO] [102/183] Open + extract: RITM0444431
+2026-02-17 23:45:58 [INFO] RITM0444431 user resolved from sys_id => 'Margarida CHAMBEL GONCALVES'
+2026-02-17 23:45:59 [INFO] RITM0444431 open SCTASK fallback recovered count=4 tasks='SCTASK0784674, SCTASK0791096, SCTASK0791346, SCTASK0791347'
+2026-02-17 23:46:06 [INFO] RITM0444431 => OK reason= user='Margarida CHAMBEL GONCALVES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444431'
+2026-02-17 23:46:06 [INFO] [103/183] Open + extract: RITM0444400
+2026-02-17 23:46:07 [INFO] RITM0444400 user resolved from sys_id => 'Jost ANGERER'
+2026-02-17 23:46:07 [INFO] RITM0444400 open SCTASK fallback recovered count=4 tasks='SCTASK0784641, SCTASK0804267, SCTASK0804268, SCTASK0791553'
+2026-02-17 23:46:14 [INFO] RITM0444400 => OK reason= user='Jost ANGERER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444400'
+2026-02-17 23:46:14 [INFO] [104/183] Open + extract: RITM0420716
+2026-02-17 23:46:14 [INFO] RITM0420716 user resolved from sys_id => 'Balazs MELLAR'
+2026-02-17 23:46:15 [INFO] RITM0420716 open SCTASK fallback recovered count=2 tasks='SCTASK0739080, SCTASK0791995'
+2026-02-17 23:46:22 [INFO] RITM0420716 => OK reason= user='Balazs MELLAR' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420716'
+2026-02-17 23:46:22 [INFO] [105/183] Open + extract: RITM0442001
+2026-02-17 23:46:23 [INFO] RITM0442001 user resolved from sys_id => 'Lina BARSTYTE'
+2026-02-17 23:46:23 [INFO] RITM0442001 open SCTASK fallback recovered count=2 tasks='SCTASK0780199, SCTASK0792226'
+2026-02-17 23:46:30 [INFO] RITM0442001 PI not found in activity stream
+2026-02-17 23:46:30 [INFO] RITM0442001 => OK reason= user='Lina BARSTYTE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0442001'
+2026-02-17 23:46:30 [INFO] [106/183] Open + extract: RITM0439802
+2026-02-17 23:46:31 [INFO] RITM0439802 user resolved from sys_id => 'Mattia RICCI'
+2026-02-17 23:46:31 [INFO] RITM0439802 open SCTASK fallback recovered count=7 tasks='SCTASK0779980, SCTASK0787840, SCTASK0787923, SCTASK0779979, SCTASK0775765, SCTASK0779981, SCTASK0792270'
+2026-02-17 23:46:36 [INFO] RITM0439802 Legal name extracted from form => 'Mattia RICCI'
+2026-02-17 23:46:36 [INFO] RITM0439802 PI not found in activity stream
+2026-02-17 23:46:36 [INFO] RITM0439802 => OK reason= user='Mattia RICCI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0439802'
+2026-02-17 23:46:36 [INFO] [107/183] Open + extract: RITM0444382
+2026-02-17 23:46:36 [INFO] RITM0444382 user resolved from sys_id => 'Przemyslaw Piotr BRZOZOWSKI'
+2026-02-17 23:46:37 [INFO] RITM0444382 open SCTASK fallback recovered count=4 tasks='SCTASK0798114, SCTASK0798113, SCTASK0784623, SCTASK0794316'
+2026-02-17 23:46:43 [INFO] RITM0444382 => OK reason= user='Przemyslaw Piotr BRZOZOWSKI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444382'
+2026-02-17 23:46:43 [INFO] [108/183] Open + extract: RITM0444386
+2026-02-17 23:46:44 [INFO] RITM0444386 user resolved from sys_id => 'Sandra Elizabeth CALDEIRA ALMEIDA DWORAK'
+2026-02-17 23:46:52 [INFO] RITM0444386 => OK reason= user='Sandra Elizabeth CALDEIRA ALMEIDA DWORAK' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444386'
+2026-02-17 23:46:52 [INFO] [109/183] Open + extract: RITM0444381
+2026-02-17 23:46:53 [INFO] RITM0444381 user resolved from sys_id => 'Atanaska KOLEVA'
+2026-02-17 23:46:53 [INFO] RITM0444381 open SCTASK fallback recovered count=4 tasks='SCTASK0794799, SCTASK0802649, SCTASK0784622, SCTASK0802650'
+2026-02-17 23:47:00 [INFO] RITM0444381 PI not found in activity stream
+2026-02-17 23:47:00 [INFO] RITM0444381 => OK reason= user='Atanaska KOLEVA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444381'
+2026-02-17 23:47:00 [INFO] [110/183] Open + extract: RITM0400240
+2026-02-17 23:47:01 [INFO] RITM0400240 user resolved from sys_id => 'Ramune TAMASAUSKAITE'
+2026-02-17 23:47:09 [INFO] RITM0400240 => OK reason= user='Ramune TAMASAUSKAITE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400240'
+2026-02-17 23:47:09 [INFO] [111/183] Open + extract: RITM0444392
+2026-02-17 23:47:10 [INFO] RITM0444392 user resolved from sys_id => 'Artemis STAMATELOU'
+2026-02-17 23:47:10 [INFO] RITM0444392 open SCTASK fallback recovered count=4 tasks='SCTASK0784633, SCTASK0795747, SCTASK0790613, SCTASK0795748'
+2026-02-17 23:47:17 [INFO] RITM0444392 => OK reason= user='Artemis STAMATELOU' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444392'
+2026-02-17 23:47:17 [INFO] [112/183] Open + extract: RITM0444393
+2026-02-17 23:47:18 [INFO] RITM0444393 user resolved from sys_id => 'Christian Martin KURRER'
+2026-02-17 23:47:25 [INFO] RITM0444393 => OK reason= user='Christian Martin KURRER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444393'
+2026-02-17 23:47:25 [INFO] [113/183] Open + extract: RITM0444372
+2026-02-17 23:47:26 [INFO] RITM0444372 user resolved from sys_id => 'Henrieta KAROLOVA'
+2026-02-17 23:47:34 [INFO] RITM0444372 => OK reason= user='Henrieta KAROLOVA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444372'
+2026-02-17 23:47:34 [INFO] [114/183] Open + extract: RITM0444439
+2026-02-17 23:47:35 [INFO] RITM0444439 user resolved from sys_id => 'Judith BÜRGER'
+2026-02-17 23:47:35 [INFO] RITM0444439 open SCTASK fallback recovered count=4 tasks='SCTASK0784682, SCTASK0787252, SCTASK0796897, SCTASK0796896'
+2026-02-17 23:47:43 [INFO] RITM0444439 PI not found in activity stream
+2026-02-17 23:47:43 [INFO] RITM0444439 => OK reason= user='Judith BÜRGER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0444439'
+2026-02-17 23:47:43 [INFO] [115/183] Open + extract: RITM0450438
+2026-02-17 23:47:44 [INFO] RITM0450438 user resolved from sys_id => 'Radek PILAR'
+2026-02-17 23:47:44 [INFO] RITM0450438 open SCTASK fallback recovered count=2 tasks='SCTASK0797507, SCTASK0797535'
+2026-02-17 23:47:52 [INFO] RITM0450438 PI not found in activity stream
+2026-02-17 23:47:52 [INFO] RITM0450438 => OK reason= user='Radek PILAR' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0450438'
+2026-02-17 23:47:52 [INFO] [116/183] Open + extract: RITM0451571
+2026-02-17 23:47:53 [INFO] RITM0451571 user resolved from sys_id => 'Francisco Javier PADILLA OLIVARES'
+2026-02-17 23:48:01 [INFO] RITM0451571 PI not found in activity stream
+2026-02-17 23:48:01 [INFO] RITM0451571 => OK reason= user='Francisco Javier PADILLA OLIVARES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0451571'
+2026-02-17 23:48:01 [INFO] [117/183] Open + extract: RITM0444334
+2026-02-17 23:48:02 [INFO] RITM0444334 user resolved from sys_id => 'François NEGRE'
+2026-02-17 23:48:10 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_234810
+2026-02-17 23:48:10 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:48:11 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:48:11 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:48:11 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:48:11 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:48:11 [INFO] Starting SSO login...
+2026-02-17 23:48:13 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:48:13 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:48:13 [INFO] Killing EXCEL processes: 1. before read open
+2026-02-17 23:48:14 [INFO] Creating Excel COM (read)...
+2026-02-17 23:48:15 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:48:15 [INFO] Workbook opened (read).
+2026-02-17 23:48:15 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:48:15 [INFO] Worksheet opened.
+2026-02-17 23:48:15 [INFO] Building header map...
+2026-02-17 23:48:15 [INFO] Header map built. Columns=15
+2026-02-17 23:48:15 [INFO] Ticket column resolved: 4
+2026-02-17 23:48:15 [INFO] Scanning ticket rows 2..304
+2026-02-17 23:48:15 [INFO] Ticket scan completed. Found=183
+2026-02-17 23:48:15 [INFO] Tickets found: 183
+2026-02-17 23:48:15 [INFO] Processing scope: INC + RITM (INC detected). Count=183
+2026-02-17 23:48:15 [INFO] [1/183] Open + extract: RITM0496748
+2026-02-17 23:48:16 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:48:16 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:48:23 [INFO] RITM0496748 PI not found in activity stream
+2026-02-17 23:48:23 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-17 23:48:23 [INFO] [2/183] Open + extract: RITM0405052
+2026-02-17 23:48:24 [INFO] RITM0405052 user resolved from sys_id => 'Alexandra DE TORNACO'
+2026-02-17 23:48:24 [INFO] RITM0405052 open SCTASK fallback recovered count=4 tasks='SCTASK0708535, SCTASK0762732, SCTASK0784120, SCTASK0784119'
+2026-02-17 23:48:31 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-17 23:48:31 [INFO] [3/183] Open + extract: RITM0493120
+2026-02-17 23:48:32 [INFO] RITM0493120 open SCTASK fallback recovered count=1 tasks='SCTASK0880081'
+2026-02-17 23:48:39 [INFO] RITM0493120 PI not found in activity stream
+2026-02-17 23:48:39 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-17 23:48:39 [INFO] [4/183] Open + extract: INC0404030
+2026-02-17 23:48:39 [INFO] INC0404030 user resolved from sys_id => 'Natalia Maria VALENCIA AGUIRRE'
+2026-02-17 23:48:41 [INFO] INC0404030 => OK reason= user='Natalia Maria VALENCIA AGUIRRE' ci='9ca027c0c32e52d014211f4bb0013182' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404030'
+2026-02-17 23:48:41 [INFO] [5/183] Open + extract: INC0405320
+2026-02-17 23:48:42 [INFO] INC0405320 user resolved from sys_id => 'Georgiana SANDU'
+2026-02-17 23:48:44 [INFO] INC0405320 => OK reason= user='Georgiana SANDU' ci='b78dbcc797c73554440eb717f053af1f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0405320'
+2026-02-17 23:48:44 [INFO] [6/183] Open + extract: INC0404913
+2026-02-17 23:48:45 [INFO] INC0404913 user resolved from sys_id => 'Klaudia ARBETOVA'
+2026-02-17 23:48:47 [INFO] INC0404913 => OK reason= user='Klaudia ARBETOVA' ci='c30d0def97d25610440eb717f053afba' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404913'
+2026-02-17 23:48:47 [INFO] [7/183] Open + extract: INC0404662
+2026-02-17 23:48:47 [INFO] INC0404662 user resolved from sys_id => 'Gabriel Stanislav Vladimir LITERA'
+2026-02-17 23:48:49 [INFO] INC0404662 PI not found in activity stream
+2026-02-17 23:48:49 [INFO] INC0404662 => OK reason= user='Gabriel Stanislav Vladimir LITERA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404662'
+2026-02-17 23:48:50 [INFO] [8/183] Open + extract: INC0403929
+2026-02-17 23:48:50 [INFO] INC0403929 user resolved from sys_id => 'Sandrina MARCUZZO'
+2026-02-17 23:48:52 [INFO] INC0403929 => OK reason= user='Sandrina MARCUZZO' ci='85906f80c32e52d014211f4bb0013197' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0403929'
+2026-02-17 23:48:52 [INFO] [9/183] Open + extract: INC0404073
+2026-02-17 23:48:53 [INFO] INC0404073 user resolved from sys_id => 'Marika SULANKO'
+2026-02-17 23:48:55 [INFO] INC0404073 => OK reason= user='Marika SULANKO' ci='d2dc89af97d25610440eb717f053af43' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404073'
+2026-02-17 23:48:55 [INFO] [10/183] Open + extract: INC0398334
+2026-02-17 23:48:56 [INFO] INC0398334 user resolved from sys_id => 'Anastasia COUCOURATOS'
+2026-02-17 23:48:58 [INFO] INC0398334 => OK reason= user='Anastasia COUCOURATOS' ci='8b4bedb41be3705032980ed1604bcbb6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398334'
+2026-02-17 23:48:58 [INFO] [11/183] Open + extract: INC0400192
+2026-02-17 23:48:58 [INFO] INC0400192 user resolved from sys_id => 'Liselotte JENSEN'
+2026-02-17 23:49:00 [INFO] INC0400192 PI not found in activity stream
+2026-02-17 23:49:00 [INFO] INC0400192 => OK reason= user='Liselotte JENSEN' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0400192'
+2026-02-17 23:49:01 [INFO] [12/183] Open + extract: INC0399952
+2026-02-17 23:49:01 [INFO] INC0399952 user resolved from sys_id => 'Lucie Agnès Marie Olga MAISTRELLI'
+2026-02-17 23:49:03 [INFO] INC0399952 PI not found in activity stream
+2026-02-17 23:49:03 [INFO] INC0399952 => OK reason= user='Lucie Agnès Marie Olga MAISTRELLI' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399952'
+2026-02-17 23:49:03 [INFO] [13/183] Open + extract: INC0399909
+2026-02-17 23:49:03 [INFO] INC0399909 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-17 23:49:05 [INFO] INC0399909 PI not found in activity stream
+2026-02-17 23:49:05 [INFO] INC0399909 => OK reason= user='Kristýna MATÁTKOVÁ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399909'
+2026-02-17 23:49:05 [INFO] [14/183] Open + extract: INC0399906
+2026-02-17 23:49:06 [INFO] INC0399906 user resolved from sys_id => 'Ana RADOCAJ'
+2026-02-17 23:49:08 [INFO] INC0399906 PI not found in activity stream
+2026-02-17 23:49:08 [INFO] INC0399906 => OK reason= user='Ana RADOCAJ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399906'
+2026-02-17 23:49:08 [INFO] [15/183] Open + extract: INC0398797
+2026-02-17 23:49:09 [INFO] INC0398797 user resolved from sys_id => 'Angelika KISS'
+2026-02-17 23:49:11 [INFO] INC0398797 => OK reason= user='Angelika KISS' ci='9aec01ef97d25610440eb717f053af92' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398797'
+2026-02-17 23:49:11 [INFO] [16/183] Open + extract: INC0399068
+2026-02-17 23:49:11 [INFO] INC0399068 user resolved from sys_id => 'Maria Nazareth ECHART ORUS'
+2026-02-17 23:49:13 [INFO] INC0399068 => OK reason= user='Maria Nazareth ECHART ORUS' ci='626d7c8797c73554440eb717f053afce' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399068'
+2026-02-17 23:49:13 [INFO] [17/183] Open + extract: INC0398566
+2026-02-17 23:49:14 [INFO] INC0398566 user resolved from sys_id => 'Krista DANKERE'
+2026-02-17 23:49:16 [INFO] INC0398566 => OK reason= user='Krista DANKERE' ci='28aaeec01beff01032980ed1604bcb76' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398566'
+2026-02-17 23:49:16 [INFO] [18/183] Open + extract: INC0397938
+2026-02-17 23:49:17 [INFO] INC0397938 user resolved from sys_id => 'Maja SABOL'
+2026-02-17 23:49:19 [INFO] INC0397938 PI not found in activity stream
+2026-02-17 23:49:19 [INFO] INC0397938 => OK reason= user='Maja SABOL' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0397938'
+2026-02-17 23:49:19 [INFO] [19/183] Open + extract: INC0396829
+2026-02-17 23:49:20 [INFO] INC0396829 user resolved from sys_id => 'Cristina SANCHEZ VILLA'
+2026-02-17 23:49:22 [INFO] INC0396829 => OK reason= user='Cristina SANCHEZ VILLA' ci='5a2d704797c73554440eb717f053af91' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396829'
+2026-02-17 23:49:22 [INFO] [20/183] Open + extract: INC0390677
+2026-02-17 23:49:23 [INFO] INC0390677 user resolved from sys_id => 'Wojciech KUZMA'
+2026-02-17 23:49:25 [INFO] INC0390677 PI not found in activity stream
+2026-02-17 23:49:25 [INFO] INC0390677 => OK reason= user='Wojciech KUZMA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0390677'
+2026-02-17 23:49:25 [INFO] [21/183] Open + extract: INC0384484
+2026-02-17 23:49:25 [INFO] INC0384484 user resolved from sys_id => 'Tajana LJUBICIC'
+2026-02-17 23:49:27 [INFO] INC0384484 => OK reason= user='Tajana LJUBICIC' ci='b88d38c797c73554440eb717f053af67' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0384484'
+2026-02-17 23:49:27 [INFO] [22/183] Open + extract: INC0396867
+2026-02-17 23:49:28 [INFO] INC0396867 user resolved from sys_id => 'Luc JEUNESSE'
+2026-02-17 23:49:30 [INFO] INC0396867 => OK reason= user='Luc JEUNESSE' ci='eafc32c5c3e29a1414211f4bb0013102' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396867'
+2026-02-17 23:49:30 [INFO] [23/183] Open + extract: INC0393533
+2026-02-17 23:49:31 [INFO] INC0393533 user resolved from sys_id => 'Maria Antoaneta NEAG'
+2026-02-17 23:49:33 [INFO] INC0393533 => OK reason= user='Maria Antoaneta NEAG' ci='0ef06784c32e52d014211f4bb00131c3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393533'
+2026-02-17 23:49:33 [INFO] [24/183] Open + extract: INC0393530
+2026-02-17 23:49:34 [INFO] INC0393530 user resolved from sys_id => 'Katerina HEROUTOVÁ'
+2026-02-17 23:49:36 [INFO] INC0393530 => OK reason= user='Katerina HEROUTOVÁ' ci='c9fc05ef97d25610440eb717f053af88' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393530'
+2026-02-17 23:49:36 [INFO] [25/183] Open + extract: INC0393057
+2026-02-17 23:49:36 [INFO] INC0393057 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-17 23:49:39 [INFO] INC0393057 => OK reason= user='Igor DEQUECKER' ci='e3b895381b2f305032980ed1604bcba0' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393057'
+2026-02-17 23:49:39 [INFO] [26/183] Open + extract: INC0392998
+2026-02-17 23:49:39 [INFO] INC0392998 user resolved from sys_id => 'Christos PAPAGIANNIS'
+2026-02-17 23:49:41 [INFO] INC0392998 => OK reason= user='Christos PAPAGIANNIS' ci='d6506f00c32e52d014211f4bb0013138' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0392998'
+2026-02-17 23:49:41 [INFO] [27/183] Open + extract: INC0386947
+2026-02-17 23:49:42 [INFO] INC0386947 user resolved from sys_id => 'Nicolas DORGERET'
+2026-02-17 23:49:44 [INFO] INC0386947 => OK reason= user='Nicolas DORGERET' ci='976aa20c2b172690ca61fe63ce91bf8a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0386947'
+2026-02-17 23:49:44 [INFO] [28/183] Open + extract: INC0381429
+2026-02-17 23:49:45 [INFO] INC0381429 user resolved from sys_id => 'Ramune TAMASAUSKAITE'
+2026-02-17 23:49:47 [INFO] INC0381429 => OK reason= user='Ramune TAMASAUSKAITE' ci='e26dbc8797c73554440eb717f053af12' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381429'
+2026-02-17 23:49:47 [INFO] [29/183] Open + extract: INC0381995
+2026-02-17 23:49:48 [INFO] INC0381995 user resolved from sys_id => 'Cesar Augusto CASTELLO MORENO'
+2026-02-17 23:49:50 [INFO] INC0381995 => OK reason= user='Cesar Augusto CASTELLO MORENO' ci='51d0a344c32e52d014211f4bb001316a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381995'
+2026-02-17 23:49:50 [INFO] [30/183] Open + extract: INC0377661
+2026-02-17 23:49:50 [INFO] INC0377661 user resolved from sys_id => 'Alina Leandra Ó RIADA'
+2026-02-17 23:49:52 [INFO] INC0377661 => OK reason= user='Alina Leandra Ó RIADA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377661'
+2026-02-17 23:49:52 [INFO] [31/183] Open + extract: INC0376136
+2026-02-17 23:49:53 [INFO] INC0376136 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-17 23:49:55 [INFO] INC0376136 => OK reason= user='Igor DEQUECKER' ci='cf0d0def97d25610440eb717f053afdd' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376136'
+2026-02-17 23:49:55 [INFO] [32/183] Open + extract: INC0377128
+2026-02-17 23:49:56 [INFO] INC0377128 user resolved from sys_id => 'Francesco BARCHIELLI'
+2026-02-17 23:49:58 [INFO] INC0377128 => OK reason= user='Francesco BARCHIELLI' ci='21406300c32e52d014211f4bb00131c8' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377128'
+2026-02-17 23:49:58 [INFO] [33/183] Open + extract: INC0376121
+2026-02-17 23:49:59 [INFO] INC0376121 user resolved from sys_id => 'Anna ARESU'
+2026-02-17 23:50:01 [INFO] INC0376121 => OK reason= user='Anna ARESU' ci='97b02704c32e52d014211f4bb00131cf' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376121'
+2026-02-17 23:50:01 [INFO] [34/183] Open + extract: INC0375309
+2026-02-17 23:50:01 [INFO] INC0375309 user resolved from sys_id => 'Stephanie HONNEFELDER'
+2026-02-17 23:50:03 [INFO] INC0375309 => OK reason= user='Stephanie HONNEFELDER' ci='a76aa20c2b172690ca61fe63ce91bfe1' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0375309'
+2026-02-17 23:50:03 [INFO] [35/183] Open + extract: INC0372528
+2026-02-17 23:50:04 [INFO] INC0372528 user resolved from sys_id => 'Philine SCHOLZE'
+2026-02-17 23:50:06 [INFO] INC0372528 => OK reason= user='Philine SCHOLZE' ci='847ae20c2b172690ca61fe63ce91bf8f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372528'
+2026-02-17 23:50:06 [INFO] [36/183] Open + extract: INC0373224
+2026-02-17 23:50:07 [INFO] INC0373224 user resolved from sys_id => 'Ariane DEBYSER'
+2026-02-17 23:50:09 [INFO] INC0373224 => OK reason= user='Ariane DEBYSER' ci='0490eb80c32e52d014211f4bb0013160' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0373224'
+2026-02-17 23:50:09 [INFO] [37/183] Open + extract: INC0374026
+2026-02-17 23:50:09 [INFO] INC0374026 user resolved from sys_id => 'Rachid AHAJJAM'
+2026-02-17 23:50:12 [INFO] INC0374026 => OK reason= user='Rachid AHAJJAM' ci='d20dc9ef97d25610440eb717f053afc9' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0374026'
+2026-02-17 23:50:12 [INFO] [38/183] Open + extract: INC0370735
+2026-02-17 23:50:12 [INFO] INC0370735 user resolved from sys_id => 'Gianna GRIGÒ'
+2026-02-17 23:50:16 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_235016
+2026-02-17 23:50:16 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:50:16 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:50:16 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:50:16 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:50:16 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:50:16 [INFO] Starting SSO login...
+2026-02-17 23:50:17 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:50:17 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:50:17 [INFO] No EXCEL process to kill. before read open
+2026-02-17 23:50:17 [INFO] Creating Excel COM (read)...
+2026-02-17 23:50:18 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:50:18 [INFO] Workbook opened (read).
+2026-02-17 23:50:18 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:50:18 [INFO] Worksheet opened.
+2026-02-17 23:50:18 [INFO] Building header map...
+2026-02-17 23:50:18 [INFO] Header map built. Columns=15
+2026-02-17 23:50:18 [INFO] Ticket column resolved: 4
+2026-02-17 23:50:18 [INFO] Scanning ticket rows 2..304
+2026-02-17 23:50:18 [INFO] Ticket scan completed. Found=183
+2026-02-17 23:50:18 [INFO] Tickets found: 183
+2026-02-17 23:50:18 [INFO] Processing scope: INC + RITM (INC detected). Count=183
+2026-02-17 23:50:18 [INFO] [1/183] Open + extract: RITM0496748
+2026-02-17 23:50:20 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:50:20 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:50:33 [INFO] RITM0496748 PI not found in activity stream
+2026-02-17 23:50:33 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-17 23:50:33 [INFO] [2/183] Open + extract: RITM0405052
+2026-02-17 23:50:34 [INFO] RITM0405052 user resolved from sys_id => 'Alexandra DE TORNACO'
+2026-02-17 23:50:41 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-17 23:50:41 [INFO] [3/183] Open + extract: RITM0493120
+2026-02-17 23:50:42 [INFO] RITM0493120 user resolved from sys_id => 'Aneta KORZENIECKA'
+2026-02-17 23:50:49 [INFO] RITM0493120 PI not found in activity stream
+2026-02-17 23:50:49 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-17 23:50:49 [INFO] [4/183] Open + extract: INC0404030
+2026-02-17 23:50:49 [INFO] INC0404030 user resolved from sys_id => 'Natalia Maria VALENCIA AGUIRRE'
+2026-02-17 23:50:51 [INFO] INC0404030 => OK reason= user='Natalia Maria VALENCIA AGUIRRE' ci='9ca027c0c32e52d014211f4bb0013182' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404030'
+2026-02-17 23:50:51 [INFO] [5/183] Open + extract: INC0405320
+2026-02-17 23:50:52 [INFO] INC0405320 user resolved from sys_id => 'Georgiana SANDU'
+2026-02-17 23:50:54 [INFO] INC0405320 => OK reason= user='Georgiana SANDU' ci='b78dbcc797c73554440eb717f053af1f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0405320'
+2026-02-17 23:50:54 [INFO] [6/183] Open + extract: INC0404913
+2026-02-17 23:50:55 [INFO] INC0404913 user resolved from sys_id => 'Klaudia ARBETOVA'
+2026-02-17 23:50:57 [INFO] INC0404913 => OK reason= user='Klaudia ARBETOVA' ci='c30d0def97d25610440eb717f053afba' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404913'
+2026-02-17 23:50:57 [INFO] [7/183] Open + extract: INC0404662
+2026-02-17 23:50:58 [INFO] INC0404662 user resolved from sys_id => 'Gabriel Stanislav Vladimir LITERA'
+2026-02-17 23:51:00 [INFO] INC0404662 PI not found in activity stream
+2026-02-17 23:51:00 [INFO] INC0404662 => OK reason= user='Gabriel Stanislav Vladimir LITERA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404662'
+2026-02-17 23:51:00 [INFO] [8/183] Open + extract: INC0403929
+2026-02-17 23:51:01 [INFO] INC0403929 user resolved from sys_id => 'Sandrina MARCUZZO'
+2026-02-17 23:51:03 [INFO] INC0403929 => OK reason= user='Sandrina MARCUZZO' ci='85906f80c32e52d014211f4bb0013197' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0403929'
+2026-02-17 23:51:03 [INFO] [9/183] Open + extract: INC0404073
+2026-02-17 23:51:04 [INFO] INC0404073 user resolved from sys_id => 'Marika SULANKO'
+2026-02-17 23:51:06 [INFO] INC0404073 => OK reason= user='Marika SULANKO' ci='d2dc89af97d25610440eb717f053af43' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404073'
+2026-02-17 23:51:06 [INFO] [10/183] Open + extract: INC0398334
+2026-02-17 23:51:07 [INFO] INC0398334 user resolved from sys_id => 'Anastasia COUCOURATOS'
+2026-02-17 23:51:09 [INFO] INC0398334 => OK reason= user='Anastasia COUCOURATOS' ci='8b4bedb41be3705032980ed1604bcbb6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398334'
+2026-02-17 23:51:09 [INFO] [11/183] Open + extract: INC0400192
+2026-02-17 23:51:09 [INFO] INC0400192 user resolved from sys_id => 'Liselotte JENSEN'
+2026-02-17 23:51:11 [INFO] INC0400192 PI not found in activity stream
+2026-02-17 23:51:11 [INFO] INC0400192 => OK reason= user='Liselotte JENSEN' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0400192'
+2026-02-17 23:51:11 [INFO] [12/183] Open + extract: INC0399952
+2026-02-17 23:51:12 [INFO] INC0399952 user resolved from sys_id => 'Lucie Agnès Marie Olga MAISTRELLI'
+2026-02-17 23:51:14 [INFO] INC0399952 PI not found in activity stream
+2026-02-17 23:51:14 [INFO] INC0399952 => OK reason= user='Lucie Agnès Marie Olga MAISTRELLI' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399952'
+2026-02-17 23:51:14 [INFO] [13/183] Open + extract: INC0399909
+2026-02-17 23:51:14 [INFO] INC0399909 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-17 23:53:23 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_235323
+2026-02-17 23:53:23 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:53:23 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:53:23 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:53:23 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:53:23 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:53:23 [INFO] Starting SSO login...
+2026-02-17 23:53:25 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:53:25 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:53:25 [INFO] No EXCEL process to kill. before read open
+2026-02-17 23:53:25 [INFO] Creating Excel COM (read)...
+2026-02-17 23:53:26 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:53:26 [INFO] Workbook opened (read).
+2026-02-17 23:53:26 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:53:26 [INFO] Worksheet opened.
+2026-02-17 23:53:26 [INFO] Building header map...
+2026-02-17 23:53:26 [INFO] Header map built. Columns=15
+2026-02-17 23:53:26 [INFO] Ticket column resolved: 4
+2026-02-17 23:53:26 [INFO] Scanning ticket rows 2..80
+2026-02-17 23:53:26 [INFO] Ticket scan completed. Found=72
+2026-02-17 23:53:27 [INFO] Tickets found: 72
+2026-02-17 23:53:27 [INFO] Processing scope: INC + RITM (INC detected). Count=72
+2026-02-17 23:53:27 [INFO] [1/72] Open + extract: RITM0496748
+2026-02-17 23:53:28 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:53:28 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:53:35 [INFO] RITM0496748 PI not found in activity stream
+2026-02-17 23:53:35 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-17 23:53:35 [INFO] [2/72] Open + extract: RITM0405052
+2026-02-17 23:53:36 [INFO] RITM0405052 user resolved from sys_id => 'Alexandra DE TORNACO'
+2026-02-17 23:53:36 [INFO] RITM0405052 open SCTASK fallback recovered count=4 tasks='SCTASK0708535, SCTASK0762732, SCTASK0784120, SCTASK0784119'
+2026-02-17 23:53:43 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-17 23:53:43 [INFO] [3/72] Open + extract: RITM0493120
+2026-02-17 23:53:43 [INFO] RITM0493120 user resolved from sys_id => 'Aneta KORZENIECKA'
+2026-02-17 23:53:44 [INFO] RITM0493120 open SCTASK fallback recovered count=1 tasks='SCTASK0880081'
+2026-02-17 23:53:50 [INFO] RITM0493120 PI not found in activity stream
+2026-02-17 23:53:50 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-17 23:53:50 [INFO] [4/72] Open + extract: INC0404030
+2026-02-17 23:53:51 [INFO] INC0404030 user resolved from sys_id => 'Natalia Maria VALENCIA AGUIRRE'
+2026-02-17 23:53:53 [INFO] INC0404030 => OK reason= user='Natalia Maria VALENCIA AGUIRRE' ci='9ca027c0c32e52d014211f4bb0013182' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404030'
+2026-02-17 23:53:53 [INFO] [5/72] Open + extract: INC0405320
+2026-02-17 23:53:54 [INFO] INC0405320 user resolved from sys_id => 'Georgiana SANDU'
+2026-02-17 23:53:56 [INFO] INC0405320 => OK reason= user='Georgiana SANDU' ci='b78dbcc797c73554440eb717f053af1f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0405320'
+2026-02-17 23:53:56 [INFO] [6/72] Open + extract: INC0404913
+2026-02-17 23:53:57 [INFO] INC0404913 user resolved from sys_id => 'Klaudia ARBETOVA'
+2026-02-17 23:53:59 [INFO] INC0404913 => OK reason= user='Klaudia ARBETOVA' ci='c30d0def97d25610440eb717f053afba' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404913'
+2026-02-17 23:53:59 [INFO] [7/72] Open + extract: INC0404662
+2026-02-17 23:54:00 [INFO] INC0404662 user resolved from sys_id => 'Gabriel Stanislav Vladimir LITERA'
+2026-02-17 23:54:02 [INFO] INC0404662 PI not found in activity stream
+2026-02-17 23:54:02 [INFO] INC0404662 => OK reason= user='Gabriel Stanislav Vladimir LITERA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404662'
+2026-02-17 23:54:02 [INFO] [8/72] Open + extract: INC0403929
+2026-02-17 23:54:02 [INFO] INC0403929 user resolved from sys_id => 'Sandrina MARCUZZO'
+2026-02-17 23:54:05 [INFO] INC0403929 => OK reason= user='Sandrina MARCUZZO' ci='85906f80c32e52d014211f4bb0013197' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0403929'
+2026-02-17 23:54:05 [INFO] [9/72] Open + extract: INC0404073
+2026-02-17 23:54:05 [INFO] INC0404073 user resolved from sys_id => 'Marika SULANKO'
+2026-02-17 23:54:07 [INFO] INC0404073 => OK reason= user='Marika SULANKO' ci='d2dc89af97d25610440eb717f053af43' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404073'
+2026-02-17 23:54:07 [INFO] [10/72] Open + extract: INC0398334
+2026-02-17 23:54:08 [INFO] INC0398334 user resolved from sys_id => 'Anastasia COUCOURATOS'
+2026-02-17 23:54:10 [INFO] INC0398334 => OK reason= user='Anastasia COUCOURATOS' ci='8b4bedb41be3705032980ed1604bcbb6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398334'
+2026-02-17 23:54:10 [INFO] [11/72] Open + extract: INC0400192
+2026-02-17 23:54:11 [INFO] INC0400192 user resolved from sys_id => 'Liselotte JENSEN'
+2026-02-17 23:54:12 [INFO] INC0400192 PI not found in activity stream
+2026-02-17 23:54:12 [INFO] INC0400192 => OK reason= user='Liselotte JENSEN' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0400192'
+2026-02-17 23:54:12 [INFO] [12/72] Open + extract: INC0399952
+2026-02-17 23:54:13 [INFO] INC0399952 user resolved from sys_id => 'Lucie Agnès Marie Olga MAISTRELLI'
+2026-02-17 23:54:15 [INFO] INC0399952 PI not found in activity stream
+2026-02-17 23:54:15 [INFO] INC0399952 => OK reason= user='Lucie Agnès Marie Olga MAISTRELLI' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399952'
+2026-02-17 23:54:15 [INFO] [13/72] Open + extract: INC0399909
+2026-02-17 23:54:16 [INFO] INC0399909 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-17 23:54:18 [INFO] INC0399909 PI not found in activity stream
+2026-02-17 23:54:18 [INFO] INC0399909 => OK reason= user='Kristýna MATÁTKOVÁ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399909'
+2026-02-17 23:54:18 [INFO] [14/72] Open + extract: INC0399906
+2026-02-17 23:54:19 [INFO] INC0399906 user resolved from sys_id => 'Ana RADOCAJ'
+2026-02-17 23:54:21 [INFO] INC0399906 PI not found in activity stream
+2026-02-17 23:54:21 [INFO] INC0399906 => OK reason= user='Ana RADOCAJ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399906'
+2026-02-17 23:54:21 [INFO] [15/72] Open + extract: INC0398797
+2026-02-17 23:54:21 [INFO] INC0398797 user resolved from sys_id => 'Angelika KISS'
+2026-02-17 23:54:24 [INFO] INC0398797 => OK reason= user='Angelika KISS' ci='9aec01ef97d25610440eb717f053af92' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398797'
+2026-02-17 23:54:24 [INFO] [16/72] Open + extract: INC0399068
+2026-02-17 23:54:24 [INFO] INC0399068 user resolved from sys_id => 'Maria Nazareth ECHART ORUS'
+2026-02-17 23:54:26 [INFO] INC0399068 => OK reason= user='Maria Nazareth ECHART ORUS' ci='626d7c8797c73554440eb717f053afce' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399068'
+2026-02-17 23:54:26 [INFO] [17/72] Open + extract: INC0398566
+2026-02-17 23:54:27 [INFO] INC0398566 user resolved from sys_id => 'Krista DANKERE'
+2026-02-17 23:54:28 [INFO] INC0398566 => OK reason= user='Krista DANKERE' ci='28aaeec01beff01032980ed1604bcb76' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398566'
+2026-02-17 23:54:28 [INFO] [18/72] Open + extract: INC0397938
+2026-02-17 23:54:29 [INFO] INC0397938 user resolved from sys_id => 'Maja SABOL'
+2026-02-17 23:54:31 [INFO] INC0397938 PI not found in activity stream
+2026-02-17 23:54:31 [INFO] INC0397938 => OK reason= user='Maja SABOL' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0397938'
+2026-02-17 23:54:31 [INFO] [19/72] Open + extract: INC0396829
+2026-02-17 23:54:32 [INFO] INC0396829 user resolved from sys_id => 'Cristina SANCHEZ VILLA'
+2026-02-17 23:54:34 [INFO] INC0396829 => OK reason= user='Cristina SANCHEZ VILLA' ci='5a2d704797c73554440eb717f053af91' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396829'
+2026-02-17 23:54:34 [INFO] [20/72] Open + extract: INC0390677
+2026-02-17 23:54:35 [INFO] INC0390677 user resolved from sys_id => 'Wojciech KUZMA'
+2026-02-17 23:54:37 [INFO] INC0390677 PI not found in activity stream
+2026-02-17 23:54:37 [INFO] INC0390677 => OK reason= user='Wojciech KUZMA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0390677'
+2026-02-17 23:54:37 [INFO] [21/72] Open + extract: INC0384484
+2026-02-17 23:54:37 [INFO] INC0384484 user resolved from sys_id => 'Tajana LJUBICIC'
+2026-02-17 23:54:40 [INFO] INC0384484 => OK reason= user='Tajana LJUBICIC' ci='b88d38c797c73554440eb717f053af67' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0384484'
+2026-02-17 23:54:40 [INFO] [22/72] Open + extract: INC0396867
+2026-02-17 23:54:40 [INFO] INC0396867 user resolved from sys_id => 'Luc JEUNESSE'
+2026-02-17 23:54:42 [INFO] INC0396867 => OK reason= user='Luc JEUNESSE' ci='eafc32c5c3e29a1414211f4bb0013102' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396867'
+2026-02-17 23:54:42 [INFO] [23/72] Open + extract: INC0393533
+2026-02-17 23:54:43 [INFO] INC0393533 user resolved from sys_id => 'Maria Antoaneta NEAG'
+2026-02-17 23:54:45 [INFO] INC0393533 => OK reason= user='Maria Antoaneta NEAG' ci='0ef06784c32e52d014211f4bb00131c3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393533'
+2026-02-17 23:54:45 [INFO] [24/72] Open + extract: INC0393530
+2026-02-17 23:54:46 [INFO] INC0393530 user resolved from sys_id => 'Katerina HEROUTOVÁ'
+2026-02-17 23:54:48 [INFO] INC0393530 => OK reason= user='Katerina HEROUTOVÁ' ci='c9fc05ef97d25610440eb717f053af88' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393530'
+2026-02-17 23:54:48 [INFO] [25/72] Open + extract: INC0393057
+2026-02-17 23:54:49 [INFO] INC0393057 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-17 23:54:51 [INFO] INC0393057 => OK reason= user='Igor DEQUECKER' ci='e3b895381b2f305032980ed1604bcba0' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393057'
+2026-02-17 23:54:51 [INFO] [26/72] Open + extract: INC0392998
+2026-02-17 23:54:52 [INFO] INC0392998 user resolved from sys_id => 'Christos PAPAGIANNIS'
+2026-02-17 23:54:54 [INFO] INC0392998 => OK reason= user='Christos PAPAGIANNIS' ci='d6506f00c32e52d014211f4bb0013138' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0392998'
+2026-02-17 23:54:54 [INFO] [27/72] Open + extract: INC0386947
+2026-02-17 23:54:54 [INFO] INC0386947 user resolved from sys_id => 'Nicolas DORGERET'
+2026-02-17 23:54:57 [INFO] INC0386947 => OK reason= user='Nicolas DORGERET' ci='976aa20c2b172690ca61fe63ce91bf8a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0386947'
+2026-02-17 23:54:57 [INFO] [28/72] Open + extract: INC0381429
+2026-02-17 23:54:57 [INFO] INC0381429 user resolved from sys_id => 'Ramune TAMASAUSKAITE'
+2026-02-17 23:54:59 [INFO] INC0381429 => OK reason= user='Ramune TAMASAUSKAITE' ci='e26dbc8797c73554440eb717f053af12' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381429'
+2026-02-17 23:54:59 [INFO] [29/72] Open + extract: INC0381995
+2026-02-17 23:55:00 [INFO] INC0381995 user resolved from sys_id => 'Cesar Augusto CASTELLO MORENO'
+2026-02-17 23:55:02 [INFO] INC0381995 => OK reason= user='Cesar Augusto CASTELLO MORENO' ci='51d0a344c32e52d014211f4bb001316a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381995'
+2026-02-17 23:55:02 [INFO] [30/72] Open + extract: INC0377661
+2026-02-17 23:55:03 [INFO] INC0377661 user resolved from sys_id => 'Alina Leandra Ó RIADA'
+2026-02-17 23:55:05 [INFO] INC0377661 => OK reason= user='Alina Leandra Ó RIADA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377661'
+2026-02-17 23:55:05 [INFO] [31/72] Open + extract: INC0376136
+2026-02-17 23:55:06 [INFO] INC0376136 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-17 23:55:08 [INFO] INC0376136 => OK reason= user='Igor DEQUECKER' ci='cf0d0def97d25610440eb717f053afdd' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376136'
+2026-02-17 23:55:08 [INFO] [32/72] Open + extract: INC0377128
+2026-02-17 23:55:08 [INFO] INC0377128 user resolved from sys_id => 'Francesco BARCHIELLI'
+2026-02-17 23:55:11 [INFO] INC0377128 => OK reason= user='Francesco BARCHIELLI' ci='21406300c32e52d014211f4bb00131c8' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377128'
+2026-02-17 23:55:11 [INFO] [33/72] Open + extract: INC0376121
+2026-02-17 23:55:11 [INFO] INC0376121 user resolved from sys_id => 'Anna ARESU'
+2026-02-17 23:55:13 [INFO] INC0376121 => OK reason= user='Anna ARESU' ci='97b02704c32e52d014211f4bb00131cf' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376121'
+2026-02-17 23:55:13 [INFO] [34/72] Open + extract: INC0375309
+2026-02-17 23:55:14 [INFO] INC0375309 user resolved from sys_id => 'Stephanie HONNEFELDER'
+2026-02-17 23:55:16 [INFO] INC0375309 => OK reason= user='Stephanie HONNEFELDER' ci='a76aa20c2b172690ca61fe63ce91bfe1' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0375309'
+2026-02-17 23:55:16 [INFO] [35/72] Open + extract: INC0372528
+2026-02-17 23:55:17 [INFO] INC0372528 user resolved from sys_id => 'Philine SCHOLZE'
+2026-02-17 23:55:19 [INFO] INC0372528 => OK reason= user='Philine SCHOLZE' ci='847ae20c2b172690ca61fe63ce91bf8f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372528'
+2026-02-17 23:55:19 [INFO] [36/72] Open + extract: INC0373224
+2026-02-17 23:55:20 [INFO] INC0373224 user resolved from sys_id => 'Ariane DEBYSER'
+2026-02-17 23:55:22 [INFO] INC0373224 => OK reason= user='Ariane DEBYSER' ci='0490eb80c32e52d014211f4bb0013160' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0373224'
+2026-02-17 23:55:22 [INFO] [37/72] Open + extract: INC0374026
+2026-02-17 23:55:23 [INFO] INC0374026 user resolved from sys_id => 'Rachid AHAJJAM'
+2026-02-17 23:55:25 [INFO] INC0374026 => OK reason= user='Rachid AHAJJAM' ci='d20dc9ef97d25610440eb717f053afc9' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0374026'
+2026-02-17 23:55:25 [INFO] [38/72] Open + extract: INC0370735
+2026-02-17 23:55:25 [INFO] INC0370735 user resolved from sys_id => 'Gianna GRIGÒ'
+2026-02-17 23:55:28 [INFO] INC0370735 => OK reason= user='Gianna GRIGÒ' ci='e30d4def97d25610440eb717f053af64' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370735'
+2026-02-17 23:55:28 [INFO] [39/72] Open + extract: INC0365085
+2026-02-17 23:55:28 [INFO] INC0365085 user resolved from sys_id => 'Fabiola VALENTINI'
+2026-02-17 23:55:30 [INFO] INC0365085 => OK reason= user='Fabiola VALENTINI' ci='c150ab00c32e52d014211f4bb00131c7' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0365085'
+2026-02-17 23:55:30 [INFO] [40/72] Open + extract: INC0368029
+2026-02-17 23:55:31 [INFO] INC0368029 user resolved from sys_id => 'Maria TOADER'
+2026-02-17 23:55:33 [INFO] INC0368029 => OK reason= user='Maria TOADER' ci='9fbc01af97d25610440eb717f053afa6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0368029'
+2026-02-17 23:55:33 [INFO] [41/72] Open + extract: INC0370558
+2026-02-17 23:55:34 [INFO] INC0370558 user resolved from sys_id => 'Samuel DE LEMOS PEIXOTO'
+2026-02-17 23:55:36 [INFO] INC0370558 => OK reason= user='Samuel DE LEMOS PEIXOTO' ci='2a7dd11947dcf550de328c37e26d43ef' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370558'
+2026-02-17 23:55:36 [INFO] [42/72] Open + extract: INC0372344
+2026-02-17 23:55:37 [INFO] INC0372344 user resolved from sys_id => 'Elise HANCOTTE'
+2026-02-17 23:55:39 [INFO] INC0372344 PI not found in activity stream
+2026-02-17 23:55:39 [INFO] INC0372344 => OK reason= user='Elise HANCOTTE' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372344'
+2026-02-17 23:55:39 [INFO] [43/72] Open + extract: INC0353533
+2026-02-17 23:55:39 [INFO] INC0353533 user resolved from sys_id => 'Ellen Sarah VAN NIEUWENHUYZE'
+2026-02-17 23:55:42 [INFO] INC0353533 => OK reason= user='Ellen Sarah VAN NIEUWENHUYZE' ci='530d4def97d25610440eb717f053af21' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0353533'
+2026-02-17 23:55:42 [INFO] [44/72] Open + extract: INC0367376
+2026-02-17 23:55:42 [INFO] INC0367376 user resolved from sys_id => 'Anastasia MITRONATSIOU'
+2026-02-17 23:55:44 [INFO] INC0367376 => OK reason= user='Anastasia MITRONATSIOU' ci='7db06304c32e52d014211f4bb0013164' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0367376'
+2026-02-17 23:55:44 [INFO] [45/72] Open + extract: INC0350488
+2026-02-17 23:55:47 [INFO] INC0350488 => OK reason= user='5c7518931beb241018d65398624bcb08' ci='7fb0a704c32e52d014211f4bb00131e3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0350488'
+2026-02-17 23:55:47 [INFO] [46/72] Open + extract: INC0346775
+2026-02-17 23:55:48 [INFO] INC0346775 user resolved from sys_id => 'David SCHWANDER'
+2026-02-17 23:55:50 [INFO] INC0346775 => OK reason= user='David SCHWANDER' ci='2ca067c0c32e52d014211f4bb001316e' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0346775'
+2026-02-17 23:55:50 [INFO] [47/72] Open + extract: INC0370773
+2026-02-17 23:55:51 [INFO] INC0370773 user resolved from sys_id => 'Karin SAUERTEIG'
+2026-02-17 23:55:53 [INFO] INC0370773 => OK reason= user='Karin SAUERTEIG' ci='aa2bae041beb78103a0e8518624bcb1c' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370773'
+2026-02-17 23:55:53 [INFO] [48/72] Open + extract: INC0370852
+2026-02-17 23:55:53 [INFO] INC0370852 user resolved from sys_id => 'Barbara KRAFT'
+2026-02-17 23:55:56 [INFO] INC0370852 => OK reason= user='Barbara KRAFT' ci='960d340797c73554440eb717f053af4f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370852'
+2026-02-17 23:55:56 [INFO] [49/72] Open + extract: INC0370721
+2026-02-17 23:55:56 [INFO] INC0370721 user resolved from sys_id => 'Virginie REMACLE'
+2026-02-17 23:55:58 [INFO] INC0370721 => OK reason= user='Virginie REMACLE' ci='3ad06744c32e52d014211f4bb00131ad' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370721'
+2026-02-17 23:55:58 [INFO] [50/72] Open + extract: INC0357741
+2026-02-17 23:55:59 [INFO] INC0357741 user resolved from sys_id => 'Ana SÁEZ-BENITO CAUVILLA'
+2026-02-17 23:56:01 [INFO] INC0357741 PI not found in activity stream
+2026-02-17 23:56:01 [INFO] INC0357741 => OK reason= user='Ana SÁEZ-BENITO CAUVILLA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357741'
+2026-02-17 23:56:01 [INFO] [51/72] Open + extract: INC0240792
+2026-02-17 23:56:02 [INFO] INC0240792 user resolved from sys_id => 'Bettina BLASIG'
+2026-02-17 23:56:04 [INFO] INC0240792 => OK reason= user='Bettina BLASIG' ci='9774010b1b63f0903a0e8518624bcb7d' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0240792'
+2026-02-17 23:56:04 [INFO] [52/72] Open + extract: INC0357389
+2026-02-17 23:56:05 [INFO] INC0357389 user resolved from sys_id => 'Cedric Franz K GOOR'
+2026-02-17 23:56:07 [INFO] INC0357389 => OK reason= user='Cedric Franz K GOOR' ci='1fe027021b3c019032980ed1604bcb40' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357389'
+2026-02-17 23:56:07 [INFO] [53/72] Open + extract: INC0354452
+2026-02-17 23:56:07 [INFO] INC0354452 user resolved from sys_id => 'Maria-teresa GONZALEZ CABALLERO'
+2026-02-17 23:56:09 [INFO] INC0354452 PI not found in activity stream
+2026-02-17 23:56:09 [INFO] INC0354452 => OK reason= user='Maria-teresa GONZALEZ CABALLERO' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0354452'
+2026-02-17 23:56:09 [INFO] [54/72] Open + extract: RITM0395760
+2026-02-17 23:56:10 [INFO] RITM0395760 user resolved from sys_id => 'Tania DE POORTER'
+2026-02-17 23:56:10 [INFO] RITM0395760 open SCTASK fallback recovered count=3 tasks='SCTASK0689026, SCTASK0689820, SCTASK0689819'
+2026-02-17 23:56:17 [INFO] RITM0395760 => OK reason= user='Tania DE POORTER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0395760'
+2026-02-17 23:56:17 [INFO] [55/72] Open + extract: RITM0400363
+2026-02-17 23:56:18 [INFO] RITM0400363 user resolved from sys_id => 'Dora Cristina BARREIRA RAMOS'
+2026-02-17 23:56:18 [INFO] RITM0400363 open SCTASK fallback recovered count=4 tasks='SCTASK0698388, SCTASK0729977, SCTASK0754274, SCTASK0754275'
+2026-02-17 23:56:25 [INFO] RITM0400363 => OK reason= user='Dora Cristina BARREIRA RAMOS' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400363'
+2026-02-17 23:56:25 [INFO] [56/72] Open + extract: RITM0400334
+2026-02-17 23:56:25 [INFO] RITM0400334 user resolved from sys_id => 'Devrim ATES'
+2026-02-17 23:56:25 [INFO] RITM0400334 open SCTASK fallback recovered count=4 tasks='SCTASK0698363, SCTASK0730017, SCTASK0754300, SCTASK0754299'
+2026-02-17 23:56:32 [INFO] RITM0400334 => OK reason= user='Devrim ATES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400334'
+2026-02-17 23:56:32 [INFO] [57/72] Open + extract: RITM0429435
+2026-02-17 23:56:33 [INFO] RITM0429435 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:56:33 [INFO] RITM0429435 open SCTASK fallback recovered count=2 tasks='SCTASK0756216, SCTASK0756219'
+2026-02-17 23:56:40 [INFO] RITM0429435 PI not found in activity stream
+2026-02-17 23:56:40 [INFO] RITM0429435 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0429435'
+2026-02-17 23:56:40 [INFO] [58/72] Open + extract: RITM0430321
+2026-02-17 23:56:40 [INFO] RITM0430321 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:56:41 [INFO] RITM0430321 open SCTASK fallback recovered count=1 tasks='SCTASK0758095'
+2026-02-17 23:56:47 [INFO] RITM0430321 PI not found in activity stream
+2026-02-17 23:56:47 [INFO] RITM0430321 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430321'
+2026-02-17 23:56:47 [INFO] [59/72] Open + extract: RITM0430778
+2026-02-17 23:56:48 [INFO] RITM0430778 user resolved from sys_id => 'Satu Simona POUTANEN'
+2026-02-17 23:56:48 [INFO] RITM0430778 open SCTASK fallback recovered count=2 tasks='SCTASK0758952, SCTASK0759231'
+2026-02-17 23:56:55 [INFO] RITM0430778 PI not found in activity stream
+2026-02-17 23:56:55 [INFO] RITM0430778 => OK reason= user='Satu Simona POUTANEN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430778'
+2026-02-17 23:56:55 [INFO] [60/72] Open + extract: RITM0400091
+2026-02-17 23:56:56 [INFO] RITM0400091 user resolved from sys_id => 'Lina BARSTYTE'
+2026-02-17 23:56:56 [INFO] RITM0400091 open SCTASK fallback recovered count=4 tasks='SCTASK0698111, SCTASK0760826, SCTASK0782345, SCTASK0782344'
+2026-02-17 23:57:03 [INFO] RITM0400091 => OK reason= user='Lina BARSTYTE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400091'
+2026-02-17 23:57:03 [INFO] [61/72] Open + extract: RITM0400088
+2026-02-17 23:57:03 [INFO] RITM0400088 user resolved from sys_id => 'Johannes LITZELMANN'
+2026-02-17 23:57:04 [INFO] RITM0400088 open SCTASK fallback recovered count=4 tasks='SCTASK0698108, SCTASK0782359, SCTASK0782358, SCTASK0760831'
+2026-02-17 23:57:10 [INFO] RITM0400088 => OK reason= user='Johannes LITZELMANN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400088'
+2026-02-17 23:57:10 [INFO] [62/72] Open + extract: RITM0420978
+2026-02-17 23:57:11 [INFO] RITM0420978 user resolved from sys_id => 'Michael Alexander SPEISER'
+2026-02-17 23:57:11 [INFO] RITM0420978 open SCTASK fallback recovered count=3 tasks='SCTASK0739497, SCTASK0761769, SCTASK0761768'
+2026-02-17 23:57:18 [INFO] RITM0420978 => OK reason= user='Michael Alexander SPEISER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420978'
+2026-02-17 23:57:18 [INFO] [63/72] Open + extract: RITM0405042
+2026-02-17 23:57:19 [INFO] RITM0405042 user resolved from sys_id => 'Susan NITSCHE'
+2026-02-17 23:57:26 [INFO] RITM0405042 PI not found in activity stream
+2026-02-17 23:57:26 [INFO] RITM0405042 => OK reason= user='Susan NITSCHE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405042'
+2026-02-17 23:57:26 [INFO] [64/72] Open + extract: RITM0433027
+2026-02-17 23:57:26 [INFO] RITM0433027 user resolved from sys_id => 'Giulia PASCUZZI'
+2026-02-17 23:57:27 [INFO] RITM0433027 open SCTASK fallback recovered count=1 tasks='SCTASK0763066'
+2026-02-17 23:57:33 [INFO] RITM0433027 PI not found in activity stream
+2026-02-17 23:57:33 [INFO] RITM0433027 => OK reason= user='Giulia PASCUZZI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433027'
+2026-02-17 23:57:33 [INFO] [65/72] Open + extract: RITM0433109
+2026-02-17 23:57:34 [INFO] RITM0433109 user resolved from sys_id => 'Léa Lucie Léontine SAUBION'
+2026-02-17 23:57:41 [INFO] RITM0433109 PI not found in activity stream
+2026-02-17 23:57:41 [INFO] RITM0433109 => OK reason= user='Léa Lucie Léontine SAUBION' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433109'
+2026-02-17 23:57:41 [INFO] [66/72] Open + extract: RITM0433132
+2026-02-17 23:57:42 [INFO] RITM0433132 user resolved from sys_id => 'Noémie Kerfalie Helena Jane-Nolwe NGANGA'
+2026-02-17 23:57:42 [INFO] RITM0433132 open SCTASK fallback recovered count=2 tasks='SCTASK0763230, SCTASK0763252'
+2026-02-17 23:57:49 [INFO] RITM0433132 PI not found in activity stream
+2026-02-17 23:57:49 [INFO] RITM0433132 => OK reason= user='Noémie Kerfalie Helena Jane-Nolwe NGANGA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433132'
+2026-02-17 23:57:49 [INFO] [67/72] Open + extract: RITM0433154
+2026-02-17 23:57:49 [INFO] RITM0433154 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:57:50 [INFO] RITM0433154 open SCTASK fallback recovered count=1 tasks='SCTASK0763271'
+2026-02-17 23:57:56 [INFO] RITM0433154 PI not found in activity stream
+2026-02-17 23:57:56 [INFO] RITM0433154 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433154'
+2026-02-17 23:57:56 [INFO] [68/72] Open + extract: RITM0433331
+2026-02-17 23:57:57 [INFO] RITM0433331 user resolved from sys_id => 'Jauram REISNER'
+2026-02-17 23:58:04 [INFO] RITM0433331 PI not found in activity stream
+2026-02-17 23:58:04 [INFO] RITM0433331 => OK reason= user='Jauram REISNER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433331'
+2026-02-17 23:58:04 [INFO] [69/72] Open + extract: RITM0420972
+2026-02-17 23:58:05 [INFO] RITM0420972 user resolved from sys_id => 'Laura PROIETTI'
+2026-02-17 23:58:12 [INFO] RITM0420972 => OK reason= user='Laura PROIETTI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420972'
+2026-02-17 23:58:12 [INFO] [70/72] Open + extract: RITM0434588
+2026-02-17 23:58:12 [INFO] RITM0434588 user resolved from sys_id => 'New EP User'
+2026-02-17 23:58:13 [INFO] RITM0434588 open SCTASK fallback recovered count=2 tasks='SCTASK0765919, SCTASK0765924'
+2026-02-17 23:58:20 [INFO] RITM0434588 SCTASK UI list scanned, PI not found (len=6195)
+2026-02-17 23:58:20 [INFO] RITM0434588 deep SCTASK scan starting. tasks=2 limit=2 new_ep_user=True
+2026-02-17 23:58:25 [INFO] RITM0434588 prepare-device task not found in scanned SCTASK records
+2026-02-17 23:58:25 [INFO] RITM0434588 PI not found in activity stream
+2026-02-17 23:58:25 [INFO] RITM0434588 => OK reason= user='New EP User' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0434588'
+2026-02-17 23:58:25 [INFO] [71/72] Open + extract: RITM0434592
+2026-02-17 23:58:25 [INFO] RITM0434592 user resolved from sys_id => 'New EP User'
+2026-02-17 23:58:26 [INFO] RITM0434592 open SCTASK fallback recovered count=2 tasks='SCTASK0765928, SCTASK0766049'
+2026-02-17 23:58:33 [INFO] RITM0434592 SCTASK UI list scanned, PI not found (len=6131)
+2026-02-17 23:58:33 [INFO] RITM0434592 deep SCTASK scan starting. tasks=2 limit=2 new_ep_user=True
+2026-02-17 23:58:38 [INFO] RITM0434592 prepare-device task not found in scanned SCTASK records
+2026-02-17 23:58:38 [INFO] RITM0434592 PI not found in activity stream
+2026-02-17 23:58:38 [INFO] RITM0434592 => OK reason= user='New EP User' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0434592'
+2026-02-17 23:58:38 [INFO] [72/72] Open + extract: RITM0434593
+2026-02-17 23:58:39 [INFO] RITM0434593 user resolved from sys_id => 'New EP User'
+2026-02-17 23:58:39 [INFO] RITM0434593 open SCTASK fallback recovered count=3 tasks='SCTASK0765931, SCTASK0765930, SCTASK0765929'
+2026-02-17 23:58:46 [INFO] RITM0434593 SCTASK UI list scanned, PI not found (len=7204)
+2026-02-17 23:58:46 [INFO] RITM0434593 deep SCTASK scan starting. tasks=3 limit=3 new_ep_user=True
+2026-02-17 23:58:53 [INFO] RITM0434593 prepare-device task not found in scanned SCTASK records
+2026-02-17 23:58:53 [INFO] RITM0434593 PI not found in activity stream
+2026-02-17 23:58:53 [INFO] RITM0434593 => OK reason= user='New EP User' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0434593'
+2026-02-17 23:58:54 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_235323\tickets_export.json
+2026-02-17 23:58:54 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_235323\run.log.txt
+2026-02-17 23:58:54 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:58:54 [INFO] No EXCEL process to kill. before write open
+2026-02-17 23:58:54 [INFO] Creating Excel COM (write)...
+2026-02-17 23:58:54 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 23:58:54 [INFO] Workbook opened (write).
+2026-02-17 23:58:55 [INFO] Write-back scan rows 2..80
+2026-02-17 23:58:55 [INFO] RITM0496748 PI force-updated in 'PI' => ''
+2026-02-17 23:58:55 [INFO] RITM0405052 PI force-updated in 'PI' => 'MUSTBRUN2425601'
+2026-02-17 23:58:55 [INFO] RITM0493120 PI force-updated in 'PI' => ''
+2026-02-17 23:58:55 [INFO] INC0404030 PI force-updated in 'PI' => 'MUSTBRUN2425371'
+2026-02-17 23:58:55 [INFO] INC0405320 PI force-updated in 'PI' => 'MUSTBRUN2334714'
+2026-02-17 23:58:55 [INFO] INC0404913 PI force-updated in 'PI' => 'MUSTBRUN2421355'
+2026-02-17 23:58:55 [INFO] INC0403929 PI force-updated in 'PI' => 'MUSTBRUN2425125'
+2026-02-17 23:58:55 [INFO] INC0404073 PI force-updated in 'PI' => 'MUSTBRUN2420461'
+2026-02-17 23:58:55 [INFO] INC0398334 PI force-updated in 'PI' => '02PI20140917135'
+2026-02-17 23:58:56 [INFO] INC0398797 PI force-updated in 'PI' => 'MUSTBRUN2420747'
+2026-02-17 23:58:56 [INFO] INC0399068 PI force-updated in 'PI' => 'MUSTBRUN2333965'
+2026-02-17 23:58:56 [INFO] INC0398566 PI force-updated in 'PI' => 'MUSTBRUN2036708'
+2026-02-17 23:58:56 [INFO] INC0396829 PI force-updated in 'PI' => '02PI20233264742, MUSTBRUN2423446'
+2026-02-17 23:58:56 [INFO] INC0384484 PI force-updated in 'PI' => 'MUSTBRUN2334472'
+2026-02-17 23:58:56 [INFO] INC0396867 PI force-updated in 'PI' => '02PI20242843962'
+2026-02-17 23:58:56 [INFO] INC0393533 PI force-updated in 'PI' => '02PI20242705674'
+2026-02-17 23:58:56 [INFO] INC0393530 PI force-updated in 'PI' => 'MUSTBRUN2420940'
+2026-02-17 23:58:56 [INFO] INC0393057 PI force-updated in 'PI' => '02PI20191989578, 02PI2019198578'
+2026-02-17 23:58:56 [INFO] INC0392998 PI force-updated in 'PI' => '02PI20242397849'
+2026-02-17 23:58:56 [INFO] INC0386947 PI force-updated in 'PI' => 'MUSTBRUN2508215'
+2026-02-17 23:58:56 [INFO] INC0381429 PI force-updated in 'PI' => '02PI20242016283, 02PI20233397147'
+2026-02-17 23:58:56 [INFO] INC0381995 PI force-updated in 'PI' => 'MUSTBRUN2426375'
+2026-02-17 23:58:57 [INFO] INC0377661 PI force-updated in 'PI' => '02PI20203679120'
+2026-02-17 23:58:57 [INFO] INC0376136 PI force-updated in 'PI' => '02PI20242136678'
+2026-02-17 23:58:57 [INFO] INC0376121 PI force-updated in 'PI' => 'MUSTBRUN2425910'
+2026-02-17 23:58:57 [INFO] INC0375309 PI force-updated in 'PI' => 'MUSTBRUN2508216'
+2026-02-17 23:58:57 [INFO] INC0372528 PI force-updated in 'PI' => 'MUSTBRUN2421735, 02PI20250819606'
+2026-02-17 23:58:57 [INFO] INC0373224 PI force-updated in 'PI' => 'MUSTBRUN2425050'
+2026-02-17 23:58:57 [INFO] INC0374026 PI force-updated in 'PI' => 'MUSTBRUN2421304'
+2026-02-17 23:58:57 [INFO] INC0370735 PI force-updated in 'PI' => 'MUSTBRUN2421392'
+2026-02-17 23:58:57 [INFO] INC0365085 PI force-updated in 'PI' => 'MUSTBRUN2423870'
+2026-02-17 23:58:57 [INFO] INC0368029 PI force-updated in 'PI' => '02PI20241996977'
+2026-02-17 23:58:57 [INFO] INC0370558 PI force-updated in 'PI' => '02PI20231287180'
+2026-02-17 23:58:57 [INFO] INC0353533 PI force-updated in 'PI' => 'MUSTBRUN2421379'
+2026-02-17 23:58:57 [INFO] INC0367376 PI force-updated in 'PI' => 'MUSTBRUN2425798'
+2026-02-17 23:58:57 [INFO] INC0350488 PI force-updated in 'PI' => 'MUSTBRUN2425955'
+2026-02-17 23:58:57 [INFO] INC0346775 PI force-updated in 'PI' => 'MUSTBRUN2425390'
+2026-02-17 23:58:58 [INFO] INC0370773 PI force-updated in 'PI' => '02PI20200227608'
+2026-02-17 23:58:58 [INFO] INC0370852 PI force-updated in 'PI' => 'MUSTBRUN2332364'
+2026-02-17 23:58:58 [INFO] INC0370721 PI force-updated in 'PI' => 'MUSTBRUN2426486'
+2026-02-17 23:58:58 [INFO] INC0240792 PI force-updated in 'PI' => '02PI20210751648'
+2026-02-17 23:58:58 [INFO] INC0357389 PI force-updated in 'PI' => 'MUSTBRUN2115651'
+2026-02-17 23:58:58 [INFO] RITM0395760 PI force-updated in 'PI' => 'MUSTBRUN2421299'
+2026-02-17 23:58:58 [INFO] RITM0395760 PI force-updated in 'PI' => 'MUSTBRUN2421299'
+2026-02-17 23:58:58 [INFO] RITM0400363 PI force-updated in 'PI' => 'MUSTBRUN2420933'
+2026-02-17 23:58:58 [INFO] RITM0400363 PI force-updated in 'PI' => 'MUSTBRUN2420933'
+2026-02-17 23:58:58 [INFO] RITM0400334 PI force-updated in 'PI' => 'MUSTBRUN2425474'
+2026-02-17 23:58:58 [INFO] RITM0400334 PI force-updated in 'PI' => 'MUSTBRUN2425474'
+2026-02-17 23:58:58 [INFO] RITM0429435 PI force-updated in 'PI' => ''
+2026-02-17 23:58:58 [INFO] RITM0429435 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0430321 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0430778 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0400091 PI force-updated in 'PI' => 'MUSTBRUN2424523'
+2026-02-17 23:58:59 [INFO] RITM0400088 PI force-updated in 'PI' => 'MUSTBRUN2424524'
+2026-02-17 23:58:59 [INFO] RITM0420978 PI force-updated in 'PI' => 'MUSTBRUN2505542'
+2026-02-17 23:58:59 [INFO] RITM0405042 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0433027 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0433109 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0433132 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0433154 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0433331 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0420972 PI force-updated in 'PI' => 'MUSTBRUN2423960'
+2026-02-17 23:58:59 [INFO] RITM0420972 PI force-updated in 'PI' => 'MUSTBRUN2423960'
+2026-02-17 23:58:59 [INFO] RITM0434588 PI force-updated in 'PI' => ''
+2026-02-17 23:58:59 [INFO] RITM0434588 PI force-updated in 'PI' => ''
+2026-02-17 23:59:00 [INFO] RITM0434592 PI force-updated in 'PI' => ''
+2026-02-17 23:59:00 [INFO] RITM0434593 PI force-updated in 'PI' => ''
+2026-02-17 23:59:00 [INFO] RITM0434593 PI force-updated in 'PI' => ''
+2026-02-17 23:59:00 [INFO] Excel updated.
+2026-02-18 00:02:23 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260218_000223
+2026-02-18 00:02:23 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-18 00:02:23 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-18 00:02:23 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-18 00:02:23 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-18 00:02:23 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 00:02:24 [INFO] Starting SSO login...
+2026-02-18 00:02:26 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-18 00:02:26 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 00:02:26 [INFO] Killing EXCEL processes: 1. before read open
+2026-02-18 00:02:27 [INFO] Creating Excel COM (read)...
+2026-02-18 00:02:28 [INFO] Excel COM created (read), opening workbook...
+2026-02-18 00:02:28 [INFO] Workbook opened (read).
+2026-02-18 00:02:28 [INFO] Opening worksheet 'BRU'...
+2026-02-18 00:02:28 [INFO] Worksheet opened.
+2026-02-18 00:02:28 [INFO] Building header map...
+2026-02-18 00:02:28 [INFO] Header map built. Columns=15
+2026-02-18 00:02:28 [INFO] Ticket column resolved: 4
+2026-02-18 00:02:28 [INFO] Scanning ticket rows 2..80
+2026-02-18 00:02:28 [INFO] Ticket scan completed. Found=72
+2026-02-18 00:02:31 [INFO] Tickets found: 72
+2026-02-18 00:02:31 [INFO] Processing scope: INC + RITM (INC detected). Count=72
+2026-02-18 00:02:31 [INFO] [1/72] Open + extract: RITM0496748
+2026-02-18 00:02:32 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:02:33 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-18 00:02:40 [INFO] RITM0496748 PI not found in activity stream
+2026-02-18 00:02:40 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-18 00:02:40 [INFO] [2/72] Open + extract: RITM0405052
+2026-02-18 00:02:41 [INFO] RITM0405052 user resolved from sys_id => 'Alexandra DE TORNACO'
+2026-02-18 00:02:48 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-18 00:02:48 [INFO] [3/72] Open + extract: RITM0493120
+2026-02-18 00:02:49 [INFO] RITM0493120 user resolved from sys_id => 'Aneta KORZENIECKA'
+2026-02-18 00:02:49 [INFO] RITM0493120 open SCTASK fallback recovered count=1 tasks='SCTASK0880081'
+2026-02-18 00:02:56 [INFO] RITM0493120 PI not found in activity stream
+2026-02-18 00:02:56 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-18 00:02:56 [INFO] [4/72] Open + extract: INC0404030
+2026-02-18 00:02:57 [INFO] INC0404030 user resolved from sys_id => 'Natalia Maria VALENCIA AGUIRRE'
+2026-02-18 00:03:00 [INFO] INC0404030 => OK reason= user='Natalia Maria VALENCIA AGUIRRE' ci='9ca027c0c32e52d014211f4bb0013182' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404030'
+2026-02-18 00:03:00 [INFO] [5/72] Open + extract: INC0405320
+2026-02-18 00:03:01 [INFO] INC0405320 user resolved from sys_id => 'Georgiana SANDU'
+2026-02-18 00:03:03 [INFO] INC0405320 => OK reason= user='Georgiana SANDU' ci='b78dbcc797c73554440eb717f053af1f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0405320'
+2026-02-18 00:03:03 [INFO] [6/72] Open + extract: INC0404913
+2026-02-18 00:03:04 [INFO] INC0404913 user resolved from sys_id => 'Klaudia ARBETOVA'
+2026-02-18 00:03:06 [INFO] INC0404913 => OK reason= user='Klaudia ARBETOVA' ci='c30d0def97d25610440eb717f053afba' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404913'
+2026-02-18 00:03:06 [INFO] [7/72] Open + extract: INC0404662
+2026-02-18 00:03:07 [INFO] INC0404662 user resolved from sys_id => 'Gabriel Stanislav Vladimir LITERA'
+2026-02-18 00:03:09 [INFO] INC0404662 PI not found in activity stream
+2026-02-18 00:03:09 [INFO] INC0404662 => OK reason= user='Gabriel Stanislav Vladimir LITERA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404662'
+2026-02-18 00:03:09 [INFO] [8/72] Open + extract: INC0403929
+2026-02-18 00:03:10 [INFO] INC0403929 user resolved from sys_id => 'Sandrina MARCUZZO'
+2026-02-18 00:03:12 [INFO] INC0403929 => OK reason= user='Sandrina MARCUZZO' ci='85906f80c32e52d014211f4bb0013197' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0403929'
+2026-02-18 00:03:12 [INFO] [9/72] Open + extract: INC0404073
+2026-02-18 00:03:13 [INFO] INC0404073 user resolved from sys_id => 'Marika SULANKO'
+2026-02-18 00:03:15 [INFO] INC0404073 => OK reason= user='Marika SULANKO' ci='d2dc89af97d25610440eb717f053af43' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404073'
+2026-02-18 00:03:15 [INFO] [10/72] Open + extract: INC0398334
+2026-02-18 00:03:16 [INFO] INC0398334 user resolved from sys_id => 'Anastasia COUCOURATOS'
+2026-02-18 00:03:18 [INFO] INC0398334 => OK reason= user='Anastasia COUCOURATOS' ci='8b4bedb41be3705032980ed1604bcbb6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398334'
+2026-02-18 00:03:18 [INFO] [11/72] Open + extract: INC0400192
+2026-02-18 00:03:19 [INFO] INC0400192 user resolved from sys_id => 'Liselotte JENSEN'
+2026-02-18 00:03:21 [INFO] INC0400192 PI not found in activity stream
+2026-02-18 00:03:21 [INFO] INC0400192 => OK reason= user='Liselotte JENSEN' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0400192'
+2026-02-18 00:03:21 [INFO] [12/72] Open + extract: INC0399952
+2026-02-18 00:03:22 [INFO] INC0399952 user resolved from sys_id => 'Lucie Agnès Marie Olga MAISTRELLI'
+2026-02-18 00:03:24 [INFO] INC0399952 PI not found in activity stream
+2026-02-18 00:03:24 [INFO] INC0399952 => OK reason= user='Lucie Agnès Marie Olga MAISTRELLI' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399952'
+2026-02-18 00:03:24 [INFO] [13/72] Open + extract: INC0399909
+2026-02-18 00:03:24 [INFO] INC0399909 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-18 00:03:27 [INFO] INC0399909 PI not found in activity stream
+2026-02-18 00:03:27 [INFO] INC0399909 => OK reason= user='Kristýna MATÁTKOVÁ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399909'
+2026-02-18 00:03:27 [INFO] [14/72] Open + extract: INC0399906
+2026-02-18 00:03:27 [INFO] INC0399906 user resolved from sys_id => 'Ana RADOCAJ'
+2026-02-18 00:03:30 [INFO] INC0399906 PI not found in activity stream
+2026-02-18 00:03:30 [INFO] INC0399906 => OK reason= user='Ana RADOCAJ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399906'
+2026-02-18 00:03:30 [INFO] [15/72] Open + extract: INC0398797
+2026-02-18 00:03:30 [INFO] INC0398797 user resolved from sys_id => 'Angelika KISS'
+2026-02-18 00:03:33 [INFO] INC0398797 => OK reason= user='Angelika KISS' ci='9aec01ef97d25610440eb717f053af92' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398797'
+2026-02-18 00:03:33 [INFO] [16/72] Open + extract: INC0399068
+2026-02-18 00:03:33 [INFO] INC0399068 user resolved from sys_id => 'Maria Nazareth ECHART ORUS'
+2026-02-18 00:03:35 [INFO] INC0399068 => OK reason= user='Maria Nazareth ECHART ORUS' ci='626d7c8797c73554440eb717f053afce' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399068'
+2026-02-18 00:03:35 [INFO] [17/72] Open + extract: INC0398566
+2026-02-18 00:03:36 [INFO] INC0398566 user resolved from sys_id => 'Krista DANKERE'
+2026-02-18 00:03:38 [INFO] INC0398566 => OK reason= user='Krista DANKERE' ci='28aaeec01beff01032980ed1604bcb76' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398566'
+2026-02-18 00:03:38 [INFO] [18/72] Open + extract: INC0397938
+2026-02-18 00:03:39 [INFO] INC0397938 user resolved from sys_id => 'Maja SABOL'
+2026-02-18 00:03:41 [INFO] INC0397938 PI not found in activity stream
+2026-02-18 00:03:41 [INFO] INC0397938 => OK reason= user='Maja SABOL' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0397938'
+2026-02-18 00:03:41 [INFO] [19/72] Open + extract: INC0396829
+2026-02-18 00:03:42 [INFO] INC0396829 user resolved from sys_id => 'Cristina SANCHEZ VILLA'
+2026-02-18 00:03:44 [INFO] INC0396829 => OK reason= user='Cristina SANCHEZ VILLA' ci='5a2d704797c73554440eb717f053af91' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396829'
+2026-02-18 00:03:44 [INFO] [20/72] Open + extract: INC0390677
+2026-02-18 00:03:45 [INFO] INC0390677 user resolved from sys_id => 'Wojciech KUZMA'
+2026-02-18 00:03:48 [INFO] INC0390677 PI not found in activity stream
+2026-02-18 00:03:48 [INFO] INC0390677 => OK reason= user='Wojciech KUZMA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0390677'
+2026-02-18 00:03:48 [INFO] [21/72] Open + extract: INC0384484
+2026-02-18 00:03:48 [INFO] INC0384484 user resolved from sys_id => 'Tajana LJUBICIC'
+2026-02-18 00:03:51 [INFO] INC0384484 => OK reason= user='Tajana LJUBICIC' ci='b88d38c797c73554440eb717f053af67' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0384484'
+2026-02-18 00:03:51 [INFO] [22/72] Open + extract: INC0396867
+2026-02-18 00:03:52 [INFO] INC0396867 user resolved from sys_id => 'Luc JEUNESSE'
+2026-02-18 00:03:54 [INFO] INC0396867 => OK reason= user='Luc JEUNESSE' ci='eafc32c5c3e29a1414211f4bb0013102' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396867'
+2026-02-18 00:03:54 [INFO] [23/72] Open + extract: INC0393533
+2026-02-18 00:03:55 [INFO] INC0393533 user resolved from sys_id => 'Maria Antoaneta NEAG'
+2026-02-18 00:03:57 [INFO] INC0393533 => OK reason= user='Maria Antoaneta NEAG' ci='0ef06784c32e52d014211f4bb00131c3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393533'
+2026-02-18 00:03:57 [INFO] [24/72] Open + extract: INC0393530
+2026-02-18 00:03:57 [INFO] INC0393530 user resolved from sys_id => 'Katerina HEROUTOVÁ'
+2026-02-18 00:04:00 [INFO] INC0393530 => OK reason= user='Katerina HEROUTOVÁ' ci='c9fc05ef97d25610440eb717f053af88' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393530'
+2026-02-18 00:04:00 [INFO] [25/72] Open + extract: INC0393057
+2026-02-18 00:04:00 [INFO] INC0393057 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-18 00:04:03 [INFO] INC0393057 => OK reason= user='Igor DEQUECKER' ci='e3b895381b2f305032980ed1604bcba0' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393057'
+2026-02-18 00:04:03 [INFO] [26/72] Open + extract: INC0392998
+2026-02-18 00:04:03 [INFO] INC0392998 user resolved from sys_id => 'Christos PAPAGIANNIS'
+2026-02-18 00:04:05 [INFO] INC0392998 => OK reason= user='Christos PAPAGIANNIS' ci='d6506f00c32e52d014211f4bb0013138' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0392998'
+2026-02-18 00:04:05 [INFO] [27/72] Open + extract: INC0386947
+2026-02-18 00:04:06 [INFO] INC0386947 user resolved from sys_id => 'Nicolas DORGERET'
+2026-02-18 00:04:08 [INFO] INC0386947 => OK reason= user='Nicolas DORGERET' ci='976aa20c2b172690ca61fe63ce91bf8a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0386947'
+2026-02-18 00:04:08 [INFO] [28/72] Open + extract: INC0381429
+2026-02-18 00:04:09 [INFO] INC0381429 user resolved from sys_id => 'Ramune TAMASAUSKAITE'
+2026-02-18 00:04:11 [INFO] INC0381429 => OK reason= user='Ramune TAMASAUSKAITE' ci='e26dbc8797c73554440eb717f053af12' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381429'
+2026-02-18 00:04:11 [INFO] [29/72] Open + extract: INC0381995
+2026-02-18 00:04:12 [INFO] INC0381995 user resolved from sys_id => 'Cesar Augusto CASTELLO MORENO'
+2026-02-18 00:04:14 [INFO] INC0381995 => OK reason= user='Cesar Augusto CASTELLO MORENO' ci='51d0a344c32e52d014211f4bb001316a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381995'
+2026-02-18 00:04:14 [INFO] [30/72] Open + extract: INC0377661
+2026-02-18 00:04:15 [INFO] INC0377661 user resolved from sys_id => 'Alina Leandra Ó RIADA'
+2026-02-18 00:04:17 [INFO] INC0377661 => OK reason= user='Alina Leandra Ó RIADA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377661'
+2026-02-18 00:04:17 [INFO] [31/72] Open + extract: INC0376136
+2026-02-18 00:04:18 [INFO] INC0376136 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-18 00:04:21 [INFO] INC0376136 => OK reason= user='Igor DEQUECKER' ci='cf0d0def97d25610440eb717f053afdd' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376136'
+2026-02-18 00:04:21 [INFO] [32/72] Open + extract: INC0377128
+2026-02-18 00:04:21 [INFO] INC0377128 user resolved from sys_id => 'Francesco BARCHIELLI'
+2026-02-18 00:04:24 [INFO] INC0377128 => OK reason= user='Francesco BARCHIELLI' ci='21406300c32e52d014211f4bb00131c8' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377128'
+2026-02-18 00:04:24 [INFO] [33/72] Open + extract: INC0376121
+2026-02-18 00:04:25 [INFO] INC0376121 user resolved from sys_id => 'Anna ARESU'
+2026-02-18 00:04:27 [INFO] INC0376121 => OK reason= user='Anna ARESU' ci='97b02704c32e52d014211f4bb00131cf' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376121'
+2026-02-18 00:04:27 [INFO] [34/72] Open + extract: INC0375309
+2026-02-18 00:04:28 [INFO] INC0375309 user resolved from sys_id => 'Stephanie HONNEFELDER'
+2026-02-18 00:04:30 [INFO] INC0375309 => OK reason= user='Stephanie HONNEFELDER' ci='a76aa20c2b172690ca61fe63ce91bfe1' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0375309'
+2026-02-18 00:04:30 [INFO] [35/72] Open + extract: INC0372528
+2026-02-18 00:04:31 [INFO] INC0372528 user resolved from sys_id => 'Philine SCHOLZE'
+2026-02-18 00:04:33 [INFO] INC0372528 => OK reason= user='Philine SCHOLZE' ci='847ae20c2b172690ca61fe63ce91bf8f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372528'
+2026-02-18 00:04:33 [INFO] [36/72] Open + extract: INC0373224
+2026-02-18 00:04:33 [INFO] INC0373224 user resolved from sys_id => 'Ariane DEBYSER'
+2026-02-18 00:04:36 [INFO] INC0373224 => OK reason= user='Ariane DEBYSER' ci='0490eb80c32e52d014211f4bb0013160' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0373224'
+2026-02-18 00:04:36 [INFO] [37/72] Open + extract: INC0374026
+2026-02-18 00:04:36 [INFO] INC0374026 user resolved from sys_id => 'Rachid AHAJJAM'
+2026-02-18 00:04:39 [INFO] INC0374026 => OK reason= user='Rachid AHAJJAM' ci='d20dc9ef97d25610440eb717f053afc9' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0374026'
+2026-02-18 00:04:39 [INFO] [38/72] Open + extract: INC0370735
+2026-02-18 00:04:39 [INFO] INC0370735 user resolved from sys_id => 'Gianna GRIGÒ'
+2026-02-18 00:04:42 [INFO] INC0370735 => OK reason= user='Gianna GRIGÒ' ci='e30d4def97d25610440eb717f053af64' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370735'
+2026-02-18 00:04:42 [INFO] [39/72] Open + extract: INC0365085
+2026-02-18 00:04:43 [INFO] INC0365085 user resolved from sys_id => 'Fabiola VALENTINI'
+2026-02-18 00:04:45 [INFO] INC0365085 => OK reason= user='Fabiola VALENTINI' ci='c150ab00c32e52d014211f4bb00131c7' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0365085'
+2026-02-18 00:04:45 [INFO] [40/72] Open + extract: INC0368029
+2026-02-18 00:04:46 [INFO] INC0368029 user resolved from sys_id => 'Maria TOADER'
+2026-02-18 00:04:48 [INFO] INC0368029 => OK reason= user='Maria TOADER' ci='9fbc01af97d25610440eb717f053afa6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0368029'
+2026-02-18 00:04:48 [INFO] [41/72] Open + extract: INC0370558
+2026-02-18 00:04:49 [INFO] INC0370558 user resolved from sys_id => 'Samuel DE LEMOS PEIXOTO'
+2026-02-18 00:04:51 [INFO] INC0370558 => OK reason= user='Samuel DE LEMOS PEIXOTO' ci='2a7dd11947dcf550de328c37e26d43ef' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370558'
+2026-02-18 00:04:51 [INFO] [42/72] Open + extract: INC0372344
+2026-02-18 00:04:52 [INFO] INC0372344 user resolved from sys_id => 'Elise HANCOTTE'
+2026-02-18 00:04:54 [INFO] INC0372344 PI not found in activity stream
+2026-02-18 00:04:54 [INFO] INC0372344 => OK reason= user='Elise HANCOTTE' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372344'
+2026-02-18 00:04:54 [INFO] [43/72] Open + extract: INC0353533
+2026-02-18 00:04:55 [INFO] INC0353533 user resolved from sys_id => 'Ellen Sarah VAN NIEUWENHUYZE'
+2026-02-18 00:04:57 [INFO] INC0353533 => OK reason= user='Ellen Sarah VAN NIEUWENHUYZE' ci='530d4def97d25610440eb717f053af21' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0353533'
+2026-02-18 00:04:57 [INFO] [44/72] Open + extract: INC0367376
+2026-02-18 00:04:57 [INFO] INC0367376 user resolved from sys_id => 'Anastasia MITRONATSIOU'
+2026-02-18 00:05:00 [INFO] INC0367376 => OK reason= user='Anastasia MITRONATSIOU' ci='7db06304c32e52d014211f4bb0013164' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0367376'
+2026-02-18 00:05:00 [INFO] [45/72] Open + extract: INC0350488
+2026-02-18 00:05:03 [INFO] INC0350488 => OK reason= user='5c7518931beb241018d65398624bcb08' ci='7fb0a704c32e52d014211f4bb00131e3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0350488'
+2026-02-18 00:05:03 [INFO] [46/72] Open + extract: INC0346775
+2026-02-18 00:05:03 [INFO] INC0346775 user resolved from sys_id => 'David SCHWANDER'
+2026-02-18 00:05:06 [INFO] INC0346775 => OK reason= user='David SCHWANDER' ci='2ca067c0c32e52d014211f4bb001316e' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0346775'
+2026-02-18 00:05:06 [INFO] [47/72] Open + extract: INC0370773
+2026-02-18 00:05:06 [INFO] INC0370773 user resolved from sys_id => 'Karin SAUERTEIG'
+2026-02-18 00:05:08 [INFO] INC0370773 => OK reason= user='Karin SAUERTEIG' ci='aa2bae041beb78103a0e8518624bcb1c' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370773'
+2026-02-18 00:05:08 [INFO] [48/72] Open + extract: INC0370852
+2026-02-18 00:05:09 [INFO] INC0370852 user resolved from sys_id => 'Barbara KRAFT'
+2026-02-18 00:05:11 [INFO] INC0370852 => OK reason= user='Barbara KRAFT' ci='960d340797c73554440eb717f053af4f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370852'
+2026-02-18 00:05:11 [INFO] [49/72] Open + extract: INC0370721
+2026-02-18 00:05:12 [INFO] INC0370721 user resolved from sys_id => 'Virginie REMACLE'
+2026-02-18 00:05:14 [INFO] INC0370721 => OK reason= user='Virginie REMACLE' ci='3ad06744c32e52d014211f4bb00131ad' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370721'
+2026-02-18 00:05:14 [INFO] [50/72] Open + extract: INC0357741
+2026-02-18 00:05:15 [INFO] INC0357741 user resolved from sys_id => 'Ana SÁEZ-BENITO CAUVILLA'
+2026-02-18 00:05:17 [INFO] INC0357741 PI not found in activity stream
+2026-02-18 00:05:17 [INFO] INC0357741 => OK reason= user='Ana SÁEZ-BENITO CAUVILLA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357741'
+2026-02-18 00:05:17 [INFO] [51/72] Open + extract: INC0240792
+2026-02-18 00:05:18 [INFO] INC0240792 user resolved from sys_id => 'Bettina BLASIG'
+2026-02-18 00:05:20 [INFO] INC0240792 => OK reason= user='Bettina BLASIG' ci='9774010b1b63f0903a0e8518624bcb7d' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0240792'
+2026-02-18 00:05:20 [INFO] [52/72] Open + extract: INC0357389
+2026-02-18 00:05:21 [INFO] INC0357389 user resolved from sys_id => 'Cedric Franz K GOOR'
+2026-02-18 00:05:23 [INFO] INC0357389 => OK reason= user='Cedric Franz K GOOR' ci='1fe027021b3c019032980ed1604bcb40' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357389'
+2026-02-18 00:05:23 [INFO] [53/72] Open + extract: INC0354452
+2026-02-18 00:05:24 [INFO] INC0354452 user resolved from sys_id => 'Maria-teresa GONZALEZ CABALLERO'
+2026-02-18 00:05:26 [INFO] INC0354452 PI not found in activity stream
+2026-02-18 00:05:26 [INFO] INC0354452 => OK reason= user='Maria-teresa GONZALEZ CABALLERO' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0354452'
+2026-02-18 00:05:26 [INFO] [54/72] Open + extract: RITM0395760
+2026-02-18 00:05:27 [INFO] RITM0395760 user resolved from sys_id => 'Tania DE POORTER'
+2026-02-18 00:05:27 [INFO] RITM0395760 open SCTASK fallback recovered count=3 tasks='SCTASK0689026, SCTASK0689820, SCTASK0689819'
+2026-02-18 00:05:34 [INFO] RITM0395760 => OK reason= user='Tania DE POORTER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0395760'
+2026-02-18 00:05:34 [INFO] [55/72] Open + extract: RITM0400363
+2026-02-18 00:05:34 [INFO] RITM0400363 user resolved from sys_id => 'Dora Cristina BARREIRA RAMOS'
+2026-02-18 00:05:35 [INFO] RITM0400363 open SCTASK fallback recovered count=4 tasks='SCTASK0698388, SCTASK0729977, SCTASK0754274, SCTASK0754275'
+2026-02-18 00:05:42 [INFO] RITM0400363 => OK reason= user='Dora Cristina BARREIRA RAMOS' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400363'
+2026-02-18 00:05:42 [INFO] [56/72] Open + extract: RITM0400334
+2026-02-18 00:05:42 [INFO] RITM0400334 user resolved from sys_id => 'Devrim ATES'
+2026-02-18 00:05:49 [INFO] RITM0400334 => OK reason= user='Devrim ATES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400334'
+2026-02-18 00:05:49 [INFO] [57/72] Open + extract: RITM0429435
+2026-02-18 00:05:50 [INFO] RITM0429435 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:05:50 [INFO] RITM0429435 open SCTASK fallback recovered count=2 tasks='SCTASK0756216, SCTASK0756219'
+2026-02-18 00:05:57 [INFO] RITM0429435 PI not found in activity stream
+2026-02-18 00:05:57 [INFO] RITM0429435 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0429435'
+2026-02-18 00:05:57 [INFO] [58/72] Open + extract: RITM0430321
+2026-02-18 00:05:58 [INFO] RITM0430321 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:05:58 [INFO] RITM0430321 open SCTASK fallback recovered count=1 tasks='SCTASK0758095'
+2026-02-18 00:06:05 [INFO] RITM0430321 PI not found in activity stream
+2026-02-18 00:06:05 [INFO] RITM0430321 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430321'
+2026-02-18 00:06:05 [INFO] [59/72] Open + extract: RITM0430778
+2026-02-18 00:06:06 [INFO] RITM0430778 user resolved from sys_id => 'Satu Simona POUTANEN'
+2026-02-18 00:06:06 [INFO] RITM0430778 open SCTASK fallback recovered count=2 tasks='SCTASK0758952, SCTASK0759231'
+2026-02-18 00:06:13 [INFO] RITM0430778 PI not found in activity stream
+2026-02-18 00:06:13 [INFO] RITM0430778 => OK reason= user='Satu Simona POUTANEN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430778'
+2026-02-18 00:06:13 [INFO] [60/72] Open + extract: RITM0400091
+2026-02-18 00:06:14 [INFO] RITM0400091 user resolved from sys_id => 'Lina BARSTYTE'
+2026-02-18 00:06:21 [INFO] RITM0400091 => OK reason= user='Lina BARSTYTE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400091'
+2026-02-18 00:06:21 [INFO] [61/72] Open + extract: RITM0400088
+2026-02-18 00:06:22 [INFO] RITM0400088 user resolved from sys_id => 'Johannes LITZELMANN'
+2026-02-18 00:06:29 [INFO] RITM0400088 => OK reason= user='Johannes LITZELMANN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400088'
+2026-02-18 00:06:29 [INFO] [62/72] Open + extract: RITM0420978
+2026-02-18 00:06:29 [INFO] RITM0420978 user resolved from sys_id => 'Michael Alexander SPEISER'
+2026-02-18 00:06:36 [INFO] RITM0420978 => OK reason= user='Michael Alexander SPEISER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0420978'
+2026-02-18 00:06:36 [INFO] [63/72] Open + extract: RITM0405042
+2026-02-18 00:06:37 [INFO] RITM0405042 user resolved from sys_id => 'Susan NITSCHE'
+2026-02-18 00:06:37 [INFO] RITM0405042 open SCTASK fallback recovered count=4 tasks='SCTASK0708526, SCTASK0784097, SCTASK0784096, SCTASK0762707'
+2026-02-18 00:06:44 [INFO] RITM0405042 PI not found in activity stream
+2026-02-18 00:06:44 [INFO] RITM0405042 => OK reason= user='Susan NITSCHE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405042'
+2026-02-18 00:06:44 [INFO] [64/72] Open + extract: RITM0433027
+2026-02-18 00:06:45 [INFO] RITM0433027 user resolved from sys_id => 'Giulia PASCUZZI'
+2026-02-18 00:06:45 [INFO] RITM0433027 open SCTASK fallback recovered count=1 tasks='SCTASK0763066'
+2026-02-18 00:06:52 [INFO] RITM0433027 PI not found in activity stream
+2026-02-18 00:06:52 [INFO] RITM0433027 => OK reason= user='Giulia PASCUZZI' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433027'
+2026-02-18 00:06:52 [INFO] [65/72] Open + extract: RITM0433109
+2026-02-18 00:06:52 [INFO] RITM0433109 user resolved from sys_id => 'Léa Lucie Léontine SAUBION'
+2026-02-18 00:06:53 [INFO] RITM0433109 open SCTASK fallback recovered count=2 tasks='SCTASK0763194, SCTASK0763190'
+2026-02-18 00:06:59 [INFO] RITM0433109 PI not found in activity stream
+2026-02-18 00:06:59 [INFO] RITM0433109 => OK reason= user='Léa Lucie Léontine SAUBION' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433109'
+2026-02-18 00:06:59 [INFO] [66/72] Open + extract: RITM0433132
+2026-02-18 00:07:00 [INFO] RITM0433132 user resolved from sys_id => 'Noémie Kerfalie Helena Jane-Nolwe NGANGA'
+2026-02-18 00:07:00 [INFO] RITM0433132 open SCTASK fallback recovered count=2 tasks='SCTASK0763230, SCTASK0763252'
+2026-02-18 00:07:07 [INFO] RITM0433132 PI not found in activity stream
+2026-02-18 00:07:07 [INFO] RITM0433132 => OK reason= user='Noémie Kerfalie Helena Jane-Nolwe NGANGA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0433132'
+2026-02-18 00:07:07 [INFO] [67/72] Open + extract: RITM0433154
+2026-02-18 00:07:07 [INFO] RITM0433154 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:07:08 [INFO] RITM0433154 open SCTASK fallback recovered count=1 tasks='SCTASK0763271'
+2026-02-18 00:07:17 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260218_000717
+2026-02-18 00:07:17 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-18 00:07:17 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-18 00:07:17 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-18 00:07:17 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-18 00:07:17 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 00:07:17 [INFO] Starting SSO login...
+2026-02-18 00:07:19 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-18 00:07:20 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 00:07:20 [INFO] No EXCEL process to kill. before read open
+2026-02-18 00:07:20 [INFO] Creating Excel COM (read)...
+2026-02-18 00:07:20 [INFO] Excel COM created (read), opening workbook...
+2026-02-18 00:07:20 [INFO] Workbook opened (read).
+2026-02-18 00:07:20 [INFO] Opening worksheet 'BRU'...
+2026-02-18 00:07:20 [INFO] Worksheet opened.
+2026-02-18 00:07:20 [INFO] Building header map...
+2026-02-18 00:07:20 [INFO] Header map built. Columns=15
+2026-02-18 00:07:20 [INFO] Ticket column resolved: 4
+2026-02-18 00:07:20 [INFO] Scanning ticket rows 2..80
+2026-02-18 00:07:21 [INFO] Tickets found: 72
+2026-02-18 00:07:21 [INFO] Processing scope: INC + RITM (INC detected). Count=72
+2026-02-18 00:07:21 [INFO] [1/72] Open + extract: RITM0496748
+2026-02-18 00:07:22 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:07:22 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-18 00:07:29 [INFO] RITM0496748 PI not found in activity stream
+2026-02-18 00:07:29 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-18 00:07:29 [INFO] [2/72] Open + extract: RITM0405052
+2026-02-18 00:07:30 [INFO] RITM0405052 user resolved from sys_id => 'Alexandra DE TORNACO'
+2026-02-18 00:07:30 [INFO] RITM0405052 open SCTASK fallback recovered count=4 tasks='SCTASK0708535, SCTASK0762732, SCTASK0784120, SCTASK0784119'
+2026-02-18 00:07:37 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-18 00:07:37 [INFO] [3/72] Open + extract: RITM0493120
+2026-02-18 00:07:37 [INFO] RITM0493120 user resolved from sys_id => 'Aneta KORZENIECKA'
+2026-02-18 00:07:38 [INFO] RITM0493120 open SCTASK fallback recovered count=1 tasks='SCTASK0880081'
+2026-02-18 00:07:44 [INFO] RITM0493120 PI not found in activity stream
+2026-02-18 00:07:44 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-18 00:07:44 [INFO] [4/72] Open + extract: INC0404030
+2026-02-18 00:07:45 [INFO] INC0404030 user resolved from sys_id => 'Natalia Maria VALENCIA AGUIRRE'
+2026-02-18 00:07:47 [INFO] INC0404030 => OK reason= user='Natalia Maria VALENCIA AGUIRRE' ci='9ca027c0c32e52d014211f4bb0013182' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404030'
+2026-02-18 00:07:47 [INFO] [5/72] Open + extract: INC0405320
+2026-02-18 00:07:48 [INFO] INC0405320 user resolved from sys_id => 'Georgiana SANDU'
+2026-02-18 00:07:50 [INFO] INC0405320 => OK reason= user='Georgiana SANDU' ci='b78dbcc797c73554440eb717f053af1f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0405320'
+2026-02-18 00:07:50 [INFO] [6/72] Open + extract: INC0404913
+2026-02-18 00:07:51 [INFO] INC0404913 user resolved from sys_id => 'Klaudia ARBETOVA'
+2026-02-18 00:07:53 [INFO] INC0404913 => OK reason= user='Klaudia ARBETOVA' ci='c30d0def97d25610440eb717f053afba' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404913'
+2026-02-18 00:07:53 [INFO] [7/72] Open + extract: INC0404662
+2026-02-18 00:07:53 [INFO] INC0404662 user resolved from sys_id => 'Gabriel Stanislav Vladimir LITERA'
+2026-02-18 00:07:56 [INFO] INC0404662 PI not found in activity stream
+2026-02-18 00:07:56 [INFO] INC0404662 => OK reason= user='Gabriel Stanislav Vladimir LITERA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404662'
+2026-02-18 00:07:56 [INFO] [8/72] Open + extract: INC0403929
+2026-02-18 00:07:56 [INFO] INC0403929 user resolved from sys_id => 'Sandrina MARCUZZO'
+2026-02-18 00:07:59 [INFO] INC0403929 => OK reason= user='Sandrina MARCUZZO' ci='85906f80c32e52d014211f4bb0013197' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0403929'
+2026-02-18 00:07:59 [INFO] [9/72] Open + extract: INC0404073
+2026-02-18 00:07:59 [INFO] INC0404073 user resolved from sys_id => 'Marika SULANKO'
+2026-02-18 00:08:01 [INFO] INC0404073 => OK reason= user='Marika SULANKO' ci='d2dc89af97d25610440eb717f053af43' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0404073'
+2026-02-18 00:08:01 [INFO] [10/72] Open + extract: INC0398334
+2026-02-18 00:08:02 [INFO] INC0398334 user resolved from sys_id => 'Anastasia COUCOURATOS'
+2026-02-18 00:08:04 [INFO] INC0398334 => OK reason= user='Anastasia COUCOURATOS' ci='8b4bedb41be3705032980ed1604bcbb6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398334'
+2026-02-18 00:08:04 [INFO] [11/72] Open + extract: INC0400192
+2026-02-18 00:08:05 [INFO] INC0400192 user resolved from sys_id => 'Liselotte JENSEN'
+2026-02-18 00:08:07 [INFO] INC0400192 PI not found in activity stream
+2026-02-18 00:08:07 [INFO] INC0400192 => OK reason= user='Liselotte JENSEN' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0400192'
+2026-02-18 00:08:07 [INFO] [12/72] Open + extract: INC0399952
+2026-02-18 00:08:07 [INFO] INC0399952 user resolved from sys_id => 'Lucie Agnès Marie Olga MAISTRELLI'
+2026-02-18 00:08:10 [INFO] INC0399952 PI not found in activity stream
+2026-02-18 00:08:10 [INFO] INC0399952 => OK reason= user='Lucie Agnès Marie Olga MAISTRELLI' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399952'
+2026-02-18 00:08:10 [INFO] [13/72] Open + extract: INC0399909
+2026-02-18 00:08:10 [INFO] INC0399909 user resolved from sys_id => 'Kristýna MATÁTKOVÁ'
+2026-02-18 00:08:12 [INFO] INC0399909 PI not found in activity stream
+2026-02-18 00:08:12 [INFO] INC0399909 => OK reason= user='Kristýna MATÁTKOVÁ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399909'
+2026-02-18 00:08:12 [INFO] [14/72] Open + extract: INC0399906
+2026-02-18 00:08:13 [INFO] INC0399906 user resolved from sys_id => 'Ana RADOCAJ'
+2026-02-18 00:08:15 [INFO] INC0399906 PI not found in activity stream
+2026-02-18 00:08:15 [INFO] INC0399906 => OK reason= user='Ana RADOCAJ' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399906'
+2026-02-18 00:08:15 [INFO] [15/72] Open + extract: INC0398797
+2026-02-18 00:08:16 [INFO] INC0398797 user resolved from sys_id => 'Angelika KISS'
+2026-02-18 00:08:18 [INFO] INC0398797 => OK reason= user='Angelika KISS' ci='9aec01ef97d25610440eb717f053af92' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398797'
+2026-02-18 00:08:18 [INFO] [16/72] Open + extract: INC0399068
+2026-02-18 00:08:19 [INFO] INC0399068 user resolved from sys_id => 'Maria Nazareth ECHART ORUS'
+2026-02-18 00:08:21 [INFO] INC0399068 => OK reason= user='Maria Nazareth ECHART ORUS' ci='626d7c8797c73554440eb717f053afce' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0399068'
+2026-02-18 00:08:21 [INFO] [17/72] Open + extract: INC0398566
+2026-02-18 00:08:22 [INFO] INC0398566 user resolved from sys_id => 'Krista DANKERE'
+2026-02-18 00:08:24 [INFO] INC0398566 => OK reason= user='Krista DANKERE' ci='28aaeec01beff01032980ed1604bcb76' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0398566'
+2026-02-18 00:08:24 [INFO] [18/72] Open + extract: INC0397938
+2026-02-18 00:08:24 [INFO] INC0397938 user resolved from sys_id => 'Maja SABOL'
+2026-02-18 00:08:27 [INFO] INC0397938 PI not found in activity stream
+2026-02-18 00:08:27 [INFO] INC0397938 => OK reason= user='Maja SABOL' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0397938'
+2026-02-18 00:08:27 [INFO] [19/72] Open + extract: INC0396829
+2026-02-18 00:08:27 [INFO] INC0396829 user resolved from sys_id => 'Cristina SANCHEZ VILLA'
+2026-02-18 00:08:29 [INFO] INC0396829 => OK reason= user='Cristina SANCHEZ VILLA' ci='5a2d704797c73554440eb717f053af91' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396829'
+2026-02-18 00:08:29 [INFO] [20/72] Open + extract: INC0390677
+2026-02-18 00:08:30 [INFO] INC0390677 user resolved from sys_id => 'Wojciech KUZMA'
+2026-02-18 00:08:32 [INFO] INC0390677 PI not found in activity stream
+2026-02-18 00:08:32 [INFO] INC0390677 => OK reason= user='Wojciech KUZMA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0390677'
+2026-02-18 00:08:32 [INFO] [21/72] Open + extract: INC0384484
+2026-02-18 00:08:33 [INFO] INC0384484 user resolved from sys_id => 'Tajana LJUBICIC'
+2026-02-18 00:08:35 [INFO] INC0384484 => OK reason= user='Tajana LJUBICIC' ci='b88d38c797c73554440eb717f053af67' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0384484'
+2026-02-18 00:08:35 [INFO] [22/72] Open + extract: INC0396867
+2026-02-18 00:08:36 [INFO] INC0396867 user resolved from sys_id => 'Luc JEUNESSE'
+2026-02-18 00:08:37 [INFO] INC0396867 => OK reason= user='Luc JEUNESSE' ci='eafc32c5c3e29a1414211f4bb0013102' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0396867'
+2026-02-18 00:08:37 [INFO] [23/72] Open + extract: INC0393533
+2026-02-18 00:08:38 [INFO] INC0393533 user resolved from sys_id => 'Maria Antoaneta NEAG'
+2026-02-18 00:08:40 [INFO] INC0393533 => OK reason= user='Maria Antoaneta NEAG' ci='0ef06784c32e52d014211f4bb00131c3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393533'
+2026-02-18 00:08:40 [INFO] [24/72] Open + extract: INC0393530
+2026-02-18 00:08:41 [INFO] INC0393530 user resolved from sys_id => 'Katerina HEROUTOVÁ'
+2026-02-18 00:08:43 [INFO] INC0393530 => OK reason= user='Katerina HEROUTOVÁ' ci='c9fc05ef97d25610440eb717f053af88' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393530'
+2026-02-18 00:08:43 [INFO] [25/72] Open + extract: INC0393057
+2026-02-18 00:08:44 [INFO] INC0393057 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-18 00:08:46 [INFO] INC0393057 => OK reason= user='Igor DEQUECKER' ci='e3b895381b2f305032980ed1604bcba0' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0393057'
+2026-02-18 00:08:46 [INFO] [26/72] Open + extract: INC0392998
+2026-02-18 00:08:47 [INFO] INC0392998 user resolved from sys_id => 'Christos PAPAGIANNIS'
+2026-02-18 00:08:49 [INFO] INC0392998 => OK reason= user='Christos PAPAGIANNIS' ci='d6506f00c32e52d014211f4bb0013138' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0392998'
+2026-02-18 00:08:49 [INFO] [27/72] Open + extract: INC0386947
+2026-02-18 00:08:49 [INFO] INC0386947 user resolved from sys_id => 'Nicolas DORGERET'
+2026-02-18 00:08:52 [INFO] INC0386947 => OK reason= user='Nicolas DORGERET' ci='976aa20c2b172690ca61fe63ce91bf8a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0386947'
+2026-02-18 00:08:52 [INFO] [28/72] Open + extract: INC0381429
+2026-02-18 00:08:52 [INFO] INC0381429 user resolved from sys_id => 'Ramune TAMASAUSKAITE'
+2026-02-18 00:08:55 [INFO] INC0381429 => OK reason= user='Ramune TAMASAUSKAITE' ci='e26dbc8797c73554440eb717f053af12' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381429'
+2026-02-18 00:08:55 [INFO] [29/72] Open + extract: INC0381995
+2026-02-18 00:08:55 [INFO] INC0381995 user resolved from sys_id => 'Cesar Augusto CASTELLO MORENO'
+2026-02-18 00:08:57 [INFO] INC0381995 => OK reason= user='Cesar Augusto CASTELLO MORENO' ci='51d0a344c32e52d014211f4bb001316a' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0381995'
+2026-02-18 00:08:57 [INFO] [30/72] Open + extract: INC0377661
+2026-02-18 00:08:58 [INFO] INC0377661 user resolved from sys_id => 'Alina Leandra Ó RIADA'
+2026-02-18 00:09:00 [INFO] INC0377661 => OK reason= user='Alina Leandra Ó RIADA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377661'
+2026-02-18 00:09:00 [INFO] [31/72] Open + extract: INC0376136
+2026-02-18 00:09:01 [INFO] INC0376136 user resolved from sys_id => 'Igor DEQUECKER'
+2026-02-18 00:09:04 [INFO] INC0376136 => OK reason= user='Igor DEQUECKER' ci='cf0d0def97d25610440eb717f053afdd' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376136'
+2026-02-18 00:09:04 [INFO] [32/72] Open + extract: INC0377128
+2026-02-18 00:09:04 [INFO] INC0377128 user resolved from sys_id => 'Francesco BARCHIELLI'
+2026-02-18 00:09:06 [INFO] INC0377128 => OK reason= user='Francesco BARCHIELLI' ci='21406300c32e52d014211f4bb00131c8' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0377128'
+2026-02-18 00:09:06 [INFO] [33/72] Open + extract: INC0376121
+2026-02-18 00:09:07 [INFO] INC0376121 user resolved from sys_id => 'Anna ARESU'
+2026-02-18 00:09:09 [INFO] INC0376121 => OK reason= user='Anna ARESU' ci='97b02704c32e52d014211f4bb00131cf' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0376121'
+2026-02-18 00:09:09 [INFO] [34/72] Open + extract: INC0375309
+2026-02-18 00:09:10 [INFO] INC0375309 user resolved from sys_id => 'Stephanie HONNEFELDER'
+2026-02-18 00:09:12 [INFO] INC0375309 => OK reason= user='Stephanie HONNEFELDER' ci='a76aa20c2b172690ca61fe63ce91bfe1' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0375309'
+2026-02-18 00:09:12 [INFO] [35/72] Open + extract: INC0372528
+2026-02-18 00:09:13 [INFO] INC0372528 user resolved from sys_id => 'Philine SCHOLZE'
+2026-02-18 00:09:15 [INFO] INC0372528 => OK reason= user='Philine SCHOLZE' ci='847ae20c2b172690ca61fe63ce91bf8f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372528'
+2026-02-18 00:09:15 [INFO] [36/72] Open + extract: INC0373224
+2026-02-18 00:09:16 [INFO] INC0373224 user resolved from sys_id => 'Ariane DEBYSER'
+2026-02-18 00:09:18 [INFO] INC0373224 => OK reason= user='Ariane DEBYSER' ci='0490eb80c32e52d014211f4bb0013160' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0373224'
+2026-02-18 00:09:18 [INFO] [37/72] Open + extract: INC0374026
+2026-02-18 00:09:18 [INFO] INC0374026 user resolved from sys_id => 'Rachid AHAJJAM'
+2026-02-18 00:09:21 [INFO] INC0374026 => OK reason= user='Rachid AHAJJAM' ci='d20dc9ef97d25610440eb717f053afc9' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0374026'
+2026-02-18 00:09:21 [INFO] [38/72] Open + extract: INC0370735
+2026-02-18 00:09:21 [INFO] INC0370735 user resolved from sys_id => 'Gianna GRIGÒ'
+2026-02-18 00:09:24 [INFO] INC0370735 => OK reason= user='Gianna GRIGÒ' ci='e30d4def97d25610440eb717f053af64' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370735'
+2026-02-18 00:09:24 [INFO] [39/72] Open + extract: INC0365085
+2026-02-18 00:09:24 [INFO] INC0365085 user resolved from sys_id => 'Fabiola VALENTINI'
+2026-02-18 00:09:26 [INFO] INC0365085 => OK reason= user='Fabiola VALENTINI' ci='c150ab00c32e52d014211f4bb00131c7' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0365085'
+2026-02-18 00:09:26 [INFO] [40/72] Open + extract: INC0368029
+2026-02-18 00:09:27 [INFO] INC0368029 user resolved from sys_id => 'Maria TOADER'
+2026-02-18 00:09:29 [INFO] INC0368029 => OK reason= user='Maria TOADER' ci='9fbc01af97d25610440eb717f053afa6' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0368029'
+2026-02-18 00:09:29 [INFO] [41/72] Open + extract: INC0370558
+2026-02-18 00:09:30 [INFO] INC0370558 user resolved from sys_id => 'Samuel DE LEMOS PEIXOTO'
+2026-02-18 00:09:32 [INFO] INC0370558 => OK reason= user='Samuel DE LEMOS PEIXOTO' ci='2a7dd11947dcf550de328c37e26d43ef' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370558'
+2026-02-18 00:09:32 [INFO] [42/72] Open + extract: INC0372344
+2026-02-18 00:09:33 [INFO] INC0372344 user resolved from sys_id => 'Elise HANCOTTE'
+2026-02-18 00:09:35 [INFO] INC0372344 PI not found in activity stream
+2026-02-18 00:09:35 [INFO] INC0372344 => OK reason= user='Elise HANCOTTE' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0372344'
+2026-02-18 00:09:35 [INFO] [43/72] Open + extract: INC0353533
+2026-02-18 00:09:36 [INFO] INC0353533 user resolved from sys_id => 'Ellen Sarah VAN NIEUWENHUYZE'
+2026-02-18 00:09:38 [INFO] INC0353533 => OK reason= user='Ellen Sarah VAN NIEUWENHUYZE' ci='530d4def97d25610440eb717f053af21' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0353533'
+2026-02-18 00:09:38 [INFO] [44/72] Open + extract: INC0367376
+2026-02-18 00:09:38 [INFO] INC0367376 user resolved from sys_id => 'Anastasia MITRONATSIOU'
+2026-02-18 00:09:41 [INFO] INC0367376 => OK reason= user='Anastasia MITRONATSIOU' ci='7db06304c32e52d014211f4bb0013164' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0367376'
+2026-02-18 00:09:41 [INFO] [45/72] Open + extract: INC0350488
+2026-02-18 00:09:43 [INFO] INC0350488 => OK reason= user='5c7518931beb241018d65398624bcb08' ci='7fb0a704c32e52d014211f4bb00131e3' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0350488'
+2026-02-18 00:09:43 [INFO] [46/72] Open + extract: INC0346775
+2026-02-18 00:09:44 [INFO] INC0346775 user resolved from sys_id => 'David SCHWANDER'
+2026-02-18 00:09:46 [INFO] INC0346775 => OK reason= user='David SCHWANDER' ci='2ca067c0c32e52d014211f4bb001316e' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0346775'
+2026-02-18 00:09:46 [INFO] [47/72] Open + extract: INC0370773
+2026-02-18 00:09:47 [INFO] INC0370773 user resolved from sys_id => 'Karin SAUERTEIG'
+2026-02-18 00:09:49 [INFO] INC0370773 => OK reason= user='Karin SAUERTEIG' ci='aa2bae041beb78103a0e8518624bcb1c' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370773'
+2026-02-18 00:09:49 [INFO] [48/72] Open + extract: INC0370852
+2026-02-18 00:09:49 [INFO] INC0370852 user resolved from sys_id => 'Barbara KRAFT'
+2026-02-18 00:09:52 [INFO] INC0370852 => OK reason= user='Barbara KRAFT' ci='960d340797c73554440eb717f053af4f' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370852'
+2026-02-18 00:09:52 [INFO] [49/72] Open + extract: INC0370721
+2026-02-18 00:09:52 [INFO] INC0370721 user resolved from sys_id => 'Virginie REMACLE'
+2026-02-18 00:09:54 [INFO] INC0370721 => OK reason= user='Virginie REMACLE' ci='3ad06744c32e52d014211f4bb00131ad' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0370721'
+2026-02-18 00:09:54 [INFO] [50/72] Open + extract: INC0357741
+2026-02-18 00:09:55 [INFO] INC0357741 user resolved from sys_id => 'Ana SÁEZ-BENITO CAUVILLA'
+2026-02-18 00:09:57 [INFO] INC0357741 PI not found in activity stream
+2026-02-18 00:09:57 [INFO] INC0357741 => OK reason= user='Ana SÁEZ-BENITO CAUVILLA' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357741'
+2026-02-18 00:09:57 [INFO] [51/72] Open + extract: INC0240792
+2026-02-18 00:09:58 [INFO] INC0240792 user resolved from sys_id => 'Bettina BLASIG'
+2026-02-18 00:10:00 [INFO] INC0240792 => OK reason= user='Bettina BLASIG' ci='9774010b1b63f0903a0e8518624bcb7d' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0240792'
+2026-02-18 00:10:00 [INFO] [52/72] Open + extract: INC0357389
+2026-02-18 00:10:01 [INFO] INC0357389 user resolved from sys_id => 'Cedric Franz K GOOR'
+2026-02-18 00:10:03 [INFO] INC0357389 => OK reason= user='Cedric Franz K GOOR' ci='1fe027021b3c019032980ed1604bcb40' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0357389'
+2026-02-18 00:10:03 [INFO] [53/72] Open + extract: INC0354452
+2026-02-18 00:10:04 [INFO] INC0354452 user resolved from sys_id => 'Maria-teresa GONZALEZ CABALLERO'
+2026-02-18 00:10:06 [INFO] INC0354452 PI not found in activity stream
+2026-02-18 00:10:06 [INFO] INC0354452 => OK reason= user='Maria-teresa GONZALEZ CABALLERO' ci='' url='/incident.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DINC0354452'
+2026-02-18 00:10:06 [INFO] [54/72] Open + extract: RITM0395760
+2026-02-18 00:10:07 [INFO] RITM0395760 user resolved from sys_id => 'Tania DE POORTER'
+2026-02-18 00:10:07 [INFO] RITM0395760 open SCTASK fallback recovered count=3 tasks='SCTASK0689026, SCTASK0689820, SCTASK0689819'
+2026-02-18 00:10:14 [INFO] RITM0395760 => OK reason= user='Tania DE POORTER' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0395760'
+2026-02-18 00:10:14 [INFO] [55/72] Open + extract: RITM0400363
+2026-02-18 00:10:14 [INFO] RITM0400363 user resolved from sys_id => 'Dora Cristina BARREIRA RAMOS'
+2026-02-18 00:10:15 [INFO] RITM0400363 open SCTASK fallback recovered count=4 tasks='SCTASK0698388, SCTASK0729977, SCTASK0754274, SCTASK0754275'
+2026-02-18 00:10:21 [INFO] RITM0400363 => OK reason= user='Dora Cristina BARREIRA RAMOS' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400363'
+2026-02-18 00:10:21 [INFO] [56/72] Open + extract: RITM0400334
+2026-02-18 00:10:22 [INFO] RITM0400334 user resolved from sys_id => 'Devrim ATES'
+2026-02-18 00:10:22 [INFO] RITM0400334 open SCTASK fallback recovered count=4 tasks='SCTASK0698363, SCTASK0730017, SCTASK0754300, SCTASK0754299'
+2026-02-18 00:10:30 [INFO] RITM0400334 => OK reason= user='Devrim ATES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400334'
+2026-02-18 00:10:30 [INFO] [57/72] Open + extract: RITM0429435
+2026-02-18 00:10:30 [INFO] RITM0429435 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:10:31 [INFO] RITM0429435 open SCTASK fallback recovered count=2 tasks='SCTASK0756216, SCTASK0756219'
+2026-02-18 00:10:37 [INFO] RITM0429435 PI not found in activity stream
+2026-02-18 00:10:37 [INFO] RITM0429435 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0429435'
+2026-02-18 00:10:37 [INFO] [58/72] Open + extract: RITM0430321
+2026-02-18 00:10:37 [INFO] RITM0430321 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-18 00:10:38 [INFO] RITM0430321 open SCTASK fallback recovered count=1 tasks='SCTASK0758095'
+2026-02-18 00:10:45 [INFO] RITM0430321 PI not found in activity stream
+2026-02-18 00:10:45 [INFO] RITM0430321 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430321'
+2026-02-18 00:10:45 [INFO] [59/72] Open + extract: RITM0430778
+2026-02-18 00:10:45 [INFO] RITM0430778 user resolved from sys_id => 'Satu Simona POUTANEN'
+2026-02-18 00:10:52 [INFO] RITM0430778 PI not found in activity stream
+2026-02-18 00:10:52 [INFO] RITM0430778 => OK reason= user='Satu Simona POUTANEN' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0430778'
+2026-02-18 00:10:52 [INFO] [60/72] Open + extract: RITM0400091
+2026-02-18 00:10:53 [INFO] RITM0400091 user resolved from sys_id => 'Lina BARSTYTE'
+2026-02-18 00:10:53 [INFO] RITM0400091 open SCTASK fallback recovered count=4 tasks='SCTASK0698111, SCTASK0760826, SCTASK0782345, SCTASK0782344'
+2026-02-18 00:11:00 [INFO] RITM0400091 => OK reason= user='Lina BARSTYTE' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0400091'
+2026-02-18 00:11:00 [INFO] [61/72] Open + extract: RITM0400088
+2026-02-18 00:11:01 [INFO] RITM0400088 user resolved from sys_id => 'Johannes LITZELMANN'
+2026-02-18 00:11:01 [INFO] RITM0400088 open SCTASK fallback recovered count=4 tasks='SCTASK0698108, SCTASK0782359, SCTASK0782358, SCTASK0760831'
+2026-02-18 00:11:43 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260218_001143
+2026-02-18 00:11:43 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-18 00:11:43 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-18 00:11:43 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-18 00:11:43 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-18 00:11:43 [INFO] Starting SSO login...
+2026-02-18 00:11:46 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-18 00:11:46 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-18 00:11:46 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-18 00:11:46 [INFO] Killing EXCEL processes: 1. before dashboard ensure columns
+2026-02-18 00:11:59 [INFO] Dashboard search query='' => matches=72
+2026-02-18 00:12:06 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-18 00:12:06 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-18 00:12:47 [INFO] Dashboard task resolution start ritm='RITM0400091'
+2026-02-18 00:12:47 [INFO] Dashboard task resolution end ritm='RITM0400091' open_count=0

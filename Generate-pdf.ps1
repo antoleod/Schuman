@@ -17,6 +17,12 @@ param(
   [string]$DashboardScript = (Join-Path $PSScriptRoot "dashboard-checkin-checkout.ps1"),
   [ValidateSet("Date","RITM")]
   [string]$PdfOutputStructure = "Date",
+  [ValidateSet("None","Full","Smart","Quick")]
+  [string]$AutoExcelMode = "Smart",
+  [ValidateSet("Auto","RitmOnly","IncAndRitm","All")]
+  [string]$AutoExcelScope = "RitmOnly",
+  [int]$AutoExcelMaxTickets = 0,
+  [int]$AutoExcelTimeoutMinutes = 20,
   [switch]$Force
 )
 
@@ -69,7 +75,13 @@ function Invoke-AutoExcelWithLoading {
   param(
     [string]$ScriptPath,
     [string]$ExcelPath,
-    [string]$SheetName
+    [string]$SheetName,
+    [ValidateSet("Full","Smart","Quick")]
+    [string]$Mode = "Smart",
+    [ValidateSet("Auto","RitmOnly","IncAndRitm","All")]
+    [string]$Scope = "RitmOnly",
+    [int]$MaxTickets = 0,
+    [int]$TimeoutMinutes = 20
   )
 
   $loading = New-Object System.Windows.Forms.Form
@@ -84,13 +96,13 @@ function Invoke-AutoExcelWithLoading {
   $loading.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 
   $title = New-Object System.Windows.Forms.Label
-  $title.Text = "Preparing dashboard data and validating SSO session..."
+  $title.Text = "Preparing data and validating SSO session..."
   $title.AutoSize = $true
   $title.Location = New-Object System.Drawing.Point(20, 24)
   $loading.Controls.Add($title)
 
   $status = New-Object System.Windows.Forms.Label
-  $status.Text = "Starting..."
+  $status.Text = "Starting ($Mode/$Scope)..."
   $status.AutoSize = $true
   $status.Location = New-Object System.Drawing.Point(20, 52)
   $status.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
@@ -104,6 +116,18 @@ function Invoke-AutoExcelWithLoading {
   $bar.Location = New-Object System.Drawing.Point(20, 90)
   $loading.Controls.Add($bar)
 
+  $btnCancel = New-Object System.Windows.Forms.Button
+  $btnCancel.Text = "Cancel"
+  $btnCancel.Width = 90
+  $btnCancel.Height = 28
+  $btnCancel.Location = New-Object System.Drawing.Point(400, 118)
+  $btnCancel.FlatStyle = "Flat"
+  $btnCancel.FlatAppearance.BorderSize = 1
+  $btnCancel.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(80,80,80)
+  $btnCancel.BackColor = [System.Drawing.Color]::FromArgb(42,42,44)
+  $btnCancel.ForeColor = [System.Drawing.Color]::FromArgb(220,220,220)
+  $loading.Controls.Add($btnCancel)
+
   $loading.Show()
   [System.Windows.Forms.Application]::DoEvents()
 
@@ -112,6 +136,14 @@ function Invoke-AutoExcelWithLoading {
   $handle = $null
   $frames = @("|","/","-","\")
   $idx = 0
+  $cancelRequested = $false
+  $startedAt = [datetime]::Now
+
+  $btnCancel.Add_Click({
+    $cancelRequested = $true
+    $btnCancel.Enabled = $false
+    $status.Text = "Canceling..."
+  })
 
   try {
     $rs = [RunspaceFactory]::CreateRunspace()
@@ -122,7 +154,7 @@ function Invoke-AutoExcelWithLoading {
     $ps = [PowerShell]::Create()
     $ps.Runspace = $rs
     $ps.AddScript({
-      param($AutoExcelScriptPath, $AutoExcelPath, $AutoExcelSheet)
+      param($AutoExcelScriptPath, $AutoExcelPath, $AutoExcelSheet, $ModeArgs)
       $global:LASTEXITCODE = $null
       & $AutoExcelScriptPath `
         -ExcelPath $AutoExcelPath `
@@ -132,19 +164,42 @@ function Invoke-AutoExcelWithLoading {
         -NameHeader "Name" `
         -PhoneHeader "PI" `
         -ActionHeader "Estado de RITM" `
-        -NoPopups
+        -NoPopups `
+        @ModeArgs
       if (($global:LASTEXITCODE -ne $null) -and ($global:LASTEXITCODE -ne 0)) {
         throw "auto-excel.ps1 exited with code $global:LASTEXITCODE"
       }
     }) | Out-Null
+    $modeArgs = @()
+    switch ($Mode) {
+      "Quick" { $modeArgs += "-QuickMode" }
+      "Smart" { $modeArgs += "-SmartMode" }
+      default { }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Scope)) {
+      $modeArgs += @("-ProcessingScope", $Scope)
+    }
+    if ($MaxTickets -gt 0) {
+      $modeArgs += @("-MaxTickets", [string]$MaxTickets)
+    }
     $ps.AddArgument($ScriptPath) | Out-Null
     $ps.AddArgument($ExcelPath) | Out-Null
     $ps.AddArgument($SheetName) | Out-Null
+    $ps.AddArgument($modeArgs) | Out-Null
 
     $handle = $ps.BeginInvoke()
 
     while (-not $handle.IsCompleted) {
-      $status.Text = "Loading... $($frames[$idx])"
+      if ($cancelRequested) {
+        try { $ps.Stop() } catch {}
+        throw "Operation canceled by user."
+      }
+      $elapsed = [int]([datetime]::Now - $startedAt).TotalSeconds
+      if ($TimeoutMinutes -gt 0 -and $elapsed -ge ($TimeoutMinutes * 60)) {
+        try { $ps.Stop() } catch {}
+        throw "auto-excel step timed out after $TimeoutMinutes minutes."
+      }
+      $status.Text = "Loading ($Mode/$Scope)... $($frames[$idx])  ${elapsed}s"
       $idx = ($idx + 1) % $frames.Count
       [System.Windows.Forms.Application]::DoEvents()
       Start-Sleep -Milliseconds 120
@@ -168,8 +223,13 @@ try {
     return
   }
 
-  Write-Log "Running auto-excel.ps1 before PDF generation."
-  Invoke-AutoExcelWithLoading -ScriptPath $AutoExcelScript -ExcelPath $ExcelPath -SheetName $PreferredSheet
+  if ($AutoExcelMode -eq "None") {
+    Write-Log "Skipping auto-excel pre-step by request (AutoExcelMode=None)."
+  }
+  else {
+    Write-Log "Running auto-excel.ps1 before PDF generation. Mode=$AutoExcelMode Scope=$AutoExcelScope MaxTickets=$AutoExcelMaxTickets Timeout=${AutoExcelTimeoutMinutes}m"
+    Invoke-AutoExcelWithLoading -ScriptPath $AutoExcelScript -ExcelPath $ExcelPath -SheetName $PreferredSheet -Mode $AutoExcelMode -Scope $AutoExcelScope -MaxTickets $AutoExcelMaxTickets -TimeoutMinutes $AutoExcelTimeoutMinutes
+  }
 }
 catch {
   $err = "" + $_.Exception.Message

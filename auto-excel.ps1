@@ -37,6 +37,13 @@ param(
   [string]$SCTasksHeader = "SCTasks",
   [switch]$DashboardMode,
   [switch]$NoPopups,
+  [ValidateSet("Auto","RitmOnly","IncAndRitm","All")]
+  [string]$ProcessingScope = "Auto",
+  [int]$MaxTickets = 0,
+  [switch]$QuickMode,
+  [switch]$SmartMode,
+  [switch]$SkipActivityScan,
+  [switch]$NoWriteBack,
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
   [string]$DefaultStartDir = $PSScriptRoot
@@ -116,6 +123,7 @@ $VerboseTicketLogging = $true
 $ExtractJsTimeoutMs = 12000
 $ExtractRetryCount = 3
 $ExtractRetryDelayMs = 1200
+$EnableSctaskRowExpansion = $false
 
 if ($FastMode) {
   $EnableUiFallbackActivitySearch = $true
@@ -126,6 +134,30 @@ if ($FastMode) {
   $ExtractRetryCount = 4
   $ExtractRetryDelayMs = 1500
   $UiFallbackMinBackendChars = 120
+}
+
+if ($QuickMode) {
+  if (-not $PSBoundParameters.ContainsKey("ProcessingScope")) { $ProcessingScope = "RitmOnly" }
+  if ($MaxTickets -le 0) { $MaxTickets = 30 }
+  $SkipActivityScan = $true
+  $NoWriteBack = $true
+  $ExtractRetryCount = [Math]::Min($ExtractRetryCount, 2)
+  $ExtractRetryDelayMs = [Math]::Min($ExtractRetryDelayMs, 500)
+  Log "INFO" ("Quick mode enabled: scope={0}, maxTickets={1}, skipActivity={2}, writeBackDisabled={3}" -f $ProcessingScope, $MaxTickets, $true, $true)
+}
+
+if ($SmartMode) {
+  Log "INFO" "Smart mode enabled: caching user lookups and skipping heavy activity scan for INC tickets."
+}
+
+if ($SkipActivityScan) {
+  $EnableActivityStreamSearch = $false
+  $EnableUiFallbackActivitySearch = $false
+  Log "INFO" "Speed mode: activity-stream PI scan disabled (-SkipActivityScan)."
+}
+if ($NoWriteBack) {
+  $WriteBackExcel = $false
+  Log "INFO" "Speed mode: Excel write-back disabled (-NoWriteBack)."
 }
 
 # NameHeader/PhoneHeader/ActionHeader are provided via param().
@@ -1716,6 +1748,7 @@ function Search-DashboardRows {
     }
 
     $sctaskCol = Resolve-DashboardSctaskColumn -HeaderMap $map
+    $sctaskSplitCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^sctask\s*split$')
     $statusCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^dashboard\s*status$')
     $presentCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^present\s*time$')
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^closed\s*time$')
@@ -1730,8 +1763,12 @@ function Search-DashboardRows {
     if ($cols -lt 1) { $cols = [int]$ws.UsedRange.Columns.Count }
 
     $out = New-Object System.Collections.Generic.List[object]
+    $seenRitm = @{}
     for ($r = 2; $r -le $rows; $r++) {
       $ritm = ("" + $ws.Cells.Item($r, $ritmCol).Text).Trim().ToUpperInvariant()
+      $splitFlag = if ($sctaskSplitCol) { ("" + $ws.Cells.Item($r, $sctaskSplitCol).Text).Trim().ToUpperInvariant() } else { "" }
+      if ($splitFlag -eq "AUTO") { continue }
+      if (($ritm -match '^RITM\d{6,8}$') -and $seenRitm.ContainsKey($ritm)) { continue }
 
       # Collect full row text so search works even when name headers vary in Excel.
       $rowTexts = New-Object System.Collections.Generic.List[string]
@@ -1819,6 +1856,7 @@ function Search-DashboardRows {
         FirstName     = $firstName
         LastName      = $lastName
         RITM          = $ritm
+        SctaskSplit   = $splitFlag
         SCTASK        = $sctask
         DashboardStatus = $status
         PresentTime   = $presentTime
@@ -1826,6 +1864,7 @@ function Search-DashboardRows {
         LastUpdated   = $lastUpdated
         PdfPath       = $pdfPath
       }) | Out-Null
+      if ($ritm -match '^RITM\d{6,8}$') { $seenRitm[$ritm] = $true }
     }
 
     Log "INFO" "Dashboard search query='$query' => matches=$($out.Count)"
@@ -2872,7 +2911,7 @@ function Show-CheckInOutDashboard {
   $leftGrid = New-Object System.Windows.Forms.TableLayoutPanel
   $leftGrid.Dock = "Top"
   $leftGrid.AutoSize = $true
-  $leftGrid.RowCount = 10
+  $leftGrid.RowCount = 11
   $leftGrid.ColumnCount = 1
   $leftGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
   $leftPanel.Controls.Add($leftGrid)
@@ -2883,16 +2922,12 @@ function Show-CheckInOutDashboard {
   $lblSearch.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
   $leftGrid.Controls.Add($lblSearch, 0, 0)
 
-  $txtSearch = New-Object System.Windows.Forms.ComboBox
+  $txtSearch = New-Object System.Windows.Forms.TextBox
   $txtSearch.Dock = "Top"
   $txtSearch.Height = 28
   $txtSearch.BackColor = [System.Drawing.Color]::FromArgb(34,34,36)
   $txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
-  $txtSearch.FlatStyle = "Flat"
-  $txtSearch.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDown
-  $txtSearch.AutoCompleteMode = [System.Windows.Forms.AutoCompleteMode]::SuggestAppend
-  $txtSearch.AutoCompleteSource = [System.Windows.Forms.AutoCompleteSource]::ListItems
-  $txtSearch.MaxDropDownItems = 14
+  $txtSearch.BorderStyle = "FixedSingle"
   $txtSearch.Margin = New-Object System.Windows.Forms.Padding(0,4,0,8)
   $leftGrid.Controls.Add($txtSearch, 0, 1)
 
@@ -2933,12 +2968,39 @@ function Show-CheckInOutDashboard {
   $btnClear.Height = 30
   $leftGrid.Controls.Add($btnClear, 0, 6)
 
+  $pagerFlow = New-Object System.Windows.Forms.FlowLayoutPanel
+  $pagerFlow.Dock = "Top"
+  $pagerFlow.Height = 34
+  $pagerFlow.WrapContents = $false
+  $pagerFlow.FlowDirection = "LeftToRight"
+  $pagerFlow.Margin = New-Object System.Windows.Forms.Padding(0,8,0,0)
+  $leftGrid.Controls.Add($pagerFlow, 0, 7)
+
+  $btnPrevPage = New-Object System.Windows.Forms.Button
+  $btnPrevPage.Text = "< Prev"
+  $btnPrevPage.Width = 80
+  $btnPrevPage.Height = 28
+  $pagerFlow.Controls.Add($btnPrevPage)
+
+  $btnNextPage = New-Object System.Windows.Forms.Button
+  $btnNextPage.Text = "Next >"
+  $btnNextPage.Width = 80
+  $btnNextPage.Height = 28
+  $pagerFlow.Controls.Add($btnNextPage)
+
+  $lblPage = New-Object System.Windows.Forms.Label
+  $lblPage.Text = "Page 1/1"
+  $lblPage.AutoSize = $true
+  $lblPage.Margin = New-Object System.Windows.Forms.Padding(12,7,0,0)
+  $lblPage.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+  $pagerFlow.Controls.Add($lblPage)
+
   $lblHint = New-Object System.Windows.Forms.Label
   $lblHint.Text = "Type to filter automatically."
   $lblHint.AutoSize = $true
   $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(120,180,255)
   $lblHint.Margin = New-Object System.Windows.Forms.Padding(0,10,0,0)
-  $leftGrid.Controls.Add($lblHint, 0, 7)
+  $leftGrid.Controls.Add($lblHint, 0, 8)
 
   $btnSettings = New-Object System.Windows.Forms.Button
   $btnSettings.Text = "⚙"
@@ -2976,6 +3038,8 @@ function Show-CheckInOutDashboard {
   & $btnStyle $btnSearch $true
   & $btnStyle $btnRefresh $false
   & $btnStyle $btnClear $false
+  & $btnStyle $btnPrevPage $false
+  & $btnStyle $btnNextPage $false
   & $btnStyle $btnSettings $false
 
   $grid = New-Object System.Windows.Forms.DataGridView
@@ -3197,6 +3261,13 @@ function Show-CheckInOutDashboard {
     UserDirectory = @()
     TaskCache = @{}
     LastOpenedRitm = ""
+    PendingTaskResolve = @{}
+    MaxRenderedRows = 800
+    PageSize = 120
+    CurrentPage = 1
+    TotalPages = 1
+    EnableBackgroundTaskResolve = $false
+    EnableAutoResolveOnSelection = $false
   }
 
   $grid.AutoGenerateColumns = $false
@@ -3242,7 +3313,10 @@ function Show-CheckInOutDashboard {
       return "Multiple Tasks ($($tasks.Count))"
     }
     $txt = ("" + $rowItem.SCTASK).Trim()
-    if ([string]::IsNullOrWhiteSpace($txt)) { return "No Open Task" }
+    if ([string]::IsNullOrWhiteSpace($txt)) {
+      if ($state.PendingTaskResolve.ContainsKey($ritm)) { return "Resolving..." }
+      return "No Open Task"
+    }
     if ($txt -match ',' -or $txt -match ';') {
       $parts = @($txt -split '[,;]' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
       if ($parts.Count -gt 1) { return "Multiple Tasks ($($parts.Count))" }
@@ -3259,12 +3333,43 @@ function Show-CheckInOutDashboard {
     return $txt
   }
 
+  $updatePagerUi = {
+    param([int]$totalCount)
+    if ($state.PageSize -lt 1) { $state.PageSize = 120 }
+    $pages = 1
+    if ($totalCount -gt 0) {
+      $pages = [int][Math]::Ceiling($totalCount / [double]$state.PageSize)
+      if ($pages -lt 1) { $pages = 1 }
+    }
+    $state.TotalPages = $pages
+    if ($state.CurrentPage -lt 1) { $state.CurrentPage = 1 }
+    if ($state.CurrentPage -gt $state.TotalPages) { $state.CurrentPage = $state.TotalPages }
+    $lblPage.Text = "Page $($state.CurrentPage)/$($state.TotalPages)"
+    $btnPrevPage.Enabled = ($state.CurrentPage -gt 1) -and (-not $form.UseWaitCursor)
+    $btnNextPage.Enabled = ($state.CurrentPage -lt $state.TotalPages) -and (-not $form.UseWaitCursor)
+  }
+
   $bindRowsToGrid = {
     param($rows)
+    $state.Rows = @($rows)
+    $totalRows = $state.Rows.Count
+    & $updatePagerUi $totalRows
+    $startIndex = ($state.CurrentPage - 1) * $state.PageSize
+    if ($startIndex -lt 0) { $startIndex = 0 }
+    if ($startIndex -ge $totalRows) {
+      $state.CurrentPage = 1
+      $startIndex = 0
+      & $updatePagerUi $totalRows
+    }
+
     $grid.SuspendLayout()
     try {
       $grid.Rows.Clear()
-      foreach ($x in @($rows)) {
+      $renderRows = @()
+      if ($totalRows -gt 0) {
+        $renderRows = @($state.Rows | Select-Object -Skip $startIndex -First $state.PageSize)
+      }
+      foreach ($x in @($renderRows)) {
         [void]$grid.Rows.Add(
           ("" + $x.Row),
           ("" + $x.RequestedFor),
@@ -3272,6 +3377,9 @@ function Show-CheckInOutDashboard {
           (& $getTaskSummary $x),
           (& $formatLastUpdated ("" + $x.LastUpdated))
         )
+        if ($state.EnableBackgroundTaskResolve) {
+          & $enqueueTaskResolve $x
+        }
       }
       $grid.ClearSelection()
       if ($grid.Rows.Count -gt 0) {
@@ -3363,29 +3471,8 @@ function Show-CheckInOutDashboard {
   }
 
   $updateSearchUserSuggestions = {
-    $q = ("" + $txtSearch.Text).Trim()
-    $allUsers = @($state.UserDirectory)
-    if ($allUsers.Count -eq 0) { return }
-
-    $matches = @()
-    if ([string]::IsNullOrWhiteSpace($q)) {
-      $matches = @($allUsers | Select-Object -First 200)
-    }
-    else {
-      $matches = @($allUsers | Where-Object { ("" + $_).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } | Select-Object -First 200)
-    }
-
-    $caret = $txtSearch.SelectionStart
-    $txtSearch.BeginUpdate()
-    try {
-      $txtSearch.Items.Clear()
-      foreach ($u in $matches) { [void]$txtSearch.Items.Add($u) }
-    }
-    finally {
-      $txtSearch.EndUpdate()
-    }
-    $txtSearch.SelectionStart = [Math]::Min($caret, $txtSearch.Text.Length)
-    $txtSearch.SelectionLength = 0
+    # Search is now a plain TextBox for smoother typing under large datasets.
+    return
   }
 
   $setBusyUi = {
@@ -3394,34 +3481,55 @@ function Show-CheckInOutDashboard {
     $txtSearch.Enabled = -not $On
     $cmbStatus.Enabled = -not $On
     $btnClear.Enabled = -not $On
+    $btnPrevPage.Enabled = -not $On
+    $btnNextPage.Enabled = -not $On
     $btnSettings.Enabled = -not $On
     if ($On) { $lblStatus.Text = $Message }
     $form.UseWaitCursor = $On
+    & $updatePagerUi $state.Rows.Count
     [System.Windows.Forms.Application]::DoEvents()
   }
 
   $performSearch = {
-    param([switch]$ReloadFromExcel)
+    param([switch]$ReloadFromExcel, [switch]$KeepPage)
     try {
       $q = ("" + $txtSearch.Text).Trim()
       if ($ReloadFromExcel -or (-not $state.AllRows) -or ($state.AllRows.Count -eq 0)) {
         & $setBusyUi $true "Loading dashboard data..."
         # Load once from Excel, then filter locally for smooth typing.
         $state.AllRows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText "")
+        $state.TaskCache.Clear()
+        $state.PendingTaskResolve.Clear()
+        try { while ($taskResolveQueue.Count -gt 0) { [void]$taskResolveQueue.Dequeue() } } catch {}
         & $setBusyUi $false
       }
+      if (-not $KeepPage) { $state.CurrentPage = 1 }
       $rows = & $getVisibleRows
-      $state.Rows = @($rows)
       $state.LastSearch = $q
       & $bindRowsToGrid $rows
+      $shown = $grid.Rows.Count
+      $from = 0
+      $to = 0
+      if ($rows.Count -gt 0) {
+        $from = (($state.CurrentPage - 1) * $state.PageSize) + 1
+        $to = $from + $shown - 1
+      }
       $filterNote = ""
       if ($cmbStatus.SelectedItem -and ("" + $cmbStatus.SelectedItem) -ne "All") {
         $filterNote = " (" + $cmbStatus.SelectedItem + ")"
       }
       if ([string]::IsNullOrWhiteSpace($q)) {
-        $lblStatus.Text = "Results: $($rows.Count)$filterNote"
+        if ($rows.Count -eq 0) {
+          $lblStatus.Text = "Results: 0$filterNote"
+        } else {
+          $lblStatus.Text = "Results: $from-$to / $($rows.Count)$filterNote"
+        }
       } else {
-        $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+        if ($rows.Count -eq 0) {
+          $lblStatus.Text = "Results: 0 for '$q'$filterNote"
+        } else {
+          $lblStatus.Text = "Results: $from-$to / $($rows.Count) for '$q'$filterNote"
+        }
       }
     }
     catch {
@@ -3453,29 +3561,23 @@ function Show-CheckInOutDashboard {
       & $performSearch
     }
   })
-  $txtSearch.Add_TextUpdate({
-    & $updateSearchUserSuggestions
+  $txtSearch.Add_TextChanged({
     $searchDebounce.Stop()
     $searchDebounce.Start()
   })
-  $txtSearch.Add_DropDown({
-    & $updateSearchUserSuggestions
-  })
   $cmbStatus.Add_SelectedIndexChanged({
-    if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
-      $state.Rows = @()
-      & $bindRowsToGrid @()
-      $lblStatus.Text = "Type Display/Last name."
-      return
-    }
-    $rows = & $getVisibleRows
-    $state.Rows = @($rows)
-    & $bindRowsToGrid $rows
-    $filterNote = ""
-    if ($cmbStatus.SelectedItem -and ("" + $cmbStatus.SelectedItem) -ne "All") {
-      $filterNote = " (" + $cmbStatus.SelectedItem + ")"
-    }
-    $lblStatus.Text = "Results: $($rows.Count) for '$($state.LastSearch)'$filterNote"
+    $searchDebounce.Stop()
+    & $performSearch
+  })
+  $btnPrevPage.Add_Click({
+    if ($state.CurrentPage -le 1) { return }
+    $state.CurrentPage--
+    & $performSearch -KeepPage
+  })
+  $btnNextPage.Add_Click({
+    if ($state.CurrentPage -ge $state.TotalPages) { return }
+    $state.CurrentPage++
+    & $performSearch -KeepPage
   })
   $grid.Add_SelectionChanged({
     $sel = & $getSelectedRow
@@ -3493,8 +3595,10 @@ function Show-CheckInOutDashboard {
       $txtPdfPath.Text = ""
     }
     & $updateActionButtons
-    $selectedResolveTimer.Stop()
-    $selectedResolveTimer.Start()
+    if ($state.EnableAutoResolveOnSelection) {
+      $selectedResolveTimer.Stop()
+      $selectedResolveTimer.Start()
+    }
   })
   $grid.Add_CellClick({
     param($sender, $e)
@@ -3606,12 +3710,11 @@ function Show-CheckInOutDashboard {
     & $performSearch -ReloadFromExcel
   })
   $btnClear.Add_Click({
+    $searchDebounce.Stop()
     $txtSearch.Text = ""
     $state.LastSearch = ""
-    $rows = & $getVisibleRows
-    $state.Rows = @($rows)
-    & $bindRowsToGrid $rows
-    $lblStatus.Text = "Cleared."
+    $state.CurrentPage = 1
+    & $performSearch -KeepPage:$false
   })
   $btnUseCheckInNote.Add_Click({
     $txtComment.Text = $DashboardDefaultCheckInNote
@@ -3727,26 +3830,32 @@ function Show-CheckInOutDashboard {
     $ritm = ("" + $row.RITM).Trim().ToUpperInvariant()
     if (-not ($ritm -match '^RITM\d{6,8}$')) { return @() }
     if ($state.TaskCache.ContainsKey($ritm)) { return @($state.TaskCache[$ritm]) }
-    Log "INFO" "Dashboard task resolution start ritm='$ritm'"
-    $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
-    if ($tasks.Count -eq 0) { $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm) }
-    $open = @($tasks | Where-Object {
-      $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
-      $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
-      (Test-DashboardTaskStateOpen -StateText $st -StateValue $sv) -or (Test-DashboardTaskStateInProgress -StateText $st -StateValue $sv)
-    } | ForEach-Object {
-      [pscustomobject]@{
-        number = if ($_.PSObject.Properties["number"]) { ("" + $_.number).Trim().ToUpperInvariant() } else { "" }
-        sys_id = if ($_.PSObject.Properties["sys_id"]) { ("" + $_.sys_id).Trim() } else { "" }
-        state_text = if ($_.PSObject.Properties["state"]) { ("" + $_.state).Trim() } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label).Trim() } else { "" }
-        state_value = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value).Trim() } else { "" }
-        short_description = if ($_.PSObject.Properties["short_description"]) { ("" + $_.short_description).Trim() } else { "" }
-        updated = if ($_.PSObject.Properties["sys_updated_on"]) { ("" + $_.sys_updated_on).Trim() } else { "" }
-      }
-    })
-    $state.TaskCache[$ritm] = @($open)
-    Log "INFO" "Dashboard task resolution end ritm='$ritm' open_count=$($open.Count)"
-    return @($open)
+    try {
+      $state.PendingTaskResolve[$ritm] = $true
+      Log "INFO" "Dashboard task resolution start ritm='$ritm'"
+      $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+      if ($tasks.Count -eq 0) { $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm) }
+      $open = @($tasks | Where-Object {
+        $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+        $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+        (Test-DashboardTaskStateOpen -StateText $st -StateValue $sv) -or (Test-DashboardTaskStateInProgress -StateText $st -StateValue $sv)
+      } | ForEach-Object {
+        [pscustomobject]@{
+          number = if ($_.PSObject.Properties["number"]) { ("" + $_.number).Trim().ToUpperInvariant() } else { "" }
+          sys_id = if ($_.PSObject.Properties["sys_id"]) { ("" + $_.sys_id).Trim() } else { "" }
+          state_text = if ($_.PSObject.Properties["state"]) { ("" + $_.state).Trim() } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label).Trim() } else { "" }
+          state_value = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value).Trim() } else { "" }
+          short_description = if ($_.PSObject.Properties["short_description"]) { ("" + $_.short_description).Trim() } else { "" }
+          updated = if ($_.PSObject.Properties["sys_updated_on"]) { ("" + $_.sys_updated_on).Trim() } else { "" }
+        }
+      })
+      $state.TaskCache[$ritm] = @($open)
+      Log "INFO" "Dashboard task resolution end ritm='$ritm' open_count=$($open.Count)"
+      return @($open)
+    }
+    finally {
+      if ($state.PendingTaskResolve.ContainsKey($ritm)) { $state.PendingTaskResolve.Remove($ritm) | Out-Null }
+    }
   }
 
   $refreshSelectedTaskDisplay = {
@@ -3783,6 +3892,50 @@ function Show-CheckInOutDashboard {
     if ($form.UseWaitCursor) { return }
     & $resolveSelectedTaskIfNeeded
   })
+
+  $taskResolveQueue = New-Object System.Collections.Queue
+  $enqueueTaskResolve = {
+    param($rowItem)
+    if (-not $rowItem) { return }
+    $ritm = ("" + $rowItem.RITM).Trim().ToUpperInvariant()
+    if (-not ($ritm -match '^RITM\d{6,8}$')) { return }
+    if ($state.TaskCache.ContainsKey($ritm)) { return }
+    if ($state.PendingTaskResolve.ContainsKey($ritm)) { return }
+    $taskResolveQueue.Enqueue($rowItem)
+    $state.PendingTaskResolve[$ritm] = $true
+  }
+
+  $taskResolveTimer = New-Object System.Windows.Forms.Timer
+  $taskResolveTimer.Interval = 180
+  $taskResolveTimer.Add_Tick({
+    if ($form.UseWaitCursor) { return }
+    if ($taskResolveQueue.Count -eq 0) { return }
+    $item = $null
+    try { $item = $taskResolveQueue.Dequeue() } catch { return }
+    if (-not $item) { return }
+    $ritm = ("" + $item.RITM).Trim().ToUpperInvariant()
+    if ([string]::IsNullOrWhiteSpace($ritm)) { return }
+    try {
+      [void](& $resolveOpenTasksForRow $item)
+      for ($i = 0; $i -lt $grid.Rows.Count; $i++) {
+        $rnum = ("" + $grid.Rows[$i].Cells["Row"].Value).Trim()
+        if ($rnum -eq ("" + $item.Row)) {
+          $grid.Rows[$i].Cells["SCTask"].Value = (& $getTaskSummary $item)
+          break
+        }
+      }
+      $sel = & $getSelectedRow
+      if ($sel -and ((("" + $sel.RITM).Trim().ToUpperInvariant()) -eq $ritm)) {
+        & $refreshSelectedTaskDisplay
+      }
+    }
+    catch {
+      Log "ERROR" "Dashboard background task resolve failed ritm='$ritm': $($_.Exception.Message)"
+    }
+  })
+  if ($state.EnableBackgroundTaskResolve) {
+    $taskResolveTimer.Start()
+  }
 
   $showTaskSelectionDialog = {
     param([string]$ritm, [object[]]$tasks)
@@ -4154,10 +4307,8 @@ function Show-CheckInOutDashboard {
 
   # Initial load: keep grid empty by design.
   try {
-    $state.UserDirectory = @(Get-DashboardUserDirectory -ExcelPath $ExcelPath -SheetName $SheetName)
-    & $updateSearchUserSuggestions
     & $performSearch
-    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count)."
+    $lblStatus.Text = "Ready. Rows loaded: $($state.AllRows.Count)."
   } catch {}
 
   [void]$form.ShowDialog()
@@ -4355,7 +4506,7 @@ function Write-BackToExcel {
           $ws.Cells.Item($r, $sctaskSplitCol) = "PARENT"
         }
 
-        if ($openTaskNumbers.Count -gt 1) {
+        if ($EnableSctaskRowExpansion -and ($openTaskNumbers.Count -gt 1)) {
           $sctaskExpansionRequests.Add([pscustomobject]@{
             Row = [int]$r
             Ticket = $ticket
@@ -4387,7 +4538,7 @@ function Write-BackToExcel {
   }
 
   # Expand RITM rows: one Excel row per open SCTASK with direct hyperlink.
-  if ($sctaskExpansionRequests.Count -gt 0) {
+  if ($EnableSctaskRowExpansion -and ($sctaskExpansionRequests.Count -gt 0)) {
     $expansionSorted = @($sctaskExpansionRequests | Sort-Object -Property Row -Descending)
     foreach ($req in $expansionSorted) {
       $baseRow = [int]$req.Row
@@ -4445,6 +4596,15 @@ function Write-BackToExcel {
         else {
           $ws.Cells.Item($insRow, $sctasksCol) = $tn2
         }
+      }
+    }
+  }
+  elseif (-not $EnableSctaskRowExpansion) {
+    # Cleanup legacy AUTO rows from previous runs to prevent duplicated RITM lines.
+    for ($scan = $rows; $scan -ge 2; $scan--) {
+      $splitTxt = ("" + $ws.Cells.Item($scan, $sctaskSplitCol).Text).Trim().ToUpperInvariant()
+      if ($splitTxt -eq "AUTO") {
+        try { $ws.Rows.Item($scan).Delete() | Out-Null } catch {}
       }
     }
   }
@@ -5229,17 +5389,38 @@ try {
     throw "No valid tickets found in Excel (INC/RITM/SCTASK + 6-8 digits)."
   }
 
-  # Dynamic scope for speed:
-  # - If there is at least one INC, process INC + RITM.
-  # - If there is no INC, process only RITM.
-  $hasInc = @($tickets | Where-Object { $_ -like "INC*" }).Count -gt 0
-  if ($hasInc) {
-    $tickets = @($tickets | Where-Object { ($_ -like "INC*") -or ($_ -like "RITM*") })
-    Log "INFO" "Processing scope: INC + RITM (INC detected). Count=$($tickets.Count)"
+  switch ($ProcessingScope) {
+    "RitmOnly" {
+      $tickets = @($tickets | Where-Object { $_ -like "RITM*" })
+      Log "INFO" "Processing scope: RITM only (forced). Count=$($tickets.Count)"
+    }
+    "IncAndRitm" {
+      $tickets = @($tickets | Where-Object { ($_ -like "INC*") -or ($_ -like "RITM*") })
+      Log "INFO" "Processing scope: INC + RITM (forced). Count=$($tickets.Count)"
+    }
+    "All" {
+      $tickets = @($tickets | Where-Object { ($_ -like "INC*") -or ($_ -like "RITM*") -or ($_ -like "SCTASK*") })
+      Log "INFO" "Processing scope: ALL (INC + RITM + SCTASK). Count=$($tickets.Count)"
+    }
+    default {
+      # Auto mode:
+      # - If there is at least one INC, process INC + RITM.
+      # - If there is no INC, process only RITM.
+      $hasInc = @($tickets | Where-Object { $_ -like "INC*" }).Count -gt 0
+      if ($hasInc) {
+        $tickets = @($tickets | Where-Object { ($_ -like "INC*") -or ($_ -like "RITM*") })
+        Log "INFO" "Processing scope: INC + RITM (INC detected). Count=$($tickets.Count)"
+      }
+      else {
+        $tickets = @($tickets | Where-Object { $_ -like "RITM*" })
+        Log "INFO" "Processing scope: RITM only (no INC detected). Count=$($tickets.Count)"
+      }
+    }
   }
-  else {
-    $tickets = @($tickets | Where-Object { $_ -like "RITM*" })
-    Log "INFO" "Processing scope: RITM only (no INC detected). Count=$($tickets.Count)"
+
+  if ($MaxTickets -gt 0 -and $tickets.Count -gt $MaxTickets) {
+    $tickets = @($tickets | Select-Object -First $MaxTickets)
+    Log "INFO" "Speed mode: limiting tickets to first $MaxTickets."
   }
 
   if ($tickets.Count -eq 0) {
@@ -5249,10 +5430,24 @@ try {
   # 5) For each ticket: extract + export JSON
   $results = New-Object System.Collections.Generic.List[object]
   $i = 0
+  $userDisplayCache = @{}
+  $baseEnableActivitySearch = $EnableActivityStreamSearch
+  $baseEnableUiFallbackActivitySearch = $EnableUiFallbackActivitySearch
 
   foreach ($t in $tickets) {
     $i++
     Log "INFO" "[$i/$($tickets.Count)] Open + extract: $t"
+
+    $isIncTicket = ($t -like "INC*")
+    $skipActivityParseForTicket = ($SmartMode -and $isIncTicket)
+    if ($SmartMode -and $isIncTicket) {
+      $EnableActivityStreamSearch = $false
+      $EnableUiFallbackActivitySearch = $false
+    }
+    else {
+      $EnableActivityStreamSearch = $baseEnableActivitySearch
+      $EnableUiFallbackActivitySearch = $baseEnableUiFallbackActivitySearch
+    }
 
     # Extract fields via JSONv2 in authenticated session
     $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t
@@ -5269,7 +5464,14 @@ try {
     if ($r.ok -eq $true) {
       $uNow = if ($r.PSObject.Properties["affected_user"]) { ("" + $r.affected_user).Trim() } else { "" }
       if ($uNow -match '^[0-9a-fA-F]{32}$') {
-        $uResolved = Resolve-UserDisplayNameFromSysId -wv $wv -UserSysId $uNow
+        $uResolved = ""
+        if ($userDisplayCache.ContainsKey($uNow)) {
+          $uResolved = "" + $userDisplayCache[$uNow]
+        }
+        else {
+          $uResolved = Resolve-UserDisplayNameFromSysId -wv $wv -UserSysId $uNow
+          $userDisplayCache[$uNow] = "" + $uResolved
+        }
         if (-not [string]::IsNullOrWhiteSpace($uResolved)) {
           $r | Add-Member -NotePropertyName affected_user -NotePropertyValue $uResolved -Force
           Log "INFO" "$t user resolved from sys_id => '$uResolved'"
@@ -5308,7 +5510,7 @@ try {
       }
     }
 
-    if (($r.ok -eq $true) -and (($t -like "RITM*") -or ($t -like "INC*"))) {
+    if (($r.ok -eq $true) -and (-not $skipActivityParseForTicket) -and (($t -like "RITM*") -or ($t -like "INC*"))) {
       try {
         $activityText = if ($r.PSObject.Properties["activity_text"]) { "" + $r.activity_text } else { "" }
         $uiActivityText = ""
@@ -5521,6 +5723,8 @@ try {
     # Add to in-memory list for combined export + write-back map
     $results.Add($r) | Out-Null
   }
+  $EnableActivityStreamSearch = $baseEnableActivitySearch
+  $EnableUiFallbackActivitySearch = $baseEnableUiFallbackActivitySearch
 
   # 6) Save combined JSON
   $jsonAll = ($results | ConvertTo-Json -Depth 6) -replace '\\u0027', "'"
