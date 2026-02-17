@@ -756,6 +756,87 @@ function Get-FirstPiToken([string]$PiText) {
   return ""
 }
 
+function Resolve-ConfidentPiFromSource {
+  param(
+    [string]$PiListText,
+    [string]$SourceText
+  )
+
+  if ([string]::IsNullOrWhiteSpace($PiListText)) {
+    return [pscustomobject]@{
+      selected  = ""
+      ambiguous = $false
+      reason    = "empty"
+    }
+  }
+
+  $candidates = @($PiListText -split ',' | ForEach-Object { ("" + $_).Trim() } | Where-Object { $_ })
+  if ($candidates.Count -le 1) {
+    return [pscustomobject]@{
+      selected  = if ($candidates.Count -eq 1) { $candidates[0] } else { "" }
+      ambiguous = $false
+      reason    = "single"
+    }
+  }
+
+  $src = "" + $SourceText
+  if ([string]::IsNullOrWhiteSpace($src)) {
+    return [pscustomobject]@{
+      selected  = $candidates[0]
+      ambiguous = $true
+      reason    = "no_source_text"
+    }
+  }
+
+  $scores = @{}
+  foreach ($c in $candidates) {
+    $scores[$c] = 0
+    $rx = [regex]::Escape($c)
+    $ms = [regex]::Matches($src, $rx, 'IgnoreCase')
+    foreach ($m in $ms) {
+      $start = [Math]::Max(0, $m.Index - 120)
+      $len = [Math]::Min(240, $src.Length - $start)
+      if ($len -le 0) { continue }
+      $ctx = $src.Substring($start, $len)
+
+      if ($ctx -match '(?i)prepare[\s\W_]*device|new[\s\W_]*user') { $scores[$c] += 4 }
+      if ($ctx -match '(?i)\b(machine|device|hostname|serial|asset|tag|pi)\b') { $scores[$c] += 3 }
+      if ($ctx -match '(?i)\b(assigned|delivered|configured|ready)\b') { $scores[$c] += 2 }
+
+      if ($ctx -match '(?i)\b(old|previous|former|replaced|replace|returned|obsolete|wrong)\b') { $scores[$c] -= 4 }
+      if ($ctx -match '(?i)\b(history|audit|closed complete)\b') { $scores[$c] -= 1 }
+    }
+  }
+
+  $ordered = @($scores.GetEnumerator() | Sort-Object -Property Value -Descending)
+  if ($ordered.Count -eq 0) {
+    return [pscustomobject]@{
+      selected  = $candidates[0]
+      ambiguous = $true
+      reason    = "no_scores"
+    }
+  }
+
+  $best = "" + $ordered[0].Key
+  $bestScore = [int]$ordered[0].Value
+  $secondScore = if ($ordered.Count -gt 1) { [int]$ordered[1].Value } else { -999 }
+
+  # Accept only when clearly better; otherwise keep all to avoid wrong single PI.
+  if (($bestScore -ge 3) -and (($bestScore - $secondScore) -ge 2)) {
+    return [pscustomobject]@{
+      selected  = $best
+      ambiguous = $false
+      reason    = "scored"
+    }
+  }
+
+  return [pscustomobject]@{
+    selected  = ($candidates -join ", ")
+    ambiguous = $true
+    reason    = "ambiguous"
+  }
+}
+
 function Get-LegalNameFromText {
   param([string]$Text)
   if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
@@ -2383,6 +2464,18 @@ try {
                   $taskActivityText = Get-SCTaskActivityTextFromUiPage -wv $wv -TaskNumber $tn
                   if (-not [string]::IsNullOrWhiteSpace($taskActivityText)) {
                     $piFromTaskActivity = Get-DetectedPiFromActivityText -ActivityText $taskActivityText
+                    if ($isNewEpUserContext -and -not [string]::IsNullOrWhiteSpace($piFromTaskActivity)) {
+                      $piDecision = Resolve-ConfidentPiFromSource -PiListText $piFromTaskActivity -SourceText $taskActivityText
+                      if ($piDecision -and $piDecision.selected) {
+                        if ($piDecision.ambiguous -eq $true) {
+                          Log "INFO" "$t multiple PI detected in SCTASK activity $tn; ambiguous decision='$($piDecision.selected)' reason='$($piDecision.reason)'"
+                        }
+                        elseif ($piDecision.selected -ne $piFromTaskActivity) {
+                          Log "INFO" "$t multiple PI detected in SCTASK activity $tn; selected='$($piDecision.selected)' reason='$($piDecision.reason)'"
+                        }
+                        $piFromTaskActivity = "" + $piDecision.selected
+                      }
+                    }
                     if (-not [string]::IsNullOrWhiteSpace($piFromTaskActivity)) {
                       $detectedPi = $piFromTaskActivity
                       $src = if ($isNewEpUserContext) { "sctask_activity_record:" + $tn } else { "sctask_activity_record:" + $tn }

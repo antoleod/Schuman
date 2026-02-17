@@ -1,4 +1,11 @@
 #Requires -Version 5.1
+<#
+.SYNOPSIS
+    Generador de documentos Word y PDF basado en una plantilla y una lista de Excel.
+.DESCRIPTION
+    Este script proporciona una interfaz gráfica (GUI) para procesar filas de un Excel.
+    Utiliza un hilo de trabajo (Worker) en segundo plano para no congelar la interfaz durante la automatización de Word.
+#>
 param(
   # >>> CHANGE EXCEL DEFAULT NAME HERE if the planning file is renamed again <<<
   [string]$ExcelPath = (Join-Path $PSScriptRoot "Schuman List.xlsx"),
@@ -126,6 +133,8 @@ $Theme = @{
 # ----------------------------
 # UI
 # ----------------------------
+# Clase para gestionar el cambio de tema (Claro/Oscuro) en todos los controles de WinForms.
+# Recorre recursivamente los controles y aplica los colores definidos en la paleta.
 class ThemeManager {
   [hashtable]$Palette
   ThemeManager([hashtable]$palette){ $this.Palette = $palette }
@@ -396,8 +405,12 @@ $chkDark.AutoSize = $true
 $chkDark.Checked = $true
 $optionsFlow.Controls.Add($chkDark)
 
-$script:UseUltra = $true
-$script:UseFast = $true
+# Flags de rendimiento:
+# FastMode: Reduce el logging detallado para ganar velocidad.
+# TurboMode: Usa una plantilla en memoria en lugar de abrir el archivo disco por cada fila (mucho más rápido).
+# Performance flags for the worker thread
+$script:UseFastMode = $true  # Skips some verbose logging in the worker
+$script:UseTurboMode = $true # Uses an in-memory template for faster document creation
 
 $btnOpen.Add_Click({ if (Test-Path -LiteralPath $OutDir) { Start-Process explorer.exe $OutDir } })
 
@@ -508,14 +521,15 @@ function Ensure-GridRow([int]$rowId, [string]$fileName, [string]$ticket, [string
   return $row
 }
 
+# Actualiza el estado visual de una fila en la tabla (Iconos y Colores)
 function Set-RowStatus($row, [string]$status, [string]$message, [string]$state){
   $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
   $icon = switch($state){
-    "active" { "o" }
-    "success" { "o" }
-    "error" { "o" }
-    "skipped" { "o" }
-    default { "o" }
+    "active"  { ">" }
+    "success" { "OK" }
+    "error"   { "ERROR" }
+    "skipped" { "SKIPPED" }
+    default   { "" }
   }
   $row.Cells["Status"].Value = "$icon $status"
   $row.Cells["Message"].Value = $message
@@ -588,8 +602,16 @@ $script:LastCounters = @{
 # ----------------------------
 # Worker logic (STA runspace) - SAFE PowerShell execution
 # ----------------------------
+# Este bloque de script se ejecuta en un hilo separado (Runspace).
+# Es necesario usar STA (Single Threaded Apartment) para que la automatización COM de Office funcione correctamente.
+# La comunicación con la GUI se hace a través de la variable sincronizada $SyncHash.
 $script:WorkerLogic = {
   param($SyncHash, $Config)
+
+  # --- Constants ---
+  $wdFormatDOCX = 16
+  $wdFormatPDF = 17
+  $xlCalculationManual = -4135
 
   function WriteLog($Path, $Msg) {
     try {
@@ -623,6 +645,9 @@ $script:WorkerLogic = {
     }
     return $candidate
   }
+
+  # Inspecciona la plantilla de Word para listar qué marcadores o campos existen.
+  # Útil para depuración si los datos no se están rellenando donde se espera.
   function Inspect-Template($WordApp, [string]$TemplatePath, [string]$LogPath){
     $doc = $null
     try {
@@ -634,7 +659,7 @@ $script:WorkerLogic = {
         $ffNames = @()
         foreach($ff in $doc.FormFields){ $ffNames += $ff.Name }
         WriteLog $LogPath ("Template FormFields (" + $ffNames.Count + "): " + ($ffNames -join ", "))
-      } catch { WriteLog $LogPath "Template FormFields: <error reading>" }
+      } catch { WriteLog $LogPath "Template FormFields: (error reading)" }
 
       try {
         $ccNames = @()
@@ -642,13 +667,13 @@ $script:WorkerLogic = {
           $ccNames += ("Title='" + $cc.Title + "' Tag='" + $cc.Tag + "'")
         }
         WriteLog $LogPath ("Template ContentControls (" + $ccNames.Count + "): " + ($ccNames -join ", "))
-      } catch { WriteLog $LogPath "Template ContentControls: <error reading>" }
+      } catch { WriteLog $LogPath "Template ContentControls: (error reading)" }
 
       try {
         $bmNames = @()
         foreach($bm in $doc.Bookmarks){ $bmNames += $bm.Name }
         WriteLog $LogPath ("Template Bookmarks (" + $bmNames.Count + "): " + ($bmNames -join ", "))
-      } catch { WriteLog $LogPath "Template Bookmarks: <error reading>" }
+      } catch { WriteLog $LogPath "Template Bookmarks: (error reading)" }
 
       try {
         $text = [string]$doc.Content.Text
@@ -657,14 +682,14 @@ $script:WorkerLogic = {
         if($uniq.Count -gt 0){
           WriteLog $LogPath ("Template Text Placeholders (" + $uniq.Count + "): " + ($uniq -join ", "))
         } else {
-          WriteLog $LogPath "Template Text Placeholders: <none>"
+          WriteLog $LogPath "Template Text Placeholders: (none)"
         }
         $matches2 = [regex]::Matches($text, '(\{\{|\[|<<)\s*Field[A-Za-z0-9_]+\s*(\}\}|\]|>>)')
         $uniq2 = @($matches2 | ForEach-Object { $_.Value } | Sort-Object -Unique)
         if($uniq2.Count -gt 0){
           WriteLog $LogPath ("Template Token Placeholders (" + $uniq2.Count + "): " + ($uniq2 -join ", "))
         }
-      } catch { WriteLog $LogPath "Template Text Placeholders: <error scanning>" }
+      } catch { WriteLog $LogPath "Template Text Placeholders: (error scanning)" }
     }
     catch {
       WriteLog $LogPath ("Template inspection failed: " + $_.Exception.Message)
@@ -674,6 +699,7 @@ $script:WorkerLogic = {
       Release-Com $doc
     }
   }
+
   function Log-DocPlaceholders($Doc, [string]$LogPath, [string]$Prefix){
     try {
       $text = [string]$Doc.Content.Text
@@ -682,12 +708,18 @@ $script:WorkerLogic = {
       if($uniq.Count -gt 0){
         WriteLog $LogPath ("${Prefix}: Doc Text Placeholders (" + $uniq.Count + "): " + ($uniq -join ", "))
       } else {
-        WriteLog $LogPath "${Prefix}: Doc Text Placeholders: <none>"
+        WriteLog $LogPath "${Prefix}: Doc Text Placeholders: (none)"
       }
     } catch {
-      WriteLog $LogPath "${Prefix}: Doc Text Placeholders: <error scanning>"
+      WriteLog $LogPath "${Prefix}: Doc Text Placeholders: (error scanning)"
     }
   }
+
+  # Función principal de reemplazo. Intenta inyectar el valor usando varias estrategias en orden:
+  # 1. ContentControls (Cajas de texto modernas en Word)
+  # 2. Bookmarks (Marcadores clásicos)
+  # 3. FormFields (Campos de formulario heredados)
+  # 4. Búsqueda y Reemplazo de texto plano (ej: {{FieldTicketNumber}})
   function Set-WordPlaceholderValue($Doc, [string]$Key, [string]$Value, [string]$LogPath, [string]$LogPrefix, [bool]$FastMode){
     $changed = $false
     $method = "NotFound"
@@ -896,10 +928,11 @@ $script:WorkerLogic = {
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
     try {
+      # Desactivar actualizaciones de pantalla y cálculo automático acelera enormemente la lectura/escritura
       $excel.ScreenUpdating = $false
       $excel.EnableEvents = $false
       $excelCalc = $excel.Calculation
-      $excel.Calculation = -4135 # xlCalculationManual
+      $excel.Calculation = $xlCalculationManual
     } catch {}
     # Open writable so we can update status/PDF path
     $wb = $excel.Workbooks.Open($Config.ExcelPath, $null, $false)
@@ -962,9 +995,8 @@ $script:WorkerLogic = {
     } catch {}
     if(-not $fast){ WriteLog $Config.LogPath "Word opened" }
 
-    $wdFormatDOCX = 16
-    $wdFormatPDF = 17
-
+    # En modo Turbo, abrimos la plantilla una sola vez y la mantenemos en memoria ($templateDoc).
+    # Para cada fila, copiamos el contenido de $templateDoc a un documento nuevo en blanco.
     if($Config.TurboMode){
       try {
         $templateDoc = $word.Documents.Open($Config.TemplatePath, $false, $true, $false)
@@ -1019,6 +1051,7 @@ $script:WorkerLogic = {
       try {
         if($Config.TurboMode){
           $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Creating from template..." })
+          # Crear documento en blanco e inyectar contenido formateado (más rápido que IO de disco)
           $doc = $word.Documents.Add()
           if($templateDoc){
             try {
@@ -1031,6 +1064,7 @@ $script:WorkerLogic = {
           }
           if(-not $fast){ WriteLog $Config.LogPath "Row ${r}: Doc created in memory" }
         } else {
+          # Modo estándar: Copiar archivo físico y abrir la copia. Más seguro para formatos complejos.
           # overwrite target by copying template first (avoids SaveAs/SaveAs2 COM issues)
           if(Test-Path -LiteralPath $filePath){ Remove-Item -LiteralPath $filePath -Force -ErrorAction SilentlyContinue }
           Copy-Item -LiteralPath $Config.TemplatePath -Destination $filePath -Force
@@ -1073,6 +1107,7 @@ $script:WorkerLogic = {
           } catch { WriteLog $Config.LogPath "Row ${r}: Protection check failed" }
         }
 
+        # Mapeo de datos: Nombre de campo en Word => Variable de PowerShell
         # Forced mapping (extend this hashtable to support additional placeholders)
         $forced = @{
           "FieldDisplayName"  = $name
@@ -1351,9 +1386,8 @@ $btnStart.Add_Click({
     ShowWord = $chkShowWord.Checked
     ExportPdf = $chkSavePdf.Checked
     ExportDocx = $chkSaveDocx.Checked
-    FastMode = $script:UseFast
-    TurboMode = $script:UseUltra
-    UltraMode = $script:UseUltra
+    FastMode = $script:UseFastMode
+    TurboMode = $script:UseTurboMode
   }) | Out-Null
 
   $script:PSInstance.BeginInvoke() | Out-Null
