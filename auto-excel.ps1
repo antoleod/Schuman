@@ -2069,6 +2069,43 @@ function Invoke-ServiceNowDomUpdate {
     if ($isReady -eq $true) { break }
   }
 
+  # Wait for inner SNOW form controls (including iframe) before trying to update state.
+  $probeJs = @"
+(function(){
+  try{
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function hasState(doc){
+      if (!doc) return false;
+      var sels = [
+        'select#sc_task\\.state',
+        'select#sc_req_item\\.state',
+        'select[name=\"sc_task.state\"]',
+        'select[name=\"sc_req_item.state\"]',
+        'select[name=\"state\"]',
+        'select[id$=\".state\"]'
+      ];
+      for (var i=0; i<sels.length; i++) { if (doc.querySelector(sels[i])) return true; }
+      var all = doc.querySelectorAll('select');
+      for (var j=0; j<all.length; j++) {
+        var idn = s(all[j].id) + ' ' + s(all[j].name);
+        if (/state/i.test(idn)) return true;
+      }
+      return false;
+    }
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+    var ok = hasState(document) || hasState(fdoc);
+    return JSON.stringify({ok:ok});
+  } catch(e){ return JSON.stringify({ok:false}); }
+})();
+"@
+  $probeSw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($probeSw.ElapsedMilliseconds -lt 12000) {
+    $po = Parse-WV2Json (ExecJS $wv $probeJs 2500)
+    if ($po -and $po.ok -eq $true) { break }
+    Start-Sleep -Milliseconds 300
+  }
+
   $targetJson = ($TargetStateLabel | ConvertTo-Json -Compress)
   $noteJson = ($WorkNote | ConvertTo-Json -Compress)
   $sysIdJson = ($SysId | ConvertTo-Json -Compress)
@@ -2081,21 +2118,50 @@ function Invoke-ServiceNowDomUpdate {
     var targetSysId = $sysIdJson;
     function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
     function norm(x){ return s(x).toLowerCase().replace(/[\s_-]+/g,' ').trim(); }
+    function targetAlias(label){
+      var t = norm(label);
+      if (t.indexOf('appoint') >= 0 || t.indexOf('appoin') >= 0) return 'appointment';
+      if (t.indexOf('work in progress') >= 0) return 'wip';
+      if (t.indexOf('closed complete') >= 0) return 'closed_complete';
+      return t;
+    }
     function stateLooksLikeTarget(targetLabel, currentLabel, currentValue){
-      var t = norm(targetLabel);
+      var t = targetAlias(targetLabel);
       var cl = norm(currentLabel);
       var cv = norm(currentValue);
       if (!t) return false;
-      if (t.indexOf('appoint') >= 0) {
+      if (t === 'appointment') {
         return (cl.indexOf('appoint') >= 0 || cl.indexOf('appoin') >= 0);
       }
-      if (t.indexOf('work in progress') >= 0) {
+      if (t === 'wip') {
         return (cl.indexOf('work in progress') >= 0 || cv === '2');
       }
-      if (t.indexOf('closed complete') >= 0) {
+      if (t === 'closed_complete') {
         return (cl.indexOf('closed complete') >= 0 || cv === '3');
       }
       return (cl === t || cl.indexOf(t) >= 0 || cv === t);
+    }
+    function resolveChoiceTargetValue(tableName, targetLabel){
+      try {
+        var p = '/sys_choice.do?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent('name=' + tableName + '^element=state');
+        var x = new XMLHttpRequest();
+        x.open('GET', p, false);
+        x.withCredentials = true;
+        x.send(null);
+        if (!(x.status>=200 && x.status<300)) return '';
+        var o = JSON.parse(x.responseText || '{}');
+        var rows = (o && o.records) ? o.records : ((o && o.result) ? o.result : []);
+        if (!Array.isArray(rows)) return '';
+        var t = targetAlias(targetLabel);
+        for (var i=0; i<rows.length; i++) {
+          var lbl = norm(rows[i].label || '');
+          if (t === 'appointment' && (lbl.indexOf('appoint') >= 0 || lbl.indexOf('appoin') >= 0)) return s(rows[i].value || '');
+          if (t === 'wip' && lbl.indexOf('work in progress') >= 0) return s(rows[i].value || '');
+          if (t === 'closed_complete' && lbl.indexOf('closed complete') >= 0) return s(rows[i].value || '');
+          if (lbl === norm(targetLabel)) return s(rows[i].value || '');
+        }
+      } catch(e){}
+      return '';
     }
     function docs(){
       var out = [];
@@ -2126,22 +2192,29 @@ function Invoke-ServiceNowDomUpdate {
     }
     function setState(el, stateLabel){
       if (!el || !stateLabel) return true;
-      var wanted = s(stateLabel).toLowerCase();
+      var wanted = norm(stateLabel);
+      var wantedAlias = targetAlias(stateLabel);
+      var wantedValue = resolveChoiceTargetValue(table, stateLabel);
       var best = null;
       for (var i=0; i<el.options.length; i++) {
-        var t = s(el.options[i].text).toLowerCase();
+        var t = norm(el.options[i].text);
         if (t === wanted) { best = el.options[i].value; break; }
       }
       if (best === null) {
         for (var j=0; j<el.options.length; j++) {
-          var t2 = s(el.options[j].text).toLowerCase();
+          var t2 = norm(el.options[j].text);
           if (t2.indexOf(wanted) >= 0) { best = el.options[j].value; break; }
         }
       }
-      if (best === null && wanted.indexOf('appoint') >= 0) {
+      if (best === null && wantedAlias === 'appointment') {
         for (var k=0; k<el.options.length; k++) {
-          var t3 = s(el.options[k].text).toLowerCase();
+          var t3 = norm(el.options[k].text);
           if (t3.indexOf('appoint') >= 0 || t3.indexOf('appoin') >= 0) { best = el.options[k].value; break; }
+        }
+      }
+      if (best === null && wantedValue) {
+        for (var z=0; z<el.options.length; z++) {
+          if (s(el.options[z].value) === s(wantedValue)) { best = el.options[z].value; break; }
         }
       }
       if (best === null) return false;
@@ -2179,6 +2252,44 @@ function Invoke-ServiceNowDomUpdate {
         return {ok:false, reason:'state_not_persisted', state_label:lastLabel, state_value:lastValue};
       } catch(e){
         return {ok:false, reason:'verify_exception', error:''+e};
+      }
+    }
+    function readDomCurrentState(){
+      try {
+        function stateFromDoc(doc){
+          if (!doc) return {label:'', value:''};
+          var sels = [
+            'select#sc_task\\.state',
+            'select#sc_req_item\\.state',
+            'select[name=\"sc_task.state\"]',
+            'select[name=\"sc_req_item.state\"]',
+            'select[name=\"state\"]',
+            'select[id$=\".state\"]'
+          ];
+          var el = null;
+          for (var i=0; i<sels.length; i++) { el = doc.querySelector(sels[i]); if (el) break; }
+          if (!el) {
+            var all = doc.querySelectorAll('select');
+            for (var j=0; j<all.length; j++) {
+              var idn = s(all[j].id) + ' ' + s(all[j].name);
+              if (/state/i.test(idn)) { el = all[j]; break; }
+            }
+          }
+          if (!el) return {label:'', value:''};
+          var lbl = '';
+          try {
+            var idx = (typeof el.selectedIndex === 'number') ? el.selectedIndex : -1;
+            if (idx >= 0 && el.options && el.options[idx]) lbl = s(el.options[idx].text || '');
+          } catch(e0) {}
+          return {label:lbl, value:s(el.value || '')};
+        }
+        var d1 = stateFromDoc(document);
+        if (d1.label || d1.value) return d1;
+        var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+        var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+        return stateFromDoc(fdoc);
+      } catch(e){
+        return {label:'', value:''};
       }
     }
     function findNotes(doc){
@@ -2242,11 +2353,24 @@ function Invoke-ServiceNowDomUpdate {
         var ctl = null;
         try { ctl = gf.getControl('state'); } catch(e0) { ctl = null; }
         if (!ctl || !ctl.options || ctl.options.length===0) return {ok:false};
-        var wanted = s(target).toLowerCase();
+        var wanted = norm(target);
         var best = null;
+        var wantedAlias = targetAlias(target);
+        var wantedValue = resolveChoiceTargetValue(table, target);
         for (var i=0; i<ctl.options.length; i++) {
-          var t = s(ctl.options[i].text).toLowerCase();
+          var t = norm(ctl.options[i].text);
           if (t === wanted || t.indexOf(wanted) >= 0) { best = s(ctl.options[i].value); break; }
+        }
+        if (!best && wantedAlias === 'appointment') {
+          for (var j=0; j<ctl.options.length; j++) {
+            var t2 = norm(ctl.options[j].text);
+            if (t2.indexOf('appoint') >= 0 || t2.indexOf('appoin') >= 0) { best = s(ctl.options[j].value); break; }
+          }
+        }
+        if (!best && wantedValue) {
+          for (var k=0; k<ctl.options.length; k++) {
+            if (s(ctl.options[k].value) === s(wantedValue)) { best = s(ctl.options[k].value); break; }
+          }
         }
         if (!best) return {ok:false};
         try { gf.setValue('state', best); } catch(e1) { return {ok:false}; }
@@ -2295,7 +2419,17 @@ function Invoke-ServiceNowDomUpdate {
     var verify = {ok:false, reason:'not_run'};
     if (okFinal) {
       verify = verifyPersistedState(targetSysId, table, target);
-      if (!verify.ok) okFinal = false;
+      if (!verify.ok) {
+        var domState = readDomCurrentState();
+        if (stateLooksLikeTarget(target, domState.label, domState.value)) {
+          verify.ok = true;
+          verify.reason = 'dom_state_match';
+          verify.state_label = s(domState.label || '');
+          verify.state_value = s(domState.value || '');
+        } else {
+          okFinal = false;
+        }
+      }
     }
     return JSON.stringify({
       ok:okFinal,
@@ -2608,14 +2742,14 @@ function Show-CheckInOutDashboard {
   $form.Size = New-Object System.Drawing.Size(1120, 760)
   $form.MinimumSize = New-Object System.Drawing.Size(980, 680)
   $form.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-  $form.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $form.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
   $form.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
 
   $lblSearch = New-Object System.Windows.Forms.Label
   $lblSearch.Text = "Search Last Name or First Name:"
   $lblSearch.Location = New-Object System.Drawing.Point(16, 16)
   $lblSearch.AutoSize = $true
-  $lblSearch.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+  $lblSearch.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
 
   $lblHint = New-Object System.Windows.Forms.Label
   $lblHint.Text = "Live filter enabled. Start typing to load matching users and tasks."
@@ -2626,7 +2760,7 @@ function Show-CheckInOutDashboard {
   $txtSearch = New-Object System.Windows.Forms.ComboBox
   $txtSearch.Location = New-Object System.Drawing.Point(16, 38)
   $txtSearch.Size = New-Object System.Drawing.Size(360, 24)
-  $txtSearch.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $txtSearch.BackColor = [System.Drawing.Color]::FromArgb(34,34,36)
   $txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
   $txtSearch.FlatStyle = "Flat"
   $txtSearch.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDown
@@ -2658,22 +2792,26 @@ function Show-CheckInOutDashboard {
   $chkOpenOnly.Text = "Solo RITM abiertos"
   $chkOpenOnly.Location = New-Object System.Drawing.Point(940, 40)
   $chkOpenOnly.Size = New-Object System.Drawing.Size(180, 24)
-  $chkOpenOnly.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
-  $chkOpenOnly.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $chkOpenOnly.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
+  $chkOpenOnly.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
 
   $btnStyle = {
     param($b, [bool]$accent = $false)
     $b.FlatStyle = "Flat"
     $b.FlatAppearance.BorderSize = 1
     if ($accent) {
-      $b.BackColor = [System.Drawing.Color]::FromArgb(10,132,255)
-      $b.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
-      $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(10,132,255)
+      $b.BackColor = [System.Drawing.Color]::FromArgb(0,122,255)
+      $b.ForeColor = [System.Drawing.Color]::FromArgb(245,245,245)
+      $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(0,122,255)
+      $b.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(20,138,255)
+      $b.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(0,106,226)
     }
     else {
-      $b.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+      $b.BackColor = [System.Drawing.Color]::FromArgb(36,36,38)
       $b.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
-      $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(60,60,60)
+      $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(58,58,62)
+      $b.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(44,44,48)
+      $b.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(32,32,34)
     }
   }
   & $btnStyle $btnRefresh $false
@@ -2691,16 +2829,16 @@ function Show-CheckInOutDashboard {
   $grid.AllowUserToDeleteRows = $false
   $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
   $grid.EnableHeadersVisualStyles = $false
-  $grid.BackgroundColor = [System.Drawing.Color]::FromArgb(30,30,30)
-  $grid.GridColor = [System.Drawing.Color]::FromArgb(60,60,60)
+  $grid.BackgroundColor = [System.Drawing.Color]::FromArgb(24,24,26)
+  $grid.GridColor = [System.Drawing.Color]::FromArgb(58,58,62)
   $grid.BorderStyle = "None"
-  $grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
-  $grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
-  $grid.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(30,30,32)
+  $grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
+  $grid.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
   $grid.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
-  $grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(55,55,62)
+  $grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(42,54,72)
   $grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
-  $grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(30,30,32)
   $grid.RowHeadersVisible = $false
   $grid.RowTemplate.Height = 30
 

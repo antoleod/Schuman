@@ -13,7 +13,8 @@ param(
   [string]$OutDir = (Join-Path $PSScriptRoot "WORD files"),
   [string]$LogPath = (Join-Path $PSScriptRoot "Generate-Schuman-Words.log"),
   [string]$PreferredSheet = "BRU",
-  [string]$AutoExcelScript = (Join-Path $PSScriptRoot "auto-excel.ps1")
+  [string]$AutoExcelScript = (Join-Path $PSScriptRoot "auto-excel.ps1"),
+  [string]$DashboardScript = (Join-Path $PSScriptRoot "dashboard-checkin-checkout.ps1")
 )
 
 Set-StrictMode -Version Latest
@@ -218,13 +219,29 @@ $lblTitle.Font = New-Object Drawing.Font("Segoe UI Semibold", 13)
 $lblTitle.AutoSize = $true
 $headerGrid.Controls.Add($lblTitle, 0, 0)
 
+$btnDashboard = New-Object Windows.Forms.Button
+$btnDashboard.Text = "Open Check-in Dashboard"
+$btnDashboard.Width = 220
+$btnDashboard.Height = 32
+$btnDashboard.FlatStyle = "Flat"
+$btnDashboard.Font = New-Object Drawing.Font("Segoe UI Semibold", 9)
+$btnDashboard.FlatAppearance.BorderSize = 2
+
+$headerActions = New-Object Windows.Forms.FlowLayoutPanel
+$headerActions.AutoSize = $true
+$headerActions.WrapContents = $false
+$headerActions.FlowDirection = "LeftToRight"
+$headerActions.Anchor = "Top,Right"
+$headerActions.Margin = New-Object Windows.Forms.Padding(0,2,0,0)
+$headerGrid.Controls.Add($headerActions, 1, 0)
+
 $statusPill = New-Object Windows.Forms.Panel
 $statusPill.AutoSize = $true
 $statusPill.Padding = New-Object Windows.Forms.Padding(10,4,10,4)
-$statusPill.Margin = New-Object Windows.Forms.Padding(0,4,0,0)
-$statusPill.Anchor = "Top,Right"
+$statusPill.Margin = New-Object Windows.Forms.Padding(8,4,0,0)
 $statusPill.BorderStyle = "None"
-$headerGrid.Controls.Add($statusPill, 1, 0)
+$headerActions.Controls.Add($btnDashboard)
+$headerActions.Controls.Add($statusPill)
 
 $lblStatusPill = New-Object Windows.Forms.Label
 $lblStatusPill.Text = "Idle"
@@ -415,6 +432,29 @@ $script:UseFastMode = $true  # Skips some verbose logging in the worker
 $script:UseTurboMode = $true # Uses an in-memory template for faster document creation
 
 $btnOpen.Add_Click({ if (Test-Path -LiteralPath $OutDir) { Start-Process explorer.exe $OutDir } })
+$btnDashboard.Add_Click({
+  if (-not (Test-Path -LiteralPath $DashboardScript)) {
+    $lblStatusText.Text = "Dashboard script not found: $DashboardScript"
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "Dashboard script not found: $DashboardScript"
+    return
+  }
+  try {
+    Start-Process powershell.exe -ArgumentList @(
+      "-NoProfile",
+      "-ExecutionPolicy", "Bypass",
+      "-File", $DashboardScript,
+      "-ExcelPath", $ExcelPath,
+      "-SheetName", $PreferredSheet
+    ) -WindowStyle Hidden | Out-Null
+    Append-Log "Opened dashboard UI."
+  }
+  catch {
+    $lblStatusText.Text = "Failed to open dashboard: $($_.Exception.Message)"
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "Failed to open dashboard: $($_.Exception.Message)"
+  }
+})
 
 function Start-Confetti {
   return
@@ -464,10 +504,28 @@ function Apply-Theme {
   $btnStart.FlatAppearance.BorderColor = $t.Accent
   $btnStart.FlatAppearance.BorderSize = 1
 
-  $btnStop.BackColor = $t.Card
-  $btnStop.ForeColor = $t.Warning
-  $btnStop.FlatAppearance.BorderColor = $t.Warning
-  $btnStop.FlatAppearance.BorderSize = 1
+  # Stop is intentionally red-highlighted for visibility.
+  if ($chkDark.Checked) {
+    $btnStop.BackColor = [Drawing.Color]::FromArgb(88,36,36)
+    $btnStop.ForeColor = [Drawing.Color]::FromArgb(255,210,210)
+    $btnStop.FlatAppearance.BorderColor = [Drawing.Color]::FromArgb(210,80,80)
+    $btnStop.FlatAppearance.MouseOverBackColor = [Drawing.Color]::FromArgb(110,44,44)
+    $btnStop.FlatAppearance.MouseDownBackColor = [Drawing.Color]::FromArgb(76,30,30)
+  } else {
+    $btnStop.BackColor = [Drawing.Color]::FromArgb(255,235,235)
+    $btnStop.ForeColor = [Drawing.Color]::FromArgb(170,30,30)
+    $btnStop.FlatAppearance.BorderColor = [Drawing.Color]::FromArgb(210,80,80)
+    $btnStop.FlatAppearance.MouseOverBackColor = [Drawing.Color]::FromArgb(255,220,220)
+    $btnStop.FlatAppearance.MouseDownBackColor = [Drawing.Color]::FromArgb(255,205,205)
+  }
+  $btnStop.FlatAppearance.BorderSize = 2
+
+  $btnDashboard.BackColor = $t.Card
+  $btnDashboard.ForeColor = $t.Accent
+  $btnDashboard.FlatAppearance.BorderColor = $t.Accent
+  $btnDashboard.FlatAppearance.BorderSize = 2
+  $btnDashboard.FlatAppearance.MouseOverBackColor = if ($chkDark.Checked) { [Drawing.Color]::FromArgb(34,44,58) } else { [Drawing.Color]::FromArgb(235,245,255) }
+  $btnDashboard.FlatAppearance.MouseDownBackColor = if ($chkDark.Checked) { [Drawing.Color]::FromArgb(28,38,52) } else { [Drawing.Color]::FromArgb(220,238,255) }
 
   Set-StatusPill -text $lblStatusPill.Text -state $script:StatusState
 }
