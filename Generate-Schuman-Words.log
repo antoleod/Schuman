@@ -557,3 +557,25 @@
 [2026-02-17 22:20:58] Excel is ready. Choose DOCX/PDF and click Generate Documents.
 [2026-02-17 22:26:06] Running auto-excel.ps1 before PDF generation.
 [2026-02-17 22:26:23] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-17 22:41:47] Running auto-excel.ps1 before PDF generation.
+[2026-02-17 22:42:01] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-17 22:44:06] Running auto-excel.ps1 before PDF generation.
+[2026-02-17 22:44:20] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-17 22:44:39] User clicked Start.
+[2026-02-17 22:44:39] === RUN START ===
+[2026-02-17 22:44:39] Opening Excel
+[2026-02-17 22:44:39] Excel opened
+[2026-02-17 22:44:39] Using sheet: BRU
+[2026-02-17 22:44:40] Excel column status: Col=8 Created=False Score=2
+[2026-02-17 22:44:40] Excel column docx:   Col=9 Created=False Score=2
+[2026-02-17 22:44:40] Excel column pdf:    Col=10 Created=False Score=2
+[2026-02-17 22:44:40] Rows detected: 1
+[2026-02-17 22:44:44] Row 2 start: RITM0496748_Juan Carlos DIOSES.docx
+[2026-02-17 22:44:45] Row 2: ProtectionType=-1 (Unknown)
+[2026-02-17 22:44:45] Row 2: Document protected, attempting unprotect
+[2026-02-17 22:44:45] Row 2: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 22:44:45] Row 2: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 22:44:48] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\2026-02-17\20260217 - RITM0496748 - CARLOS-DIOSES-JUAN.pdf
+[2026-02-17 22:44:48] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0496748_Juan Carlos DIOSES.docx
+[2026-02-17 22:44:48] Excel saved
+[2026-02-17 22:44:48] === RUN END === Total=1 Saved=1 Skipped=0 Errors=0

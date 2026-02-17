@@ -14,7 +14,10 @@ param(
   [string]$LogPath = (Join-Path $PSScriptRoot "Generate-Schuman-Words.log"),
   [string]$PreferredSheet = "BRU",
   [string]$AutoExcelScript = (Join-Path $PSScriptRoot "auto-excel.ps1"),
-  [string]$DashboardScript = (Join-Path $PSScriptRoot "dashboard-checkin-checkout.ps1")
+  [string]$DashboardScript = (Join-Path $PSScriptRoot "dashboard-checkin-checkout.ps1"),
+  [ValidateSet("Date","RITM")]
+  [string]$PdfOutputStructure = "Date",
+  [switch]$Force
 )
 
 Set-StrictMode -Version Latest
@@ -733,6 +736,66 @@ $script:WorkerLogic = {
     $s = $s -replace '\s+',' '
     return $s.Trim()
   }
+  function Normalize-NameToken([string]$s){
+    if([string]::IsNullOrWhiteSpace($s)){ return "" }
+    $s = $s.Trim().ToUpperInvariant()
+    $s = $s -replace '[\\/:*?"<>|]',''
+    $s = $s -replace '\s+','-'
+    $s = $s -replace '-+','-'
+    return $s.Trim('-')
+  }
+  function Get-NameParts([string]$DisplayName){
+    $name = ("" + $DisplayName).Trim()
+    if([string]::IsNullOrWhiteSpace($name)){
+      return [pscustomobject]@{ FirstName = "UNKNOWN"; LastName = "UNKNOWN" }
+    }
+    if($name -match ','){
+      $parts = $name.Split(',', 2)
+      $last = Normalize-NameToken $parts[0]
+      $first = Normalize-NameToken $parts[1]
+      if([string]::IsNullOrWhiteSpace($last)){ $last = "UNKNOWN" }
+      if([string]::IsNullOrWhiteSpace($first)){ $first = "UNKNOWN" }
+      return [pscustomobject]@{ FirstName = $first; LastName = $last }
+    }
+    $tokens = @($name -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if($tokens.Count -eq 1){
+      $single = Normalize-NameToken $tokens[0]
+      if([string]::IsNullOrWhiteSpace($single)){ $single = "UNKNOWN" }
+      return [pscustomobject]@{ FirstName = "UNKNOWN"; LastName = $single }
+    }
+    $lastToken = Normalize-NameToken $tokens[$tokens.Count - 1]
+    $firstTokens = @()
+    for($i=0; $i -lt ($tokens.Count - 1); $i++){
+      $t = Normalize-NameToken $tokens[$i]
+      if(-not [string]::IsNullOrWhiteSpace($t)){ $firstTokens += $t }
+    }
+    $firstToken = ($firstTokens -join '-').Trim('-')
+    if([string]::IsNullOrWhiteSpace($firstToken)){ $firstToken = "UNKNOWN" }
+    if([string]::IsNullOrWhiteSpace($lastToken)){ $lastToken = "UNKNOWN" }
+    return [pscustomobject]@{ FirstName = $firstToken; LastName = $lastToken }
+  }
+  function Get-RitmToken([string]$ticket){
+    $t = ("" + $ticket).Trim().ToUpperInvariant()
+    if($t -match '^RITM\d{6,8}$'){ return $t }
+    return "NO-RITM"
+  }
+  function Get-PdfOutputInfo([string]$OutRoot, [string]$Ticket, [string]$DisplayName, [string]$Structure){
+    $today = Get-Date
+    $dateFlat = $today.ToString("yyyyMMdd")
+    $dateFolder = $today.ToString("yyyy-MM-dd")
+    $ritm = Get-RitmToken $Ticket
+    $nameParts = Get-NameParts $DisplayName
+    $fileName = "$dateFlat - $ritm - $($nameParts.LastName)-$($nameParts.FirstName).pdf"
+    $subFolder = if(($Structure + "").ToUpperInvariant() -eq "RITM"){ $ritm } else { $dateFolder }
+    $dir = Join-Path $OutRoot $subFolder
+    $path = Join-Path $dir $fileName
+    return [pscustomobject]@{
+      Directory = $dir
+      FileName  = $fileName
+      FullPath  = $path
+      Ritm      = $ritm
+    }
+  }
   function Get-UniquePath([string]$Dir, [string]$BaseName){
     $base = [System.IO.Path]::GetFileNameWithoutExtension($BaseName)
     $ext  = [System.IO.Path]::GetExtension($BaseName)
@@ -1242,14 +1305,25 @@ $script:WorkerLogic = {
         }
 
         if($Config.ExportPdf){
-          # Export PDF
-          $pdfPath = [System.IO.Path]::ChangeExtension([string]$filePath, ".pdf")
+          $pdfInfo = Get-PdfOutputInfo -OutRoot $Config.OutDir -Ticket $ticket -DisplayName $name -Structure $Config.PdfOutputStructure
+          $pdfPath = "" + $pdfInfo.FullPath
           try {
-            $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Exporting PDF..." })
-            $doc.ExportAsFixedFormat($pdfPath, $wdFormatPDF)
-            WriteLog $Config.LogPath "Row ${r}: PDF saved -> $pdfPath"
-            $sheet.Cells.Item($r,$statusCol).Value2 = "OK"
-            $sheet.Cells.Item($r,$pdfCol).Value2 = $pdfPath
+            New-Item -ItemType Directory -Force -Path $pdfInfo.Directory | Out-Null
+            if((Test-Path -LiteralPath $pdfPath) -and (-not $Config.ForceOverwrite)){
+              WriteLog $Config.LogPath "Row ${r}: PDF exists (skipped, no overwrite): $pdfPath"
+              $sheet.Cells.Item($r,$statusCol).Value2 = "SKIPPED: PDF exists"
+              $sheet.Cells.Item($r,$pdfCol).Value2 = $pdfPath
+              $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="PDF exists (skip)" })
+            } else {
+              if((Test-Path -LiteralPath $pdfPath) -and $Config.ForceOverwrite){
+                try { Remove-Item -LiteralPath $pdfPath -Force -ErrorAction Stop } catch {}
+              }
+              $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Exporting PDF..." })
+              $doc.ExportAsFixedFormat($pdfPath, $wdFormatPDF)
+              WriteLog $Config.LogPath "Row ${r}: PDF saved -> $pdfPath"
+              $sheet.Cells.Item($r,$statusCol).Value2 = "OK"
+              $sheet.Cells.Item($r,$pdfCol).Value2 = $pdfPath
+            }
           } catch {
             WriteLog $Config.LogPath "Row ${r}: PDF export failed -> $($_.Exception.Message)"
             $sheet.Cells.Item($r,$statusCol).Value2 = "FAILED: PDF export"
@@ -1273,7 +1347,14 @@ $script:WorkerLogic = {
         }
         } catch {}
         WriteLog $Config.LogPath "Saved: $filePath"
-        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$true; Message="Saved" })
+        $rowDoneMsg = "Saved"
+        if($Config.ExportPdf -and $pdfCol){
+          try {
+            $pdfDonePath = ("" + $sheet.Cells.Item($r,$pdfCol).Text).Trim()
+            if(-not [string]::IsNullOrWhiteSpace($pdfDonePath)){ $rowDoneMsg = $pdfDonePath }
+          } catch {}
+        }
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$true; Message=$rowDoneMsg })
       }
       catch {
         $errors++
@@ -1378,7 +1459,8 @@ $uiTimer.Add_Tick({
         if($script:RowMap.ContainsKey($p.Row)){
           $row = $script:RowMap[$p.Row]
           if($p.Ok){
-            Set-RowStatus -row $row -status "Done" -message "Saved" -state "success"
+            $okMsg = if($p.PSObject.Properties["Message"]){ "" + $p.Message } else { "Saved" }
+            Set-RowStatus -row $row -status "Done" -message $okMsg -state "success"
             $row.Cells["Progress"].Value = "100%"
           } else {
             Set-RowStatus -row $row -status "Error" -message $p.Error -state "error"
@@ -1488,6 +1570,8 @@ $btnStart.Add_Click({
     ExportDocx = $chkSaveDocx.Checked
     FastMode = $script:UseFastMode
     TurboMode = $script:UseTurboMode
+    PdfOutputStructure = $PdfOutputStructure
+    ForceOverwrite = [bool]$Force
   }) | Out-Null
 
   $script:PSInstance.BeginInvoke() | Out-Null

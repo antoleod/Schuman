@@ -1719,6 +1719,7 @@ function Search-DashboardRows {
     $statusCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^dashboard\s*status$')
     $presentCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^present\s*time$')
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^closed\s*time$')
+    $pdfCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^pdf\s*file$')
 
     $used = $ws.UsedRange
     $rows = 0
@@ -1775,6 +1776,14 @@ function Search-DashboardRows {
       $status = if ($statusCol) { ("" + $ws.Cells.Item($r, $statusCol).Text).Trim() } else { "" }
       $presentTime = if ($presentCol) { ("" + $ws.Cells.Item($r, $presentCol).Text).Trim() } else { "" }
       $closedTime = if ($closedCol) { ("" + $ws.Cells.Item($r, $closedCol).Text).Trim() } else { "" }
+      $pdfPath = if ($pdfCol) { ("" + $ws.Cells.Item($r, $pdfCol).Text).Trim() } else { "" }
+      $lastUpdated = ""
+      if (-not [string]::IsNullOrWhiteSpace($closedTime)) {
+        $lastUpdated = $closedTime
+      }
+      elseif (-not [string]::IsNullOrWhiteSpace($presentTime)) {
+        $lastUpdated = $presentTime
+      }
 
       $out.Add([pscustomobject]@{
         Row           = [int]$r
@@ -1786,6 +1795,8 @@ function Search-DashboardRows {
         DashboardStatus = $status
         PresentTime   = $presentTime
         ClosedTime    = $closedTime
+        LastUpdated   = $lastUpdated
+        PdfPath       = $pdfPath
       }) | Out-Null
     }
 
@@ -2739,27 +2750,48 @@ function Show-CheckInOutDashboard {
   $form = New-Object System.Windows.Forms.Form
   $form.Text = "Check-in / Check-out Dashboard"
   $form.StartPosition = "CenterScreen"
-  $form.Size = New-Object System.Drawing.Size(1120, 760)
-  $form.MinimumSize = New-Object System.Drawing.Size(980, 680)
+  $form.Size = New-Object System.Drawing.Size(1366, 768)
+  $form.MinimumSize = New-Object System.Drawing.Size(1366, 768)
   $form.Font = New-Object System.Drawing.Font("Segoe UI", 10)
   $form.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
   $form.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
 
+  $root = New-Object System.Windows.Forms.TableLayoutPanel
+  $root.Dock = "Fill"
+  $root.Padding = New-Object System.Windows.Forms.Padding(12)
+  $root.RowCount = 1
+  $root.ColumnCount = 3
+  $root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 22)))
+  $root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 56)))
+  $root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 22)))
+  $root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  $form.Controls.Add($root)
+
+  $leftPanel = New-Object System.Windows.Forms.Panel
+  $leftPanel.Dock = "Fill"
+  $leftPanel.Padding = New-Object System.Windows.Forms.Padding(10)
+  $leftPanel.Margin = New-Object System.Windows.Forms.Padding(0,0,10,0)
+  $leftPanel.AutoScroll = $true
+  $leftPanel.BackColor = [System.Drawing.Color]::FromArgb(30,30,32)
+  $root.Controls.Add($leftPanel, 0, 0)
+
+  $leftGrid = New-Object System.Windows.Forms.TableLayoutPanel
+  $leftGrid.Dock = "Top"
+  $leftGrid.AutoSize = $true
+  $leftGrid.RowCount = 10
+  $leftGrid.ColumnCount = 1
+  $leftGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  $leftPanel.Controls.Add($leftGrid)
+
   $lblSearch = New-Object System.Windows.Forms.Label
-  $lblSearch.Text = "Search Last Name or First Name:"
-  $lblSearch.Location = New-Object System.Drawing.Point(16, 16)
+  $lblSearch.Text = "Search (Display Name / Last Name):"
   $lblSearch.AutoSize = $true
   $lblSearch.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
-
-  $lblHint = New-Object System.Windows.Forms.Label
-  $lblHint.Text = "Live filter enabled. Start typing to load matching users and tasks."
-  $lblHint.Location = New-Object System.Drawing.Point(16, 58)
-  $lblHint.AutoSize = $true
-  $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(120,180,255)
+  $leftGrid.Controls.Add($lblSearch, 0, 0)
 
   $txtSearch = New-Object System.Windows.Forms.ComboBox
-  $txtSearch.Location = New-Object System.Drawing.Point(16, 38)
-  $txtSearch.Size = New-Object System.Drawing.Size(360, 24)
+  $txtSearch.Dock = "Top"
+  $txtSearch.Height = 28
   $txtSearch.BackColor = [System.Drawing.Color]::FromArgb(34,34,36)
   $txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
   $txtSearch.FlatStyle = "Flat"
@@ -2767,33 +2799,52 @@ function Show-CheckInOutDashboard {
   $txtSearch.AutoCompleteMode = [System.Windows.Forms.AutoCompleteMode]::SuggestAppend
   $txtSearch.AutoCompleteSource = [System.Windows.Forms.AutoCompleteSource]::ListItems
   $txtSearch.MaxDropDownItems = 14
+  $txtSearch.Margin = New-Object System.Windows.Forms.Padding(0,4,0,8)
+  $leftGrid.Controls.Add($txtSearch, 0, 1)
+
+  $lblStatusFilter = New-Object System.Windows.Forms.Label
+  $lblStatusFilter.Text = "Status Filter:"
+  $lblStatusFilter.AutoSize = $true
+  $lblStatusFilter.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
+  $leftGrid.Controls.Add($lblStatusFilter, 0, 2)
+
+  $cmbStatus = New-Object System.Windows.Forms.ComboBox
+  $cmbStatus.Dock = "Top"
+  $cmbStatus.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+  $cmbStatus.BackColor = [System.Drawing.Color]::FromArgb(34,34,36)
+  $cmbStatus.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $cmbStatus.FlatStyle = "Flat"
+  [void]$cmbStatus.Items.AddRange(@("All","Open Only","Checked-In","Appointment","Completed / Closed"))
+  $cmbStatus.SelectedIndex = 0
+  $cmbStatus.Margin = New-Object System.Windows.Forms.Padding(0,4,0,8)
+  $leftGrid.Controls.Add($cmbStatus, 0, 3)
+
+  $btnSearch = New-Object System.Windows.Forms.Button
+  $btnSearch.Text = "Search"
+  $btnSearch.Dock = "Top"
+  $btnSearch.Height = 34
+  $btnSearch.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+  $leftGrid.Controls.Add($btnSearch, 0, 4)
 
   $btnRefresh = New-Object System.Windows.Forms.Button
   $btnRefresh.Text = "Refresh"
-  $btnRefresh.Location = New-Object System.Drawing.Point(390, 36)
-  $btnRefresh.Size = New-Object System.Drawing.Size(100, 28)
+  $btnRefresh.Dock = "Top"
+  $btnRefresh.Height = 30
+  $btnRefresh.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+  $leftGrid.Controls.Add($btnRefresh, 0, 5)
 
   $btnClear = New-Object System.Windows.Forms.Button
   $btnClear.Text = "Clear"
-  $btnClear.Location = New-Object System.Drawing.Point(500, 36)
-  $btnClear.Size = New-Object System.Drawing.Size(80, 28)
+  $btnClear.Dock = "Top"
+  $btnClear.Height = 30
+  $leftGrid.Controls.Add($btnClear, 0, 6)
 
-  $btnRecalc = New-Object System.Windows.Forms.Button
-  $btnRecalc.Text = "Recalculate from SNOW"
-  $btnRecalc.Location = New-Object System.Drawing.Point(590, 36)
-  $btnRecalc.Size = New-Object System.Drawing.Size(170, 28)
-
-  $btnOpen = New-Object System.Windows.Forms.Button
-  $btnOpen.Text = "Open in ServiceNow"
-  $btnOpen.Location = New-Object System.Drawing.Point(770, 36)
-  $btnOpen.Size = New-Object System.Drawing.Size(160, 28)
-
-  $chkOpenOnly = New-Object System.Windows.Forms.CheckBox
-  $chkOpenOnly.Text = "Solo RITM abiertos"
-  $chkOpenOnly.Location = New-Object System.Drawing.Point(940, 40)
-  $chkOpenOnly.Size = New-Object System.Drawing.Size(180, 24)
-  $chkOpenOnly.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
-  $chkOpenOnly.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
+  $lblHint = New-Object System.Windows.Forms.Label
+  $lblHint.Text = "Use Search to load rows."
+  $lblHint.AutoSize = $true
+  $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(120,180,255)
+  $lblHint.Margin = New-Object System.Windows.Forms.Padding(0,10,0,0)
+  $leftGrid.Controls.Add($lblHint, 0, 7)
 
   $btnStyle = {
     param($b, [bool]$accent = $false)
@@ -2814,19 +2865,19 @@ function Show-CheckInOutDashboard {
       $b.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(32,32,34)
     }
   }
+  & $btnStyle $btnSearch $true
   & $btnStyle $btnRefresh $false
   & $btnStyle $btnClear $false
-  & $btnStyle $btnRecalc $false
-  & $btnStyle $btnOpen $false
 
   $grid = New-Object System.Windows.Forms.DataGridView
-  $grid.Location = New-Object System.Drawing.Point(16, 86)
-  $grid.Size = New-Object System.Drawing.Size(1070, 370)
+  $grid.Dock = "Fill"
   $grid.ReadOnly = $true
   $grid.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
   $grid.MultiSelect = $false
   $grid.AllowUserToAddRows = $false
   $grid.AllowUserToDeleteRows = $false
+  $grid.AllowUserToResizeRows = $false
+  $grid.ScrollBars = "Vertical"
   $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
   $grid.EnableHeadersVisualStyles = $false
   $grid.BackgroundColor = [System.Drawing.Color]::FromArgb(24,24,26)
@@ -2841,16 +2892,40 @@ function Show-CheckInOutDashboard {
   $grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(30,30,32)
   $grid.RowHeadersVisible = $false
   $grid.RowTemplate.Height = 30
+  $grid.ColumnHeadersHeight = 34
+  $grid.ColumnHeadersHeightSizeMode = [System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode]::DisableResizing
+
+  $centerPanel = New-Object System.Windows.Forms.Panel
+  $centerPanel.Dock = "Fill"
+  $centerPanel.Margin = New-Object System.Windows.Forms.Padding(0)
+  $centerPanel.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
+  $root.Controls.Add($centerPanel, 1, 0)
+
+  $centerGrid = New-Object System.Windows.Forms.TableLayoutPanel
+  $centerGrid.Dock = "Fill"
+  $centerGrid.RowCount = 2
+  $centerGrid.ColumnCount = 1
+  $centerGrid.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  $centerGrid.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  $centerPanel.Controls.Add($centerGrid)
+
+  $lblResults = New-Object System.Windows.Forms.Label
+  $lblResults.Text = "Results"
+  $lblResults.AutoSize = $true
+  $lblResults.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
+  $lblResults.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+  $centerGrid.Controls.Add($lblResults, 0, 0)
+  $centerGrid.Controls.Add($grid, 0, 1)
 
   $lblComment = New-Object System.Windows.Forms.Label
-  $lblComment.Text = "Work Note (editable before submit):"
-  $lblComment.Location = New-Object System.Drawing.Point(16, 470)
+  $lblComment.Text = "Work Note:"
+  $lblComment.Margin = New-Object System.Windows.Forms.Padding(0,8,0,2)
   $lblComment.AutoSize = $true
   $lblComment.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
 
   $txtComment = New-Object System.Windows.Forms.TextBox
-  $txtComment.Location = New-Object System.Drawing.Point(16, 492)
-  $txtComment.Size = New-Object System.Drawing.Size(1070, 130)
+  $txtComment.Height = 120
+  $txtComment.Dock = "Top"
   $txtComment.Multiline = $true
   $txtComment.ScrollBars = "Vertical"
   $txtComment.Text = $DashboardDefaultCheckInNote
@@ -2860,39 +2935,136 @@ function Show-CheckInOutDashboard {
 
   $btnUseCheckInNote = New-Object System.Windows.Forms.Button
   $btnUseCheckInNote.Text = "Use Check-In Note"
-  $btnUseCheckInNote.Location = New-Object System.Drawing.Point(16, 626)
-  $btnUseCheckInNote.Size = New-Object System.Drawing.Size(160, 28)
+  $btnUseCheckInNote.Height = 30
+  $btnUseCheckInNote.Dock = "Top"
+  $btnUseCheckInNote.Margin = New-Object System.Windows.Forms.Padding(0,6,0,6)
 
   $btnUseCheckOutNote = New-Object System.Windows.Forms.Button
   $btnUseCheckOutNote.Text = "Use Check-Out Note"
-  $btnUseCheckOutNote.Location = New-Object System.Drawing.Point(188, 626)
-  $btnUseCheckOutNote.Size = New-Object System.Drawing.Size(160, 28)
+  $btnUseCheckOutNote.Height = 30
+  $btnUseCheckOutNote.Dock = "Top"
+  $btnUseCheckOutNote.Margin = New-Object System.Windows.Forms.Padding(0,0,0,10)
 
   $btnCheckIn = New-Object System.Windows.Forms.Button
   $btnCheckIn.Text = "CHECK-IN"
-  $btnCheckIn.Location = New-Object System.Drawing.Point(360, 626)
-  $btnCheckIn.Size = New-Object System.Drawing.Size(160, 36)
+  $btnCheckIn.Height = 36
+  $btnCheckIn.Dock = "Top"
+  $btnCheckIn.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
 
   $btnCheckOut = New-Object System.Windows.Forms.Button
   $btnCheckOut.Text = "CHECK-OUT"
-  $btnCheckOut.Location = New-Object System.Drawing.Point(532, 626)
-  $btnCheckOut.Size = New-Object System.Drawing.Size(160, 36)
+  $btnCheckOut.Height = 36
+  $btnCheckOut.Dock = "Top"
+  $btnCheckOut.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+
+  $btnGeneratePdf = New-Object System.Windows.Forms.Button
+  $btnGeneratePdf.Text = "Generate PDF"
+  $btnGeneratePdf.Height = 34
+  $btnGeneratePdf.Dock = "Top"
+  $btnGeneratePdf.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+
+  $btnOpen = New-Object System.Windows.Forms.Button
+  $btnOpen.Text = "Open in ServiceNow"
+  $btnOpen.Height = 34
+  $btnOpen.Dock = "Top"
+  $btnOpen.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+
+  $btnRecalc = New-Object System.Windows.Forms.Button
+  $btnRecalc.Text = "Recalculate from SNOW"
+  $btnRecalc.Height = 32
+  $btnRecalc.Dock = "Top"
+  $btnRecalc.Margin = New-Object System.Windows.Forms.Padding(0,0,0,8)
+
+  $lblSelected = New-Object System.Windows.Forms.Label
+  $lblSelected.Text = "Selected ticket"
+  $lblSelected.AutoSize = $true
+  $lblSelected.ForeColor = [System.Drawing.Color]::FromArgb(178,178,182)
+
+  $lblSelectedName = New-Object System.Windows.Forms.Label
+  $lblSelectedName.Text = "Display Name: -"
+  $lblSelectedName.AutoSize = $true
+  $lblSelectedName.Margin = New-Object System.Windows.Forms.Padding(0,4,0,0)
+
+  $lblSelectedRitm = New-Object System.Windows.Forms.Label
+  $lblSelectedRitm.Text = "RITM: -"
+  $lblSelectedRitm.AutoSize = $true
+  $lblSelectedRitm.Margin = New-Object System.Windows.Forms.Padding(0,4,0,0)
+
+  $lblSelectedStatus = New-Object System.Windows.Forms.Label
+  $lblSelectedStatus.Text = "Status: -"
+  $lblSelectedStatus.AutoSize = $true
+  $lblSelectedStatus.Margin = New-Object System.Windows.Forms.Padding(0,4,0,0)
+
+  $lblSelectedUpdated = New-Object System.Windows.Forms.Label
+  $lblSelectedUpdated.Text = "Last Updated: -"
+  $lblSelectedUpdated.AutoSize = $true
+  $lblSelectedUpdated.Margin = New-Object System.Windows.Forms.Padding(0,4,0,10)
+
+  $lblPdfPath = New-Object System.Windows.Forms.Label
+  $lblPdfPath.Text = "PDF path:"
+  $lblPdfPath.AutoSize = $true
+
+  $txtPdfPath = New-Object System.Windows.Forms.TextBox
+  $txtPdfPath.ReadOnly = $true
+  $txtPdfPath.Dock = "Top"
+  $txtPdfPath.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $txtPdfPath.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $txtPdfPath.BorderStyle = "FixedSingle"
+  $txtPdfPath.Margin = New-Object System.Windows.Forms.Padding(0,4,0,10)
+
   & $btnStyle $btnUseCheckInNote $false
   & $btnStyle $btnUseCheckOutNote $false
   & $btnStyle $btnCheckIn $true
   & $btnStyle $btnCheckOut $false
+  & $btnStyle $btnGeneratePdf $false
+  & $btnStyle $btnOpen $false
+  & $btnStyle $btnRecalc $false
   $btnCheckIn.Enabled = $false
   $btnCheckOut.Enabled = $false
+  $btnGeneratePdf.Enabled = $false
   $btnRecalc.Enabled = $false
   $btnOpen.Enabled = $false
 
   $lblStatus = New-Object System.Windows.Forms.Label
-  $lblStatus.Text = "Type to filter users. Nothing is loaded by default."
-  $lblStatus.Location = New-Object System.Drawing.Point(710, 634)
-  $lblStatus.Size = New-Object System.Drawing.Size(700, 28)
+  $lblStatus.Text = "Type Display/Last name and click Search."
+  $lblStatus.AutoSize = $true
+  $lblStatus.Margin = New-Object System.Windows.Forms.Padding(0,10,0,0)
   $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
 
-  $form.Controls.AddRange(@($lblSearch, $lblHint, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpen, $chkOpenOnly, $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $lblStatus))
+  $rightPanel = New-Object System.Windows.Forms.Panel
+  $rightPanel.Dock = "Fill"
+  $rightPanel.Padding = New-Object System.Windows.Forms.Padding(10)
+  $rightPanel.Margin = New-Object System.Windows.Forms.Padding(10,0,0,0)
+  $rightPanel.AutoScroll = $true
+  $rightPanel.BackColor = [System.Drawing.Color]::FromArgb(30,30,32)
+  $root.Controls.Add($rightPanel, 2, 0)
+
+  $rightStack = New-Object System.Windows.Forms.FlowLayoutPanel
+  $rightStack.Dock = "Top"
+  $rightStack.FlowDirection = "TopDown"
+  $rightStack.WrapContents = $false
+  $rightStack.AutoSize = $true
+  $rightStack.Width = 280
+  $rightStack.Padding = New-Object System.Windows.Forms.Padding(0)
+  $rightPanel.Controls.Add($rightStack)
+
+  $rightStack.Controls.Add($lblSelected)
+  $rightStack.Controls.Add($lblSelectedName)
+  $rightStack.Controls.Add($lblSelectedRitm)
+  $rightStack.Controls.Add($lblSelectedStatus)
+  $rightStack.Controls.Add($lblSelectedUpdated)
+  $rightStack.Controls.Add($lblPdfPath)
+  $rightStack.Controls.Add($txtPdfPath)
+  $rightStack.Controls.Add($lblComment)
+  $rightStack.Controls.Add($txtComment)
+  $rightStack.Controls.Add($btnUseCheckInNote)
+  $rightStack.Controls.Add($btnUseCheckOutNote)
+  $rightStack.Controls.Add($btnCheckIn)
+  $rightStack.Controls.Add($btnCheckOut)
+  $rightStack.Controls.Add($btnGeneratePdf)
+  $rightStack.Controls.Add($btnOpen)
+  $rightStack.Controls.Add($btnRecalc)
+  $rightStack.Controls.Add($lblStatus)
 
   $state = [pscustomobject]@{
     Rows = @()
@@ -2910,19 +3082,28 @@ function Show-CheckInOutDashboard {
   [void]$grid.Columns.Add($colRow)
 
   $colRequestedFor = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
-  $colRequestedFor.Name = "Requested For"
-  $colRequestedFor.HeaderText = "Requested For"
+  $colRequestedFor.Name = "Display Name"
+  $colRequestedFor.HeaderText = "Display Name"
+  $colRequestedFor.FillWeight = 38
   [void]$grid.Columns.Add($colRequestedFor)
 
   $colRitm = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
   $colRitm.Name = "RITM"
   $colRitm.HeaderText = "RITM"
+  $colRitm.FillWeight = 22
   [void]$grid.Columns.Add($colRitm)
 
-  $colSctask = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
-  $colSctask.Name = "SCTASK"
-  $colSctask.HeaderText = "SCTASK"
-  [void]$grid.Columns.Add($colSctask)
+  $colStatus = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colStatus.Name = "Status"
+  $colStatus.HeaderText = "Status"
+  $colStatus.FillWeight = 20
+  [void]$grid.Columns.Add($colStatus)
+
+  $colUpdated = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colUpdated.Name = "Last Updated"
+  $colUpdated.HeaderText = "Last Updated"
+  $colUpdated.FillWeight = 20
+  [void]$grid.Columns.Add($colUpdated)
 
   $bindRowsToGrid = {
     param($rows)
@@ -2934,17 +3115,32 @@ function Show-CheckInOutDashboard {
           ("" + $x.Row),
           ("" + $x.RequestedFor),
           ("" + $x.RITM),
-          ("" + $x.SCTASK)
+          ("" + $x.DashboardStatus),
+          ("" + $x.LastUpdated)
         )
       }
       $grid.ClearSelection()
       if ($grid.Rows.Count -gt 0) {
         $grid.Rows[0].Selected = $true
-        $grid.CurrentCell = $grid.Rows[0].Cells["Requested For"]
+        $grid.CurrentCell = $grid.Rows[0].Cells["Display Name"]
       }
     }
     finally {
       $grid.ResumeLayout()
+    }
+    $sel = & $getSelectedRow
+    if ($sel) {
+      $lblSelectedName.Text = "Display Name: " + ("" + $sel.RequestedFor)
+      $lblSelectedRitm.Text = "RITM: " + ("" + $sel.RITM)
+      $lblSelectedStatus.Text = "Status: " + ("" + $sel.DashboardStatus)
+      $lblSelectedUpdated.Text = "Last Updated: " + ("" + $sel.LastUpdated)
+      $txtPdfPath.Text = ("" + $sel.PdfPath)
+    } else {
+      $lblSelectedName.Text = "Display Name: -"
+      $lblSelectedRitm.Text = "RITM: -"
+      $lblSelectedStatus.Text = "Status: -"
+      $lblSelectedUpdated.Text = "Last Updated: -"
+      $txtPdfPath.Text = ""
     }
     & $updateActionButtons
   }
@@ -2971,16 +3167,34 @@ function Show-CheckInOutDashboard {
       $ritmTxt = ("" + $sel.RITM).Trim().ToUpperInvariant()
       $hasValidRitm = ($ritmTxt -match '^RITM\d{6,8}$')
     }
-    $btnCheckIn.Enabled = $hasValidRitm
-    $btnCheckOut.Enabled = $hasValidRitm
-    $btnRecalc.Enabled = $hasValidRitm
-    $btnOpen.Enabled = $hasValidRitm
+    $canAct = $hasValidRitm -and (-not $actionState.IsRunning)
+    $btnCheckIn.Enabled = $canAct
+    $btnCheckOut.Enabled = $canAct
+    $btnGeneratePdf.Enabled = $canAct
+    $btnRecalc.Enabled = $canAct
+    $btnOpen.Enabled = $canAct
   }
 
   $getVisibleRows = {
     $rows = @($state.AllRows)
-    if ($chkOpenOnly.Checked) {
-      $rows = @($rows | Where-Object { Test-DashboardRowOpenLocal -RowItem $_ })
+    $statusSel = ("" + $cmbStatus.SelectedItem).Trim()
+    switch ($statusSel) {
+      "Open Only" {
+        $rows = @($rows | Where-Object { Test-DashboardRowOpenLocal -RowItem $_ })
+      }
+      "Checked-In" {
+        $rows = @($rows | Where-Object { ("" + $_.DashboardStatus).Trim().ToLowerInvariant() -eq "checked-in" })
+      }
+      "Appointment" {
+        $rows = @($rows | Where-Object { ("" + $_.DashboardStatus).Trim().ToLowerInvariant() -eq "appointment" })
+      }
+      "Completed / Closed" {
+        $rows = @($rows | Where-Object {
+          $s = ("" + $_.DashboardStatus).Trim().ToLowerInvariant()
+          $s -match 'completed|complete|closed|cerrado'
+        })
+      }
+      default { }
     }
     return @($rows)
   }
@@ -3019,7 +3233,7 @@ function Show-CheckInOutDashboard {
         $state.Rows = @()
         $state.AllRows = @()
         & $bindRowsToGrid @()
-        $lblStatus.Text = "Type First/Last name to search."
+        $lblStatus.Text = "Type Display/Last name and click Search."
         return
       }
       if ($ReloadFromExcel -or (-not $state.AllRows) -or ($state.AllRows.Count -eq 0) -or ($state.LastSearch -ne $q)) {
@@ -3029,7 +3243,10 @@ function Show-CheckInOutDashboard {
       $state.Rows = @($rows)
       $state.LastSearch = $q
       & $bindRowsToGrid $rows
-      $filterNote = if ($chkOpenOnly.Checked) { " (solo abiertos)" } else { "" }
+      $filterNote = ""
+      if ($cmbStatus.SelectedItem -and ("" + $cmbStatus.SelectedItem) -ne "All") {
+        $filterNote = " (" + $cmbStatus.SelectedItem + ")"
+      }
       $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
     }
     catch {
@@ -3045,49 +3262,50 @@ function Show-CheckInOutDashboard {
     }
   }
 
-  $searchTimer = New-Object System.Windows.Forms.Timer
-  $searchTimer.Interval = 260
-  $searchTimer.Add_Tick({
-    $searchTimer.Stop()
-    & $performSearch
-  })
-  $scheduleSearch = {
-    $searchTimer.Stop()
-    $searchTimer.Start()
-  }
-
   $txtSearch.Add_KeyDown({
     param($sender, $e)
     if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
       $e.SuppressKeyPress = $true
-      $searchTimer.Stop()
       & $performSearch
     }
-  })
-  $txtSearch.Add_TextUpdate({
-    & $updateSearchUserSuggestions
-    & $scheduleSearch
   })
   $txtSearch.Add_DropDown({
     & $updateSearchUserSuggestions
   })
-  $txtSearch.Add_SelectedIndexChanged({
-    & $scheduleSearch
+  $btnSearch.Add_Click({
+    & $performSearch
   })
-  $chkOpenOnly.Add_CheckedChanged({
+  $cmbStatus.Add_SelectedIndexChanged({
     if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
       $state.Rows = @()
       & $bindRowsToGrid @()
-      $lblStatus.Text = "Type First/Last name to search."
+      $lblStatus.Text = "Type Display/Last name and click Search."
       return
     }
     $rows = & $getVisibleRows
     $state.Rows = @($rows)
     & $bindRowsToGrid $rows
-    $filterNote = if ($chkOpenOnly.Checked) { " (solo abiertos)" } else { "" }
+    $filterNote = ""
+    if ($cmbStatus.SelectedItem -and ("" + $cmbStatus.SelectedItem) -ne "All") {
+      $filterNote = " (" + $cmbStatus.SelectedItem + ")"
+    }
     $lblStatus.Text = "Results: $($rows.Count) for '$($state.LastSearch)'$filterNote"
   })
   $grid.Add_SelectionChanged({
+    $sel = & $getSelectedRow
+    if ($sel) {
+      $lblSelectedName.Text = "Display Name: " + ("" + $sel.RequestedFor)
+      $lblSelectedRitm.Text = "RITM: " + ("" + $sel.RITM)
+      $lblSelectedStatus.Text = "Status: " + ("" + $sel.DashboardStatus)
+      $lblSelectedUpdated.Text = "Last Updated: " + ("" + $sel.LastUpdated)
+      $txtPdfPath.Text = ("" + $sel.PdfPath)
+    } else {
+      $lblSelectedName.Text = "Display Name: -"
+      $lblSelectedRitm.Text = "RITM: -"
+      $lblSelectedStatus.Text = "Status: -"
+      $lblSelectedUpdated.Text = "Last Updated: -"
+      $txtPdfPath.Text = ""
+    }
     & $updateActionButtons
   })
   $btnRefresh.Add_Click({
@@ -3104,7 +3322,7 @@ function Show-CheckInOutDashboard {
     $state.AllRows = @()
     $state.LastSearch = ""
     & $bindRowsToGrid @()
-    $lblStatus.Text = "Cleared. Type First/Last name to search."
+    $lblStatus.Text = "Cleared. Type Display/Last name and click Search."
   })
   $btnUseCheckInNote.Add_Click({
     $txtComment.Text = $DashboardDefaultCheckInNote
@@ -3113,180 +3331,272 @@ function Show-CheckInOutDashboard {
     $txtComment.Text = $DashboardDefaultCheckOutNote
   })
 
-  $btnOpen.Add_Click({
+  $actionButtons = @($btnCheckIn, $btnCheckOut, $btnGeneratePdf, $btnOpen, $btnRecalc)
+  $spinnerFrames = @("|","/","-","\")
+  $actionState = [pscustomobject]@{
+    IsRunning = $false
+    Button = $null
+    OriginalText = ""
+    RunningText = ""
+    Index = 0
+  }
+  $spinnerTimer = New-Object System.Windows.Forms.Timer
+  $spinnerTimer.Interval = 120
+  $spinnerTimer.Add_Tick({
+    if (-not $actionState.IsRunning -or -not $actionState.Button) { return }
+    $actionState.Index = ($actionState.Index + 1) % $spinnerFrames.Count
+    $glyph = $spinnerFrames[$actionState.Index]
+    $actionState.Button.Text = "$($actionState.RunningText) $glyph"
+  })
+  $invokeDashboardAction = {
+    param(
+      [System.Windows.Forms.Button]$Button,
+      [string]$RunningText,
+      [scriptblock]$Action
+    )
+    if ($actionState.IsRunning) { return }
+    $actionState.IsRunning = $true
+    $actionState.Button = $Button
+    $actionState.OriginalText = $Button.Text
+    $actionState.RunningText = $RunningText
+    $actionState.Index = 0
+    foreach ($b in $actionButtons) { $b.Enabled = $false }
+    $Button.Text = "$RunningText $($spinnerFrames[0])"
+    $spinnerTimer.Start()
     try {
-      $row = & $getSelectedRow
-      if (-not $row) {
-        [System.Windows.Forms.MessageBox]::Show(
-          "Select one row first.",
-          "Dashboard",
-          [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Information
-        ) | Out-Null
-        return
-      }
-      Open-DashboardRowInServiceNow -wv $wv -RowItem $row
+      & $Action
     }
-    catch {
-      Log "ERROR" "Dashboard open-in-SNOW failed: $($_.Exception.Message)"
+    finally {
+      $spinnerTimer.Stop()
+      if ($actionState.Button) {
+        $actionState.Button.Text = $actionState.OriginalText
+      }
+      $actionState.IsRunning = $false
+      $actionState.Button = $null
+      & $updateActionButtons
+    }
+  }
+
+  $btnOpen.Add_Click({
+    & $invokeDashboardAction $btnOpen "Opening..." {
+      try {
+        $row = & $getSelectedRow
+        if (-not $row) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "Select one row first.",
+            "Dashboard",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+          ) | Out-Null
+          return
+        }
+        Open-DashboardRowInServiceNow -wv $wv -RowItem $row
+      }
+      catch {
+        Log "ERROR" "Dashboard open-in-SNOW failed: $($_.Exception.Message)"
+      }
+    }
+  })
+
+  $btnGeneratePdf.Add_Click({
+    & $invokeDashboardAction $btnGeneratePdf "Generating..." {
+      try {
+        $row = & $getSelectedRow
+        if (-not $row) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "Select one row first.",
+            "Dashboard",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+          ) | Out-Null
+          return
+        }
+        $genScript = Join-Path $PSScriptRoot "Generate-pdf.ps1"
+        if (-not (Test-Path -LiteralPath $genScript)) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "Generate-pdf.ps1 not found next to auto-excel.ps1.",
+            "Generate PDF",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+          ) | Out-Null
+          return
+        }
+        Start-Process -FilePath "powershell.exe" -ArgumentList @(
+          "-NoProfile",
+          "-ExecutionPolicy", "Bypass",
+          "-File", $genScript,
+          "-ExcelPath", $ExcelPath,
+          "-PreferredSheet", $SheetName
+        ) | Out-Null
+        $lblStatus.Text = "PDF generator launched."
+      }
+      catch {
+        Log "ERROR" "Dashboard generate-pdf launch failed: $($_.Exception.Message)"
+      }
     }
   })
 
   $btnRecalc.Add_Click({
-    try {
-      $row = & $getSelectedRow
-      if (-not $row) {
-        [System.Windows.Forms.MessageBox]::Show(
-          "Select one row first.",
-          "Dashboard",
-          [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Information
-        ) | Out-Null
-        return
-      }
+    & $invokeDashboardAction $btnRecalc "Recalculating..." {
+      try {
+        $row = & $getSelectedRow
+        if (-not $row) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "Select one row first.",
+            "Dashboard",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+          ) | Out-Null
+          return
+        }
 
-      $res = Invoke-DashboardRecalculateStatus -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row
-      if ($res.ok -eq $true) {
-        $lblStatus.Text = "" + $res.message
-        & $performSearch -ReloadFromExcel
+        $res = Invoke-DashboardRecalculateStatus -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row
+        if ($res.ok -eq $true) {
+          $lblStatus.Text = "" + $res.message
+          & $performSearch -ReloadFromExcel
+        }
+        else {
+          [System.Windows.Forms.MessageBox]::Show(
+            "" + $res.message,
+            "Recalculate",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+          ) | Out-Null
+        }
       }
-      else {
+      catch {
+        Log "ERROR" "Dashboard RE-CALCULATE failed: $($_.Exception.Message)"
         [System.Windows.Forms.MessageBox]::Show(
-          "" + $res.message,
-          "Recalculate",
+          "Recalculate failed: $($_.Exception.Message)",
+          "Recalculate Error",
           [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Warning
+          [System.Windows.Forms.MessageBoxIcon]::Error
         ) | Out-Null
       }
-    }
-    catch {
-      Log "ERROR" "Dashboard RE-CALCULATE failed: $($_.Exception.Message)"
-      [System.Windows.Forms.MessageBox]::Show(
-        "Recalculate failed: $($_.Exception.Message)",
-        "Recalculate Error",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-      ) | Out-Null
     }
   })
 
   $btnCheckIn.Add_Click({
-    try {
-      $row = & $getSelectedRow
-      if (-not $row) {
+    & $invokeDashboardAction $btnCheckIn "Checking-In..." {
+      try {
+        $row = & $getSelectedRow
+        if (-not $row) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "Select one row first.",
+            "Dashboard",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+          ) | Out-Null
+          return
+        }
+        $note = ("" + $txtComment.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($note)) {
+          $note = $DashboardDefaultCheckInNote
+          $txtComment.Text = $note
+        }
+        $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
+        $candIn = Get-DashboardCheckInCandidate -wv $wv -RitmNumber $ritmSel
+        if (-not $candIn) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "No Open task detected for $ritmSel.",
+            "Check-In",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+          ) | Out-Null
+          return
+        }
+        $confirmIn = [System.Windows.Forms.MessageBox]::Show(
+          "RITM: $ritmSel`r`nSCTASK: $($candIn.number)`r`nCurrent: $($candIn.state_text) [$($candIn.state_value)]`r`nTarget: Work in Progress`r`n`r`nContinue?",
+          "Confirm Check-In",
+          [System.Windows.Forms.MessageBoxButtons]::YesNo,
+          [System.Windows.Forms.MessageBoxIcon]::Question
+        )
+        if ($confirmIn -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+        $res = Invoke-DashboardCheckIn -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
+        if ($res.ok -eq $true) {
+          $lblStatus.Text = "" + $res.message
+          & $performSearch -ReloadFromExcel
+        }
+        else {
+          [System.Windows.Forms.MessageBox]::Show(
+            "" + $res.message,
+            "Check-In Failed",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+          ) | Out-Null
+        }
+      }
+      catch {
+        Log "ERROR" "Dashboard CHECK-IN failed: $($_.Exception.Message)"
         [System.Windows.Forms.MessageBox]::Show(
-          "Select one row first.",
-          "Dashboard",
+          "Check-In failed: $($_.Exception.Message)",
+          "Check-In Error",
           [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Information
-        ) | Out-Null
-        return
-      }
-      $note = ("" + $txtComment.Text).Trim()
-      if ([string]::IsNullOrWhiteSpace($note)) {
-        $note = $DashboardDefaultCheckInNote
-        $txtComment.Text = $note
-      }
-      $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
-      $candIn = Get-DashboardCheckInCandidate -wv $wv -RitmNumber $ritmSel
-      if (-not $candIn) {
-        [System.Windows.Forms.MessageBox]::Show(
-          "No Open task detected for $ritmSel.",
-          "Check-In",
-          [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Warning
-        ) | Out-Null
-        return
-      }
-      $confirmIn = [System.Windows.Forms.MessageBox]::Show(
-        "RITM: $ritmSel`r`nSCTASK: $($candIn.number)`r`nCurrent: $($candIn.state_text) [$($candIn.state_value)]`r`nTarget: Work in Progress`r`n`r`nContinue?",
-        "Confirm Check-In",
-        [System.Windows.Forms.MessageBoxButtons]::YesNo,
-        [System.Windows.Forms.MessageBoxIcon]::Question
-      )
-      if ($confirmIn -ne [System.Windows.Forms.DialogResult]::Yes) { return }
-      $res = Invoke-DashboardCheckIn -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
-      if ($res.ok -eq $true) {
-        $lblStatus.Text = "" + $res.message
-        & $performSearch -ReloadFromExcel
-      }
-      else {
-        [System.Windows.Forms.MessageBox]::Show(
-          "" + $res.message,
-          "Check-In Failed",
-          [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Warning
+          [System.Windows.Forms.MessageBoxIcon]::Error
         ) | Out-Null
       }
-    }
-    catch {
-      Log "ERROR" "Dashboard CHECK-IN failed: $($_.Exception.Message)"
-      [System.Windows.Forms.MessageBox]::Show(
-        "Check-In failed: $($_.Exception.Message)",
-        "Check-In Error",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-      ) | Out-Null
     }
   })
 
   $btnCheckOut.Add_Click({
-    try {
-      $row = & $getSelectedRow
-      if (-not $row) {
+    & $invokeDashboardAction $btnCheckOut "Checking-Out..." {
+      try {
+        $row = & $getSelectedRow
+        if (-not $row) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "Select one row first.",
+            "Dashboard",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+          ) | Out-Null
+          return
+        }
+        $note = ("" + $txtComment.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($note)) {
+          $note = $DashboardDefaultCheckOutNote
+          $txtComment.Text = $note
+        }
+        $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
+        $candOut = Get-DashboardCheckOutCandidate -wv $wv -RitmNumber $ritmSel
+        if (-not $candOut) {
+          [System.Windows.Forms.MessageBox]::Show(
+            "No Open/Work in Progress task detected for $ritmSel.",
+            "Check-Out",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+          ) | Out-Null
+          return
+        }
+        $confirmOut = [System.Windows.Forms.MessageBox]::Show(
+          "RITM: $ritmSel`r`nSCTASK: $($candOut.number)`r`nCurrent: $($candOut.state_text) [$($candOut.state_value)]`r`nTarget: Appointment (task only, parent RITM unchanged)`r`n`r`nContinue?",
+          "Confirm Check-Out",
+          [System.Windows.Forms.MessageBoxButtons]::YesNo,
+          [System.Windows.Forms.MessageBoxIcon]::Question
+        )
+        if ($confirmOut -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+        $res = Invoke-DashboardCheckOut -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
+        if ($res.ok -eq $true) {
+          $lblStatus.Text = "" + $res.message
+          & $performSearch -ReloadFromExcel
+        }
+        else {
+          [System.Windows.Forms.MessageBox]::Show(
+            "" + $res.message,
+            "Check-Out Failed",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+          ) | Out-Null
+        }
+      }
+      catch {
+        Log "ERROR" "Dashboard CHECK-OUT failed: $($_.Exception.Message)"
         [System.Windows.Forms.MessageBox]::Show(
-          "Select one row first.",
-          "Dashboard",
+          "Check-Out failed: $($_.Exception.Message)",
+          "Check-Out Error",
           [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Information
-        ) | Out-Null
-        return
-      }
-      $note = ("" + $txtComment.Text).Trim()
-      if ([string]::IsNullOrWhiteSpace($note)) {
-        $note = $DashboardDefaultCheckOutNote
-        $txtComment.Text = $note
-      }
-      $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
-      $candOut = Get-DashboardCheckOutCandidate -wv $wv -RitmNumber $ritmSel
-      if (-not $candOut) {
-        [System.Windows.Forms.MessageBox]::Show(
-          "No Open/Work in Progress task detected for $ritmSel.",
-          "Check-Out",
-          [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Warning
-        ) | Out-Null
-        return
-      }
-      $confirmOut = [System.Windows.Forms.MessageBox]::Show(
-        "RITM: $ritmSel`r`nSCTASK: $($candOut.number)`r`nCurrent: $($candOut.state_text) [$($candOut.state_value)]`r`nTarget: Appointment (task only, parent RITM unchanged)`r`n`r`nContinue?",
-        "Confirm Check-Out",
-        [System.Windows.Forms.MessageBoxButtons]::YesNo,
-        [System.Windows.Forms.MessageBoxIcon]::Question
-      )
-      if ($confirmOut -ne [System.Windows.Forms.DialogResult]::Yes) { return }
-      $res = Invoke-DashboardCheckOut -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
-      if ($res.ok -eq $true) {
-        $lblStatus.Text = "" + $res.message
-        & $performSearch -ReloadFromExcel
-      }
-      else {
-        [System.Windows.Forms.MessageBox]::Show(
-          "" + $res.message,
-          "Check-Out Failed",
-          [System.Windows.Forms.MessageBoxButtons]::OK,
-          [System.Windows.Forms.MessageBoxIcon]::Warning
+          [System.Windows.Forms.MessageBoxIcon]::Error
         ) | Out-Null
       }
-    }
-    catch {
-      Log "ERROR" "Dashboard CHECK-OUT failed: $($_.Exception.Message)"
-      [System.Windows.Forms.MessageBox]::Show(
-        "Check-Out failed: $($_.Exception.Message)",
-        "Check-Out Error",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error
-      ) | Out-Null
     }
   })
 
@@ -3295,7 +3605,7 @@ function Show-CheckInOutDashboard {
     $state.UserDirectory = @(Get-DashboardUserDirectory -ExcelPath $ExcelPath -SheetName $SheetName)
     & $updateSearchUserSuggestions
     & $bindRowsToGrid @()
-    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count). Search by First/Last name."
+    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count). Search by Display/Last name."
   } catch {}
 
   [void]$form.ShowDialog()
