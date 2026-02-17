@@ -3580,3 +3580,217 @@
 2026-02-17 22:47:59 [INFO] Killing EXCEL processes: 2. before dashboard ensure columns
 2026-02-17 22:48:01 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
 2026-02-17 22:48:20 [INFO] Dashboard search query='dioses' => matches=1
+2026-02-17 23:08:47 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_230847
+2026-02-17 23:08:47 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:08:47 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:08:47 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:08:47 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:08:47 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:08:47 [INFO] Starting SSO login...
+2026-02-17 23:08:49 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:09:01 [ERROR] SNOW session not ready after SSO; extraction may fail.
+2026-02-17 23:09:01 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:09:01 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:09:01 [INFO] No EXCEL process to kill. before dashboard ensure columns
+2026-02-17 23:09:02 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:09:22 [INFO] Dashboard search query='dios' => matches=0
+2026-02-17 23:10:08 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231008
+2026-02-17 23:10:08 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:10:08 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:10:08 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:10:08 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:10:08 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:10:08 [INFO] Starting SSO login...
+2026-02-17 23:10:37 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:10:38 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:10:38 [INFO] No EXCEL process to kill. before read open
+2026-02-17 23:10:38 [INFO] Creating Excel COM (read)...
+2026-02-17 23:10:38 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:10:38 [INFO] Workbook opened (read).
+2026-02-17 23:10:38 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:10:38 [INFO] Worksheet opened.
+2026-02-17 23:10:39 [INFO] Header map built. Columns=15
+2026-02-17 23:10:39 [INFO] Ticket column resolved: 4
+2026-02-17 23:10:39 [INFO] Scanning ticket rows 2..2
+2026-02-17 23:10:39 [INFO] Ticket scan completed. Found=1
+2026-02-17 23:10:39 [INFO] Tickets found: 1
+2026-02-17 23:10:39 [INFO] Processing scope: RITM only (no INC detected). Count=1
+2026-02-17 23:10:39 [INFO] [1/1] Open + extract: RITM0496748
+2026-02-17 23:10:40 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:10:41 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:10:47 [INFO] RITM0496748 PI not found in activity stream
+2026-02-17 23:10:47 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-17 23:10:47 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231008\tickets_export.json
+2026-02-17 23:10:47 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231008\run.log.txt
+2026-02-17 23:10:47 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:10:47 [INFO] No EXCEL process to kill. before write open
+2026-02-17 23:10:47 [INFO] Creating Excel COM (write)...
+2026-02-17 23:10:48 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 23:10:48 [INFO] Workbook opened (write).
+2026-02-17 23:10:48 [INFO] Write-back scan rows 2..2
+2026-02-17 23:10:49 [INFO] RITM0496748 PI force-updated in 'PI' => ''
+2026-02-17 23:10:49 [INFO] Excel updated.
+2026-02-17 23:11:55 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231155
+2026-02-17 23:11:55 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:11:55 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:11:55 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:11:55 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:11:55 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:11:55 [INFO] Starting SSO login...
+2026-02-17 23:11:57 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:11:58 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:11:58 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:11:58 [INFO] No EXCEL process to kill. before dashboard ensure columns
+2026-02-17 23:11:59 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:15:25 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231525
+2026-02-17 23:15:25 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:15:25 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:15:25 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:15:25 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:15:25 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:15:25 [INFO] Starting SSO login...
+2026-02-17 23:15:27 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:15:27 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:15:27 [INFO] No EXCEL process to kill. before read open
+2026-02-17 23:15:27 [INFO] Creating Excel COM (read)...
+2026-02-17 23:15:27 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:15:28 [INFO] Workbook opened (read).
+2026-02-17 23:15:28 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:15:28 [INFO] Worksheet opened.
+2026-02-17 23:15:28 [INFO] Building header map...
+2026-02-17 23:15:28 [INFO] Header map built. Columns=15
+2026-02-17 23:15:28 [INFO] Ticket column resolved: 4
+2026-02-17 23:15:28 [INFO] Scanning ticket rows 2..2
+2026-02-17 23:15:28 [INFO] Ticket scan completed. Found=1
+2026-02-17 23:15:28 [INFO] Tickets found: 1
+2026-02-17 23:15:28 [INFO] Processing scope: RITM only (no INC detected). Count=1
+2026-02-17 23:15:28 [INFO] [1/1] Open + extract: RITM0496748
+2026-02-17 23:15:29 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:15:29 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:15:36 [INFO] RITM0496748 PI not found in activity stream
+2026-02-17 23:15:36 [INFO] RITM0496748 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0496748'
+2026-02-17 23:15:36 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231525\tickets_export.json
+2026-02-17 23:15:36 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231525\run.log.txt
+2026-02-17 23:15:36 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:15:36 [INFO] No EXCEL process to kill. before write open
+2026-02-17 23:15:36 [INFO] Creating Excel COM (write)...
+2026-02-17 23:15:45 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231545
+2026-02-17 23:15:45 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:15:45 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:15:45 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:15:45 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:15:45 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:15:45 [INFO] Starting SSO login...
+2026-02-17 23:15:46 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:15:47 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:15:47 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:15:47 [INFO] No EXCEL process to kill. before dashboard ensure columns
+2026-02-17 23:15:49 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:15:52 [INFO] Dashboard search query='' => matches=1
+2026-02-17 23:15:52 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:15:52 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:17:15 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231715
+2026-02-17 23:17:15 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:17:15 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:17:15 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:17:15 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:17:15 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:17:15 [INFO] Starting SSO login...
+2026-02-17 23:17:18 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:17:18 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:17:18 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:17:18 [INFO] No EXCEL process to kill. before dashboard ensure columns
+2026-02-17 23:17:19 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:17:22 [INFO] Dashboard search query='' => matches=1
+2026-02-17 23:17:22 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:17:23 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:19:00 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231900
+2026-02-17 23:19:00 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:19:00 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:19:00 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:19:00 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:19:00 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:19:00 [INFO] Starting SSO login...
+2026-02-17 23:19:03 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:19:03 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:19:03 [INFO] No EXCEL process to kill. before read open
+2026-02-17 23:19:03 [INFO] Creating Excel COM (read)...
+2026-02-17 23:19:03 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 23:19:03 [INFO] Workbook opened (read).
+2026-02-17 23:19:03 [INFO] Opening worksheet 'BRU'...
+2026-02-17 23:19:04 [INFO] Worksheet opened.
+2026-02-17 23:19:04 [INFO] Building header map...
+2026-02-17 23:19:04 [INFO] Header map built. Columns=15
+2026-02-17 23:19:04 [INFO] Ticket column resolved: 4
+2026-02-17 23:19:04 [INFO] Ticket scan completed. Found=3
+2026-02-17 23:19:04 [INFO] Tickets found: 3
+2026-02-17 23:19:04 [INFO] Processing scope: RITM only (no INC detected). Count=3
+2026-02-17 23:19:04 [INFO] [1/3] Open + extract: RITM0496748
+2026-02-17 23:19:05 [INFO] RITM0496748 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 23:19:05 [INFO] RITM0496748 open SCTASK fallback recovered count=1 tasks='SCTASK0887406'
+2026-02-17 23:19:20 [INFO] RITM0405052 => OK reason= user='Alexandra DE TORNACO' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0405052'
+2026-02-17 23:19:20 [INFO] [3/3] Open + extract: RITM0493120
+2026-02-17 23:19:21 [INFO] RITM0493120 user resolved from sys_id => 'Aneta KORZENIECKA'
+2026-02-17 23:19:21 [INFO] RITM0493120 open SCTASK fallback recovered count=1 tasks='SCTASK0880081'
+2026-02-17 23:19:27 [INFO] RITM0493120 => OK reason= user='Aneta KORZENIECKA' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493120'
+2026-02-17 23:19:27 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231900\tickets_export.json
+2026-02-17 23:19:27 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_231900\run.log.txt
+2026-02-17 23:19:28 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:19:28 [INFO] No EXCEL process to kill. before write open
+2026-02-17 23:19:28 [INFO] Creating Excel COM (write)...
+2026-02-17 23:19:28 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 23:19:28 [INFO] Workbook opened (write).
+2026-02-17 23:19:28 [INFO] Write-back scan rows 2..4
+2026-02-17 23:19:28 [INFO] RITM0496748 PI force-updated in 'PI' => ''
+2026-02-17 23:19:29 [INFO] RITM0405052 PI force-updated in 'PI' => 'MUSTBRUN2425601'
+2026-02-17 23:19:29 [INFO] RITM0493120 PI force-updated in 'PI' => ''
+2026-02-17 23:19:29 [INFO] Excel updated.
+2026-02-17 23:20:13 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_232013
+2026-02-17 23:20:13 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:20:13 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:20:13 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:20:13 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:20:13 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:20:13 [INFO] Starting SSO login...
+2026-02-17 23:20:16 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:20:16 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:20:16 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:20:16 [INFO] Killing EXCEL processes: 1. before dashboard ensure columns
+2026-02-17 23:20:18 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:20:21 [INFO] Dashboard search query='' => matches=6
+2026-02-17 23:20:22 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:20:22 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:20:40 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_232040
+2026-02-17 23:20:40 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:20:40 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:20:40 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:20:40 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:20:40 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:20:40 [INFO] Starting SSO login...
+2026-02-17 23:20:43 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:20:43 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:20:43 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:20:43 [INFO] Killing EXCEL processes: 1. before dashboard ensure columns
+2026-02-17 23:20:45 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:20:48 [INFO] Dashboard search query='' => matches=6
+2026-02-17 23:20:48 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:20:49 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0
+2026-02-17 23:21:03 [INFO] Dashboard task resolution start ritm='RITM0405052'
+2026-02-17 23:21:04 [INFO] Dashboard task resolution end ritm='RITM0405052' open_count=0
+2026-02-17 23:21:17 [INFO] Dashboard task resolution start ritm='RITM0493120'
+2026-02-17 23:21:17 [INFO] Dashboard task resolution end ritm='RITM0493120' open_count=0
+2026-02-17 23:21:31 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_232131
+2026-02-17 23:21:31 [INFO] auto-excel build 2026-02-17 18:30 inc-hold-status-ux
+2026-02-17 23:21:31 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 23:21:31 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 23:21:31 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 23:21:31 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 23:21:31 [INFO] Starting SSO login...
+2026-02-17 23:21:34 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 23:21:34 [INFO] Dashboard mode enabled. Launching Check-in / Check-out dashboard.
+2026-02-17 23:21:34 [INFO] Dashboard: ensuring required Excel columns for 'C:\Users\X1\Documents\Schuman\Schuman List.xlsx' sheet 'BRU'
+2026-02-17 23:21:34 [INFO] No EXCEL process to kill. before dashboard ensure columns
+2026-02-17 23:21:35 [INFO] Killing EXCEL processes: 1. before dashboard user directory read
+2026-02-17 23:21:38 [INFO] Dashboard search query='' => matches=6
+2026-02-17 23:21:39 [INFO] Dashboard task resolution start ritm='RITM0496748'
+2026-02-17 23:21:39 [INFO] Dashboard task resolution end ritm='RITM0496748' open_count=0

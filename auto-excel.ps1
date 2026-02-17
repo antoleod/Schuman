@@ -1774,8 +1774,36 @@ function Search-DashboardRows {
       $sctask = if ($sctaskCol) { ("" + $ws.Cells.Item($r, $sctaskCol).Text).Trim() } else { "" }
 
       $status = if ($statusCol) { ("" + $ws.Cells.Item($r, $statusCol).Text).Trim() } else { "" }
-      $presentTime = if ($presentCol) { ("" + $ws.Cells.Item($r, $presentCol).Text).Trim() } else { "" }
-      $closedTime = if ($closedCol) { ("" + $ws.Cells.Item($r, $closedCol).Text).Trim() } else { "" }
+      $presentTime = ""
+      if ($presentCol) {
+        try {
+          $pv = $ws.Cells.Item($r, $presentCol).Value2
+          if ($pv -is [double] -or $pv -is [int]) {
+            $presentTime = ([datetime]::FromOADate([double]$pv)).ToString("yyyy-MM-dd HH:mm")
+          }
+          else {
+            $pt = ("" + $ws.Cells.Item($r, $presentCol).Text).Trim()
+            if ($pt -eq "########") { $pt = "" }
+            $tmpDt = $null
+            if ([datetime]::TryParse($pt, [ref]$tmpDt)) { $presentTime = $tmpDt.ToString("yyyy-MM-dd HH:mm") } else { $presentTime = $pt }
+          }
+        } catch {}
+      }
+      $closedTime = ""
+      if ($closedCol) {
+        try {
+          $cv = $ws.Cells.Item($r, $closedCol).Value2
+          if ($cv -is [double] -or $cv -is [int]) {
+            $closedTime = ([datetime]::FromOADate([double]$cv)).ToString("yyyy-MM-dd HH:mm")
+          }
+          else {
+            $ct = ("" + $ws.Cells.Item($r, $closedCol).Text).Trim()
+            if ($ct -eq "########") { $ct = "" }
+            $tmpDt2 = $null
+            if ([datetime]::TryParse($ct, [ref]$tmpDt2)) { $closedTime = $tmpDt2.ToString("yyyy-MM-dd HH:mm") } else { $closedTime = $ct }
+          }
+        } catch {}
+      }
       $pdfPath = if ($pdfCol) { ("" + $ws.Cells.Item($r, $pdfCol).Text).Trim() } else { "" }
       $lastUpdated = ""
       if (-not [string]::IsNullOrWhiteSpace($closedTime)) {
@@ -1912,7 +1940,9 @@ function Get-SCTaskCandidatesForRitm {
         number: num.toUpperCase(),
         sys_id: s(r.sys_id || ''),
         state: s(r.state || ''),
-        state_value: s(r.state_value || '')
+        state_value: s(r.state_value || ''),
+        short_description: s(r.short_description || ''),
+        sys_updated_on: s(r.sys_updated_on || '')
       });
     }
     return JSON.stringify({ok:true, tasks:out});
@@ -1969,7 +1999,9 @@ function Get-SCTaskByNumber {
       number:s(r.number || ''),
       sys_id:s(r.sys_id || ''),
       state:s(r.state || ''),
-      state_value:s(r.state_value || '')
+      state_value:s(r.state_value || ''),
+      short_description:s(r.short_description || ''),
+      sys_updated_on:s(r.sys_updated_on || '')
     });
   } catch(e){
     return JSON.stringify({ok:false});
@@ -2738,6 +2770,61 @@ function Open-DashboardRowInServiceNow {
   try { Start-Process $url | Out-Null } catch {}
 }
 
+function Get-DashboardSettingsPath {
+  $base = Join-Path $env:APPDATA "SchumanDashboard"
+  try { New-Item -ItemType Directory -Path $base -Force | Out-Null } catch {}
+  return (Join-Path $base "settings.json")
+}
+
+function Load-DashboardSettings {
+  param(
+    [string]$DefaultCheckIn,
+    [string]$DefaultCheckOut
+  )
+  $out = [pscustomobject]@{
+    CheckInNoteTemplate = $DefaultCheckIn
+    CheckOutNoteTemplate = $DefaultCheckOut
+  }
+  $path = Get-DashboardSettingsPath
+  if (-not (Test-Path -LiteralPath $path)) { return $out }
+  try {
+    $raw = Get-Content -LiteralPath $path -Raw -ErrorAction Stop
+    if (-not [string]::IsNullOrWhiteSpace($raw)) {
+      $o = $raw | ConvertFrom-Json
+      if ($o -and $o.PSObject.Properties["CheckInNoteTemplate"]) {
+        $v = ("" + $o.CheckInNoteTemplate).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $out.CheckInNoteTemplate = $v }
+      }
+      if ($o -and $o.PSObject.Properties["CheckOutNoteTemplate"]) {
+        $v2 = ("" + $o.CheckOutNoteTemplate).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v2)) { $out.CheckOutNoteTemplate = $v2 }
+      }
+    }
+  }
+  catch {
+    Log "ERROR" "Dashboard settings load failed: $($_.Exception.Message)"
+  }
+  return $out
+}
+
+function Save-DashboardSettings {
+  param([pscustomobject]$Settings)
+  try {
+    $path = Get-DashboardSettingsPath
+    $payload = [pscustomobject]@{
+      CheckInNoteTemplate = ("" + $Settings.CheckInNoteTemplate)
+      CheckOutNoteTemplate = ("" + $Settings.CheckOutNoteTemplate)
+    }
+    $json = $payload | ConvertTo-Json -Depth 4
+    Set-Content -LiteralPath $path -Value $json -Encoding UTF8
+    return $true
+  }
+  catch {
+    Log "ERROR" "Dashboard settings save failed: $($_.Exception.Message)"
+    return $false
+  }
+}
+
 function Show-CheckInOutDashboard {
   param(
     $wv,
@@ -2746,6 +2833,13 @@ function Show-CheckInOutDashboard {
   )
 
   [void](Ensure-DashboardExcelColumns -ExcelPath $ExcelPath -SheetName $SheetName)
+  try {
+    $settingsLoaded = Load-DashboardSettings -DefaultCheckIn "Deliver all credentials to the new user" -DefaultCheckOut "Equipment returned / handover completed"
+    if ($settingsLoaded) {
+      $script:DashboardDefaultCheckInNote = "" + $settingsLoaded.CheckInNoteTemplate
+      $script:DashboardDefaultCheckOutNote = "" + $settingsLoaded.CheckOutNoteTemplate
+    }
+  } catch {}
 
   $form = New-Object System.Windows.Forms.Form
   $form.Text = "Check-in / Check-out Dashboard"
@@ -2840,11 +2934,25 @@ function Show-CheckInOutDashboard {
   $leftGrid.Controls.Add($btnClear, 0, 6)
 
   $lblHint = New-Object System.Windows.Forms.Label
-  $lblHint.Text = "Use Search to load rows."
+  $lblHint.Text = "Type to filter automatically."
   $lblHint.AutoSize = $true
   $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(120,180,255)
   $lblHint.Margin = New-Object System.Windows.Forms.Padding(0,10,0,0)
   $leftGrid.Controls.Add($lblHint, 0, 7)
+
+  $btnSettings = New-Object System.Windows.Forms.Button
+  $btnSettings.Text = "⚙"
+  $btnSettings.Font = New-Object System.Drawing.Font("Segoe UI Symbol", 12)
+  $btnSettings.Size = New-Object System.Drawing.Size(36, 36)
+  $btnSettings.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Bottom
+  $btnSettings.Location = New-Object System.Drawing.Point(10, 10)
+  $leftPanel.Controls.Add($btnSettings)
+  $leftPanel.Add_Resize({
+    $btnSettings.Location = New-Object System.Drawing.Point(10, [Math]::Max(10, $leftPanel.ClientSize.Height - 46))
+  })
+  $form.Add_Shown({
+    $btnSettings.Location = New-Object System.Drawing.Point(10, [Math]::Max(10, $leftPanel.ClientSize.Height - 46))
+  })
 
   $btnStyle = {
     param($b, [bool]$accent = $false)
@@ -2868,6 +2976,7 @@ function Show-CheckInOutDashboard {
   & $btnStyle $btnSearch $true
   & $btnStyle $btnRefresh $false
   & $btnStyle $btnClear $false
+  & $btnStyle $btnSettings $false
 
   $grid = New-Object System.Windows.Forms.DataGridView
   $grid.Dock = "Fill"
@@ -2991,7 +3100,7 @@ function Show-CheckInOutDashboard {
   $lblSelectedRitm.Margin = New-Object System.Windows.Forms.Padding(0,4,0,0)
 
   $lblSelectedStatus = New-Object System.Windows.Forms.Label
-  $lblSelectedStatus.Text = "Status: -"
+  $lblSelectedStatus.Text = "SCTask: -"
   $lblSelectedStatus.AutoSize = $true
   $lblSelectedStatus.Margin = New-Object System.Windows.Forms.Padding(0,4,0,0)
 
@@ -3025,8 +3134,23 @@ function Show-CheckInOutDashboard {
   $btnRecalc.Enabled = $false
   $btnOpen.Enabled = $false
 
+  # Simplified dashboard UX: hide legacy/manual action controls.
+  $btnSearch.Visible = $false
+  $btnRefresh.Visible = $false
+  $btnGeneratePdf.Visible = $false
+  $btnRecalc.Visible = $false
+  $btnOpen.Visible = $false
+  $lblComment.Visible = $false
+  $txtComment.Visible = $false
+  $btnUseCheckInNote.Visible = $false
+  $btnUseCheckOutNote.Visible = $false
+  $btnCheckIn.Visible = $false
+  $btnCheckOut.Visible = $false
+  $lblPdfPath.Visible = $false
+  $txtPdfPath.Visible = $false
+
   $lblStatus = New-Object System.Windows.Forms.Label
-  $lblStatus.Text = "Type Display/Last name and click Search."
+  $lblStatus.Text = "Type Display/Last name."
   $lblStatus.AutoSize = $true
   $lblStatus.Margin = New-Object System.Windows.Forms.Padding(0,10,0,0)
   $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
@@ -3071,6 +3195,8 @@ function Show-CheckInOutDashboard {
     AllRows = @()
     LastSearch = ""
     UserDirectory = @()
+    TaskCache = @{}
+    LastOpenedRitm = ""
   }
 
   $grid.AutoGenerateColumns = $false
@@ -3094,8 +3220,8 @@ function Show-CheckInOutDashboard {
   [void]$grid.Columns.Add($colRitm)
 
   $colStatus = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
-  $colStatus.Name = "Status"
-  $colStatus.HeaderText = "Status"
+  $colStatus.Name = "SCTask"
+  $colStatus.HeaderText = "SCTask"
   $colStatus.FillWeight = 20
   [void]$grid.Columns.Add($colStatus)
 
@@ -3104,6 +3230,34 @@ function Show-CheckInOutDashboard {
   $colUpdated.HeaderText = "Last Updated"
   $colUpdated.FillWeight = 20
   [void]$grid.Columns.Add($colUpdated)
+
+  $getTaskSummary = {
+    param($rowItem)
+    if (-not $rowItem) { return "No Open Task" }
+    $ritm = ("" + $rowItem.RITM).Trim().ToUpperInvariant()
+    if ($state.TaskCache.ContainsKey($ritm)) {
+      $tasks = @($state.TaskCache[$ritm])
+      if ($tasks.Count -eq 0) { return "No Open Task" }
+      if ($tasks.Count -eq 1) { return ("" + $tasks[0].number) }
+      return "Multiple Tasks ($($tasks.Count))"
+    }
+    $txt = ("" + $rowItem.SCTASK).Trim()
+    if ([string]::IsNullOrWhiteSpace($txt)) { return "No Open Task" }
+    if ($txt -match ',' -or $txt -match ';') {
+      $parts = @($txt -split '[,;]' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+      if ($parts.Count -gt 1) { return "Multiple Tasks ($($parts.Count))" }
+    }
+    return $txt
+  }
+
+  $formatLastUpdated = {
+    param([string]$v)
+    $txt = ("" + $v).Trim()
+    if ([string]::IsNullOrWhiteSpace($txt) -or $txt -eq "########") { return "-" }
+    $dt = $null
+    if ([datetime]::TryParse($txt, [ref]$dt)) { return $dt.ToString("yyyy-MM-dd HH:mm") }
+    return $txt
+  }
 
   $bindRowsToGrid = {
     param($rows)
@@ -3115,8 +3269,8 @@ function Show-CheckInOutDashboard {
           ("" + $x.Row),
           ("" + $x.RequestedFor),
           ("" + $x.RITM),
-          ("" + $x.DashboardStatus),
-          ("" + $x.LastUpdated)
+          (& $getTaskSummary $x),
+          (& $formatLastUpdated ("" + $x.LastUpdated))
         )
       }
       $grid.ClearSelection()
@@ -3132,13 +3286,13 @@ function Show-CheckInOutDashboard {
     if ($sel) {
       $lblSelectedName.Text = "Display Name: " + ("" + $sel.RequestedFor)
       $lblSelectedRitm.Text = "RITM: " + ("" + $sel.RITM)
-      $lblSelectedStatus.Text = "Status: " + ("" + $sel.DashboardStatus)
-      $lblSelectedUpdated.Text = "Last Updated: " + ("" + $sel.LastUpdated)
+      $lblSelectedStatus.Text = "SCTask: " + (& $getTaskSummary $sel)
+      $lblSelectedUpdated.Text = "Last Updated: " + (& $formatLastUpdated ("" + $sel.LastUpdated))
       $txtPdfPath.Text = ("" + $sel.PdfPath)
     } else {
       $lblSelectedName.Text = "Display Name: -"
       $lblSelectedRitm.Text = "RITM: -"
-      $lblSelectedStatus.Text = "Status: -"
+      $lblSelectedStatus.Text = "SCTask: -"
       $lblSelectedUpdated.Text = "Last Updated: -"
       $txtPdfPath.Text = ""
     }
@@ -3177,6 +3331,15 @@ function Show-CheckInOutDashboard {
 
   $getVisibleRows = {
     $rows = @($state.AllRows)
+    $q = ("" + $txtSearch.Text).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($q)) {
+      $rows = @($rows | Where-Object {
+        ((("" + $_.RequestedFor).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)) -or
+        ((("" + $_.LastName).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)) -or
+        ((("" + $_.FirstName).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)) -or
+        ((("" + $_.RITM).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0))
+      })
+    }
     $statusSel = ("" + $cmbStatus.SelectedItem).Trim()
     switch ($statusSel) {
       "Open Only" {
@@ -3225,19 +3388,27 @@ function Show-CheckInOutDashboard {
     $txtSearch.SelectionLength = 0
   }
 
+  $setBusyUi = {
+    param([bool]$On, [string]$Message = "Working...")
+    $grid.Enabled = -not $On
+    $txtSearch.Enabled = -not $On
+    $cmbStatus.Enabled = -not $On
+    $btnClear.Enabled = -not $On
+    $btnSettings.Enabled = -not $On
+    if ($On) { $lblStatus.Text = $Message }
+    $form.UseWaitCursor = $On
+    [System.Windows.Forms.Application]::DoEvents()
+  }
+
   $performSearch = {
     param([switch]$ReloadFromExcel)
     try {
       $q = ("" + $txtSearch.Text).Trim()
-      if ([string]::IsNullOrWhiteSpace($q)) {
-        $state.Rows = @()
-        $state.AllRows = @()
-        & $bindRowsToGrid @()
-        $lblStatus.Text = "Type Display/Last name and click Search."
-        return
-      }
-      if ($ReloadFromExcel -or (-not $state.AllRows) -or ($state.AllRows.Count -eq 0) -or ($state.LastSearch -ne $q)) {
-        $state.AllRows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText $q)
+      if ($ReloadFromExcel -or (-not $state.AllRows) -or ($state.AllRows.Count -eq 0)) {
+        & $setBusyUi $true "Loading dashboard data..."
+        # Load once from Excel, then filter locally for smooth typing.
+        $state.AllRows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText "")
+        & $setBusyUi $false
       }
       $rows = & $getVisibleRows
       $state.Rows = @($rows)
@@ -3247,9 +3418,14 @@ function Show-CheckInOutDashboard {
       if ($cmbStatus.SelectedItem -and ("" + $cmbStatus.SelectedItem) -ne "All") {
         $filterNote = " (" + $cmbStatus.SelectedItem + ")"
       }
-      $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+      if ([string]::IsNullOrWhiteSpace($q)) {
+        $lblStatus.Text = "Results: $($rows.Count)$filterNote"
+      } else {
+        $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+      }
     }
     catch {
+      & $setBusyUi $false
       $errMsg = $_.Exception.Message
       $errPos = $_.InvocationInfo.PositionMessage
       Log "ERROR" "Dashboard search failed: $errMsg | $errPos"
@@ -3262,24 +3438,34 @@ function Show-CheckInOutDashboard {
     }
   }
 
+  $searchDebounce = New-Object System.Windows.Forms.Timer
+  $searchDebounce.Interval = 320
+  $searchDebounce.Add_Tick({
+    $searchDebounce.Stop()
+    & $performSearch
+  })
+
   $txtSearch.Add_KeyDown({
     param($sender, $e)
     if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
       $e.SuppressKeyPress = $true
+      $searchDebounce.Stop()
       & $performSearch
     }
   })
+  $txtSearch.Add_TextUpdate({
+    & $updateSearchUserSuggestions
+    $searchDebounce.Stop()
+    $searchDebounce.Start()
+  })
   $txtSearch.Add_DropDown({
     & $updateSearchUserSuggestions
-  })
-  $btnSearch.Add_Click({
-    & $performSearch
   })
   $cmbStatus.Add_SelectedIndexChanged({
     if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
       $state.Rows = @()
       & $bindRowsToGrid @()
-      $lblStatus.Text = "Type Display/Last name and click Search."
+      $lblStatus.Text = "Type Display/Last name."
       return
     }
     $rows = & $getVisibleRows
@@ -3296,17 +3482,120 @@ function Show-CheckInOutDashboard {
     if ($sel) {
       $lblSelectedName.Text = "Display Name: " + ("" + $sel.RequestedFor)
       $lblSelectedRitm.Text = "RITM: " + ("" + $sel.RITM)
-      $lblSelectedStatus.Text = "Status: " + ("" + $sel.DashboardStatus)
-      $lblSelectedUpdated.Text = "Last Updated: " + ("" + $sel.LastUpdated)
+      $lblSelectedStatus.Text = "SCTask: " + (& $getTaskSummary $sel)
+      $lblSelectedUpdated.Text = "Last Updated: " + (& $formatLastUpdated ("" + $sel.LastUpdated))
       $txtPdfPath.Text = ("" + $sel.PdfPath)
     } else {
       $lblSelectedName.Text = "Display Name: -"
       $lblSelectedRitm.Text = "RITM: -"
-      $lblSelectedStatus.Text = "Status: -"
+      $lblSelectedStatus.Text = "SCTask: -"
       $lblSelectedUpdated.Text = "Last Updated: -"
       $txtPdfPath.Text = ""
     }
     & $updateActionButtons
+    $selectedResolveTimer.Stop()
+    $selectedResolveTimer.Start()
+  })
+  $grid.Add_CellClick({
+    param($sender, $e)
+    try {
+      if ($e.RowIndex -lt 0) { return }
+      $col = "" + $grid.Columns[$e.ColumnIndex].Name
+      if ($col -ne "RITM") { return }
+      $row = & $getSelectedRow
+      if (-not $row) { return }
+      $ritm = ("" + $row.RITM).Trim().ToUpperInvariant()
+      if (-not ($ritm -match '^RITM\d{6,8}$')) { return }
+      if ($state.LastOpenedRitm -eq $ritm) { return }
+      $state.LastOpenedRitm = $ritm
+      Open-DashboardRowInServiceNow -wv $wv -RowItem $row
+    } catch {}
+  })
+  $grid.Add_CellDoubleClick({
+    param($sender, $e)
+    if ($e.RowIndex -lt 0) { return }
+    try {
+      $row = & $getSelectedRow
+      if (-not $row) { return }
+      $ritm = ("" + $row.RITM).Trim().ToUpperInvariant()
+      if (-not ($ritm -match '^RITM\d{6,8}$')) { return }
+
+      & $setBusyUi $true "Resolving tasks..."
+      $tasks = @(& $resolveOpenTasksForRow $row)
+      & $setBusyUi $false
+      if ($tasks.Count -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "No open CSC task found for this RITM.",
+          "Dashboard",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+        return
+      }
+
+      $selectedTask = $null
+      if ($tasks.Count -eq 1) {
+        $selectedTask = $tasks[0]
+      } else {
+        $selectedTask = & $showTaskSelectionDialog $ritm $tasks
+      }
+      if (-not $selectedTask) { return }
+      Log "INFO" "Dashboard task selected ritm='$ritm' task='$($selectedTask.number)'"
+
+      $taskUrl = Build-SCTaskBestUrl -SysId ("" + $selectedTask.sys_id) -TaskNumber ("" + $selectedTask.number)
+      if (-not [string]::IsNullOrWhiteSpace($taskUrl)) {
+        try { $wv.CoreWebView2.Navigate($taskUrl) } catch {}
+        try { Start-Process $taskUrl | Out-Null } catch {}
+      }
+
+      $choice = [System.Windows.Forms.MessageBox]::Show(
+        "What do you want to do?`r`n`r`nYes = Check-In`r`nNo = Check-Out`r`nCancel = Cancel",
+        "Action",
+        [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+      )
+      if ($choice -eq [System.Windows.Forms.DialogResult]::Cancel) { return }
+
+      $isCheckIn = ($choice -eq [System.Windows.Forms.DialogResult]::Yes)
+      $template = if ($isCheckIn) { "" + $DashboardDefaultCheckInNote } else { "" + $DashboardDefaultCheckOutNote }
+      $noteTitle = if ($isCheckIn) { "Edit Check-In Note" } else { "Edit Check-Out Note" }
+      $noteText = & $showNoteEditorDialog $noteTitle $template
+      if ($null -eq $noteText) { return }
+
+      & $setBusyUi $true "Submitting update..."
+      try {
+        $targetState = if ($isCheckIn) { "Work in Progress" } else { "Appointment" }
+        $excelState = if ($isCheckIn) { "Checked-In" } else { "Appointment" }
+        $tsHeader = if ($isCheckIn) { "Present Time" } else { "Closed Time" }
+        Log "INFO" "Dashboard SN update start ritm='$ritm' task='$($selectedTask.number)' target='$targetState'"
+        if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_task" -SysId ("" + $selectedTask.sys_id) -TargetStateLabel $targetState -WorkNote ("" + $noteText))) {
+          throw "ServiceNow update failed for task $($selectedTask.number)."
+        }
+        Log "INFO" "Dashboard SN update end ritm='$ritm' task='$($selectedTask.number)'"
+        Log "INFO" "Dashboard Excel update start ritm='$ritm' row=$($row.Row)"
+        $excelOk = Update-DashboardExcelRow -ExcelPath $ExcelPath -SheetName $SheetName -RowIndex ([int]$row.Row) -DashboardStatus $excelState -TimestampHeader $tsHeader -TaskNumberToWrite ("" + $selectedTask.number)
+        if (-not $excelOk) { throw "ServiceNow updated, but Excel write failed." }
+        Log "INFO" "Dashboard Excel update end ritm='$ritm' row=$($row.Row)"
+        $lblStatus.Text = if ($isCheckIn) { "Checked-In: $ritm ($($selectedTask.number))" } else { "Appointment: $ritm ($($selectedTask.number))" }
+        $state.TaskCache.Remove($ritm) | Out-Null
+        & $performSearch -ReloadFromExcel
+      }
+      catch {
+        Log "ERROR" "Dashboard double-click action failed: $($_.Exception.Message)"
+        [System.Windows.Forms.MessageBox]::Show(
+          $_.Exception.Message,
+          "Dashboard Error",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Error
+        ) | Out-Null
+      }
+      finally {
+        & $setBusyUi $false
+      }
+    }
+    catch {
+      Log "ERROR" "Dashboard double-click flow failed: $($_.Exception.Message)"
+    }
   })
   $btnRefresh.Add_Click({
     if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
@@ -3318,11 +3607,11 @@ function Show-CheckInOutDashboard {
   })
   $btnClear.Add_Click({
     $txtSearch.Text = ""
-    $state.Rows = @()
-    $state.AllRows = @()
     $state.LastSearch = ""
-    & $bindRowsToGrid @()
-    $lblStatus.Text = "Cleared. Type Display/Last name and click Search."
+    $rows = & $getVisibleRows
+    $state.Rows = @($rows)
+    & $bindRowsToGrid $rows
+    $lblStatus.Text = "Cleared."
   })
   $btnUseCheckInNote.Add_Click({
     $txtComment.Text = $DashboardDefaultCheckInNote
@@ -3331,8 +3620,271 @@ function Show-CheckInOutDashboard {
     $txtComment.Text = $DashboardDefaultCheckOutNote
   })
 
+  $btnSettings.Add_Click({
+    try {
+      $dlg = New-Object System.Windows.Forms.Form
+      $dlg.Text = "Settings"
+      $dlg.StartPosition = "CenterParent"
+      $dlg.Size = New-Object System.Drawing.Size(760, 480)
+      $dlg.MinimumSize = New-Object System.Drawing.Size(640, 420)
+      $dlg.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
+      $dlg.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+      $dlg.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+      $lay = New-Object System.Windows.Forms.TableLayoutPanel
+      $lay.Dock = "Fill"
+      $lay.Padding = New-Object System.Windows.Forms.Padding(12)
+      $lay.RowCount = 6
+      $lay.ColumnCount = 1
+      $lay.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+      $lay.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+      $lay.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+      $lay.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+      $lay.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+      $lay.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+      $dlg.Controls.Add($lay)
+
+      $lblIn = New-Object System.Windows.Forms.Label
+      $lblIn.Text = "Check-In Note Template"
+      $lblIn.AutoSize = $true
+      $lay.Controls.Add($lblIn, 0, 0)
+
+      $txtIn = New-Object System.Windows.Forms.TextBox
+      $txtIn.Multiline = $true
+      $txtIn.ScrollBars = "Vertical"
+      $txtIn.Dock = "Fill"
+      $txtIn.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+      $txtIn.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+      $txtIn.Text = ("" + $DashboardDefaultCheckInNote)
+      $lay.Controls.Add($txtIn, 0, 1)
+
+      $lblOut = New-Object System.Windows.Forms.Label
+      $lblOut.Text = "Check-Out Note Template"
+      $lblOut.AutoSize = $true
+      $lay.Controls.Add($lblOut, 0, 2)
+
+      $txtOut = New-Object System.Windows.Forms.TextBox
+      $txtOut.Multiline = $true
+      $txtOut.ScrollBars = "Vertical"
+      $txtOut.Dock = "Fill"
+      $txtOut.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+      $txtOut.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+      $txtOut.Text = ("" + $DashboardDefaultCheckOutNote)
+      $lay.Controls.Add($txtOut, 0, 3)
+
+      $btnFlow = New-Object System.Windows.Forms.FlowLayoutPanel
+      $btnFlow.Dock = "Fill"
+      $btnFlow.FlowDirection = "RightToLeft"
+      $btnFlow.WrapContents = $false
+      $btnFlow.AutoSize = $true
+
+      $btnSaveSettings = New-Object System.Windows.Forms.Button
+      $btnSaveSettings.Text = "Save"
+      $btnSaveSettings.Width = 100
+      & $btnStyle $btnSaveSettings $true
+      $btnCancelSettings = New-Object System.Windows.Forms.Button
+      $btnCancelSettings.Text = "Cancel"
+      $btnCancelSettings.Width = 100
+      & $btnStyle $btnCancelSettings $false
+      $btnResetSettings = New-Object System.Windows.Forms.Button
+      $btnResetSettings.Text = "Reset defaults"
+      $btnResetSettings.Width = 130
+      & $btnStyle $btnResetSettings $false
+      $btnFlow.Controls.AddRange(@($btnSaveSettings, $btnCancelSettings, $btnResetSettings))
+      $lay.Controls.Add($btnFlow, 0, 5)
+
+      $btnResetSettings.Add_Click({
+        $txtIn.Text = "Deliver all credentials to the new user"
+        $txtOut.Text = "Equipment returned / handover completed"
+      })
+      $btnCancelSettings.Add_Click({ $dlg.Close() })
+      $btnSaveSettings.Add_Click({
+        $newIn = ("" + $txtIn.Text).Trim()
+        $newOut = ("" + $txtOut.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($newIn)) { $newIn = "Deliver all credentials to the new user" }
+        if ([string]::IsNullOrWhiteSpace($newOut)) { $newOut = "Equipment returned / handover completed" }
+        $ok = Save-DashboardSettings -Settings ([pscustomobject]@{
+          CheckInNoteTemplate = $newIn
+          CheckOutNoteTemplate = $newOut
+        })
+        if ($ok) {
+          $script:DashboardDefaultCheckInNote = $newIn
+          $script:DashboardDefaultCheckOutNote = $newOut
+          $txtComment.Text = $newIn
+          $dlg.Close()
+        }
+      })
+      [void]$dlg.ShowDialog($form)
+    }
+    catch {
+      Log "ERROR" "Dashboard settings dialog failed: $($_.Exception.Message)"
+    }
+  })
+
+  $resolveOpenTasksForRow = {
+    param($row)
+    if (-not $row) { return @() }
+    $ritm = ("" + $row.RITM).Trim().ToUpperInvariant()
+    if (-not ($ritm -match '^RITM\d{6,8}$')) { return @() }
+    if ($state.TaskCache.ContainsKey($ritm)) { return @($state.TaskCache[$ritm]) }
+    Log "INFO" "Dashboard task resolution start ritm='$ritm'"
+    $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+    if ($tasks.Count -eq 0) { $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm) }
+    $open = @($tasks | Where-Object {
+      $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+      $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+      (Test-DashboardTaskStateOpen -StateText $st -StateValue $sv) -or (Test-DashboardTaskStateInProgress -StateText $st -StateValue $sv)
+    } | ForEach-Object {
+      [pscustomobject]@{
+        number = if ($_.PSObject.Properties["number"]) { ("" + $_.number).Trim().ToUpperInvariant() } else { "" }
+        sys_id = if ($_.PSObject.Properties["sys_id"]) { ("" + $_.sys_id).Trim() } else { "" }
+        state_text = if ($_.PSObject.Properties["state"]) { ("" + $_.state).Trim() } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label).Trim() } else { "" }
+        state_value = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value).Trim() } else { "" }
+        short_description = if ($_.PSObject.Properties["short_description"]) { ("" + $_.short_description).Trim() } else { "" }
+        updated = if ($_.PSObject.Properties["sys_updated_on"]) { ("" + $_.sys_updated_on).Trim() } else { "" }
+      }
+    })
+    $state.TaskCache[$ritm] = @($open)
+    Log "INFO" "Dashboard task resolution end ritm='$ritm' open_count=$($open.Count)"
+    return @($open)
+  }
+
+  $refreshSelectedTaskDisplay = {
+    $row = & $getSelectedRow
+    if (-not $row) { return }
+    $summary = & $getTaskSummary $row
+    $lblSelectedStatus.Text = "SCTask: $summary"
+    if ($grid.SelectedRows.Count -gt 0) {
+      try { $grid.SelectedRows[0].Cells["SCTask"].Value = $summary } catch {}
+    }
+  }
+
+  $resolveSelectedTaskIfNeeded = {
+    $row = & $getSelectedRow
+    if (-not $row) { return }
+    $ritm = ("" + $row.RITM).Trim().ToUpperInvariant()
+    if (-not ($ritm -match '^RITM\d{6,8}$')) { return }
+    if ($state.TaskCache.ContainsKey($ritm)) { & $refreshSelectedTaskDisplay; return }
+    try {
+      $lblStatus.Text = "Resolving tasks..."
+      [void](& $resolveOpenTasksForRow $row)
+      & $refreshSelectedTaskDisplay
+      $lblStatus.Text = "Ready."
+    }
+    catch {
+      Log "ERROR" "Dashboard selected-task resolve failed: $($_.Exception.Message)"
+    }
+  }
+
+  $selectedResolveTimer = New-Object System.Windows.Forms.Timer
+  $selectedResolveTimer.Interval = 220
+  $selectedResolveTimer.Add_Tick({
+    $selectedResolveTimer.Stop()
+    if ($form.UseWaitCursor) { return }
+    & $resolveSelectedTaskIfNeeded
+  })
+
+  $showTaskSelectionDialog = {
+    param([string]$ritm, [object[]]$tasks)
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = "Select Task for $ritm"
+    $dlg.StartPosition = "CenterParent"
+    $dlg.Size = New-Object System.Drawing.Size(920, 420)
+    $dlg.MinimumSize = New-Object System.Drawing.Size(820, 320)
+    $dlg.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
+    $dlg.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+    $dlg.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+    $list = New-Object System.Windows.Forms.ListView
+    $list.Dock = "Fill"
+    $list.View = "Details"
+    $list.FullRowSelect = $true
+    $list.GridLines = $true
+    $list.HideSelection = $false
+    [void]$list.Columns.Add("Task", 150)
+    [void]$list.Columns.Add("State", 120)
+    [void]$list.Columns.Add("Short description", 420)
+    [void]$list.Columns.Add("Updated", 160)
+    foreach ($t in @($tasks)) {
+      $item = New-Object System.Windows.Forms.ListViewItem(("" + $t.number))
+      [void]$item.SubItems.Add(("" + $t.state_text))
+      [void]$item.SubItems.Add(("" + $t.short_description))
+      [void]$item.SubItems.Add(("" + $t.updated))
+      $item.Tag = $t
+      [void]$list.Items.Add($item)
+    }
+
+    $flow = New-Object System.Windows.Forms.FlowLayoutPanel
+    $flow.Dock = "Bottom"
+    $flow.Height = 44
+    $flow.FlowDirection = "RightToLeft"
+    $flow.Padding = New-Object System.Windows.Forms.Padding(8)
+    $btnSelectTask = New-Object System.Windows.Forms.Button
+    $btnSelectTask.Text = "Select"
+    $btnSelectTask.Width = 100
+    & $btnStyle $btnSelectTask $true
+    $btnCancelTask = New-Object System.Windows.Forms.Button
+    $btnCancelTask.Text = "Cancel"
+    $btnCancelTask.Width = 100
+    & $btnStyle $btnCancelTask $false
+    $flow.Controls.AddRange(@($btnSelectTask, $btnCancelTask))
+    $dlg.Controls.Add($list)
+    $dlg.Controls.Add($flow)
+
+    $selected = $null
+    $selectAction = {
+      if ($list.SelectedItems.Count -eq 0) { return }
+      $selected = $list.SelectedItems[0].Tag
+      $dlg.Close()
+    }
+    $btnSelectTask.Add_Click($selectAction)
+    $list.Add_DoubleClick($selectAction)
+    $btnCancelTask.Add_Click({ $dlg.Close() })
+    [void]$dlg.ShowDialog($form)
+    return $selected
+  }
+
+  $showNoteEditorDialog = {
+    param([string]$title, [string]$templateText)
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = $title
+    $dlg.StartPosition = "CenterParent"
+    $dlg.Size = New-Object System.Drawing.Size(720, 420)
+    $dlg.MinimumSize = New-Object System.Drawing.Size(620, 320)
+    $dlg.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
+    $dlg.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+    $tb = New-Object System.Windows.Forms.TextBox
+    $tb.Dock = "Fill"
+    $tb.Multiline = $true
+    $tb.ScrollBars = "Vertical"
+    $tb.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+    $tb.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+    $tb.Text = "" + $templateText
+    $flow = New-Object System.Windows.Forms.FlowLayoutPanel
+    $flow.Dock = "Bottom"
+    $flow.Height = 44
+    $flow.FlowDirection = "RightToLeft"
+    $flow.Padding = New-Object System.Windows.Forms.Padding(8)
+    $btnSubmitNote = New-Object System.Windows.Forms.Button
+    $btnSubmitNote.Text = "Submit"
+    $btnSubmitNote.Width = 100
+    & $btnStyle $btnSubmitNote $true
+    $btnCancelNote = New-Object System.Windows.Forms.Button
+    $btnCancelNote.Text = "Cancel"
+    $btnCancelNote.Width = 100
+    & $btnStyle $btnCancelNote $false
+    $flow.Controls.AddRange(@($btnSubmitNote, $btnCancelNote))
+    $dlg.Controls.Add($tb)
+    $dlg.Controls.Add($flow)
+    $result = $null
+    $btnSubmitNote.Add_Click({ $result = "" + $tb.Text; $dlg.Close() })
+    $btnCancelNote.Add_Click({ $dlg.Close() })
+    [void]$dlg.ShowDialog($form)
+    return $result
+  }
+
   $actionButtons = @($btnCheckIn, $btnCheckOut, $btnGeneratePdf, $btnOpen, $btnRecalc)
-  $spinnerFrames = @("|","/","-","\")
+  $spinnerFrames = @("|","/","-","\\")
   $actionState = [pscustomobject]@{
     IsRunning = $false
     Button = $null
@@ -3604,8 +4156,8 @@ function Show-CheckInOutDashboard {
   try {
     $state.UserDirectory = @(Get-DashboardUserDirectory -ExcelPath $ExcelPath -SheetName $SheetName)
     & $updateSearchUserSuggestions
-    & $bindRowsToGrid @()
-    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count). Search by Display/Last name."
+    & $performSearch
+    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count)."
   } catch {}
 
   [void]$form.ShowDialog()
@@ -4658,7 +5210,8 @@ try {
   $session = Connect-ServiceNowSSO -StartUrl $LoginUrl
   $wv = $session.Wv
   if (-not (Ensure-SnowReady -wv $wv -MaxWaitMs 12000)) {
-    Log "ERROR" "SNOW session not ready after SSO; extraction may fail."
+    Log "ERROR" "SNOW session not ready after SSO. Interactive login is required."
+    throw "ServiceNow SSO session is required. Please complete login and try again."
   }
 
   # Dashboard mode is isolated and does not run export logic.

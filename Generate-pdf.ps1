@@ -65,6 +65,100 @@ function Resolve-ExcelPath {
   return $dlg.FileName
 }
 
+function Invoke-AutoExcelWithLoading {
+  param(
+    [string]$ScriptPath,
+    [string]$ExcelPath,
+    [string]$SheetName
+  )
+
+  $loading = New-Object System.Windows.Forms.Form
+  $loading.Text = "Loading"
+  $loading.StartPosition = "CenterScreen"
+  $loading.Size = New-Object System.Drawing.Size(520, 180)
+  $loading.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+  $loading.ControlBox = $false
+  $loading.TopMost = $true
+  $loading.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $loading.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $loading.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+
+  $title = New-Object System.Windows.Forms.Label
+  $title.Text = "Preparing dashboard data and validating SSO session..."
+  $title.AutoSize = $true
+  $title.Location = New-Object System.Drawing.Point(20, 24)
+  $loading.Controls.Add($title)
+
+  $status = New-Object System.Windows.Forms.Label
+  $status.Text = "Starting..."
+  $status.AutoSize = $true
+  $status.Location = New-Object System.Drawing.Point(20, 52)
+  $status.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+  $loading.Controls.Add($status)
+
+  $bar = New-Object System.Windows.Forms.ProgressBar
+  $bar.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+  $bar.MarqueeAnimationSpeed = 24
+  $bar.Width = 470
+  $bar.Height = 16
+  $bar.Location = New-Object System.Drawing.Point(20, 90)
+  $loading.Controls.Add($bar)
+
+  $loading.Show()
+  [System.Windows.Forms.Application]::DoEvents()
+
+  $rs = $null
+  $ps = $null
+  $handle = $null
+  $frames = @("|","/","-","\")
+  $idx = 0
+
+  try {
+    $rs = [RunspaceFactory]::CreateRunspace()
+    $rs.ApartmentState = "STA"
+    $rs.ThreadOptions = "ReuseThread"
+    $rs.Open()
+
+    $ps = [PowerShell]::Create()
+    $ps.Runspace = $rs
+    $ps.AddScript({
+      param($AutoExcelScriptPath, $AutoExcelPath, $AutoExcelSheet)
+      $global:LASTEXITCODE = $null
+      & $AutoExcelScriptPath `
+        -ExcelPath $AutoExcelPath `
+        -SheetName $AutoExcelSheet `
+        -TicketHeader "Number" `
+        -TicketColumn 4 `
+        -NameHeader "Name" `
+        -PhoneHeader "PI" `
+        -ActionHeader "Estado de RITM" `
+        -NoPopups
+      if (($global:LASTEXITCODE -ne $null) -and ($global:LASTEXITCODE -ne 0)) {
+        throw "auto-excel.ps1 exited with code $global:LASTEXITCODE"
+      }
+    }) | Out-Null
+    $ps.AddArgument($ScriptPath) | Out-Null
+    $ps.AddArgument($ExcelPath) | Out-Null
+    $ps.AddArgument($SheetName) | Out-Null
+
+    $handle = $ps.BeginInvoke()
+
+    while (-not $handle.IsCompleted) {
+      $status.Text = "Loading... $($frames[$idx])"
+      $idx = ($idx + 1) % $frames.Count
+      [System.Windows.Forms.Application]::DoEvents()
+      Start-Sleep -Milliseconds 120
+    }
+
+    [void]$ps.EndInvoke($handle)
+  }
+  finally {
+    try { if ($ps) { $ps.Dispose() } } catch {}
+    try { if ($rs) { $rs.Close(); $rs.Dispose() } } catch {}
+    try { if ($loading) { $loading.Close(); $loading.Dispose() } } catch {}
+  }
+}
+
 try {
   $ExcelPath = Resolve-ExcelPath -CurrentExcelPath $ExcelPath
 
@@ -75,24 +169,16 @@ try {
   }
 
   Write-Log "Running auto-excel.ps1 before PDF generation."
-  $global:LASTEXITCODE = $null
-  & $AutoExcelScript `
-    -ExcelPath $ExcelPath `
-    -SheetName $PreferredSheet `
-    -TicketHeader "Number" `
-    -TicketColumn 4 `
-    -NameHeader "Name" `
-    -PhoneHeader "PI" `
-    -ActionHeader "Estado de RITM" `
-    -NoPopups
-
-  if (($global:LASTEXITCODE -ne $null) -and ($global:LASTEXITCODE -ne 0)) {
-    throw "auto-excel.ps1 exited with code $global:LASTEXITCODE"
-  }
+  Invoke-AutoExcelWithLoading -ScriptPath $AutoExcelScript -ExcelPath $ExcelPath -SheetName $PreferredSheet
 }
 catch {
-  Write-Log ("Autofill failed: " + $_.Exception.Message)
-  Write-Host "ERROR: Autofill failed. PDFs were not generated. Check the log."
+  $err = "" + $_.Exception.Message
+  Write-Log ("Autofill failed: " + $err)
+  if ($err -match 'SSO session is required|SSO not confirmed|ServiceNow SSO session is required') {
+    Write-Host "ERROR: ServiceNow login is required. Please complete SSO login and run again."
+  } else {
+    Write-Host "ERROR: Autofill failed. PDFs were not generated. Check the log."
+  }
   return
 }
 Write-Log "Excel is ready. Choose DOCX/PDF and click Generate Documents."
