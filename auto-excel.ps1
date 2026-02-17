@@ -1608,6 +1608,27 @@ function Resolve-DashboardNameColumns {
   }
 }
 
+function Resolve-DashboardSctaskColumn {
+  param([hashtable]$HeaderMap)
+
+  foreach ($k in $HeaderMap.Keys) {
+    $hk = ("" + $k).Trim()
+    if ($hk -match '(?i)split') { continue }
+    if ($hk -match '(?i)^\s*sctasks?\s*$') { return [int]$HeaderMap[$k] }
+  }
+  foreach ($k in $HeaderMap.Keys) {
+    $hk = ("" + $k).Trim()
+    if ($hk -match '(?i)split') { continue }
+    if ($hk -match '(?i)^sc\s*task(s)?\s*$') { return [int]$HeaderMap[$k] }
+  }
+  foreach ($k in $HeaderMap.Keys) {
+    $hk = ("" + $k).Trim()
+    if ($hk -match '(?i)split') { continue }
+    if ($hk -match '(?i)\bsctasks?\b|\bsc\s*task\b') { return [int]$HeaderMap[$k] }
+  }
+  return $null
+}
+
 function Ensure-DashboardExcelColumns {
   param(
     [string]$ExcelPath,
@@ -1640,7 +1661,7 @@ function Ensure-DashboardExcelColumns {
     $statusCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Dashboard Status"
     $presentCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Present Time"
     $closedCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Closed Time"
-    $sctaskCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^\s*sctask\s*$', '(?i)sc\s*task', '(?i)\bsctasks?\b')
+    $sctaskCol = Resolve-DashboardSctaskColumn -HeaderMap $map
 
     $wb.Save()
 
@@ -1694,7 +1715,7 @@ function Search-DashboardRows {
       throw "Dashboard requires one of: Requested for, Name, First Name/Last Name."
     }
 
-    $sctaskCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^\s*sctask\s*$', '(?i)sc\s*task', '(?i)\bsctasks?\b')
+    $sctaskCol = Resolve-DashboardSctaskColumn -HeaderMap $map
     $statusCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^dashboard\s*status$')
     $presentCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^present\s*time$')
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^closed\s*time$')
@@ -1806,7 +1827,7 @@ function Update-DashboardExcelRow {
     $statusCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Dashboard Status"
     $presentCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Present Time"
     $closedCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Closed Time"
-    $sctaskCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^\s*sctask\s*$', '(?i)sc\s*task', '(?i)\bsctasks?\b')
+    $sctaskCol = Resolve-DashboardSctaskColumn -HeaderMap $map
 
     $ws.Cells.Item($RowIndex, $statusCol) = $DashboardStatus
 
@@ -1976,7 +1997,7 @@ function Get-OpenSCTasksForRitmFallback {
       }) | Out-Null
     }
   }
-  if ($open.Count -gt 0) { return @($open) }
+  if ($open.Count -gt 0) { return @($open.ToArray()) }
 
   # 2) UI list fallback: discover task numbers visible in list
   $taskListText = Get-RitmTaskListTextFromUiPage -wv $wv -RitmNumber $ritm
@@ -1999,18 +2020,31 @@ function Get-OpenSCTasksForRitmFallback {
       }
     }
   }
-  return @($openUi)
+  return @($openUi.ToArray())
 }
 
-function Test-DashboardStateOpen {
-  param([string]$StateText)
+function Test-DashboardTaskStateOpen {
+  param(
+    [string]$StateText,
+    [string]$StateValue
+  )
   $s = ("" + $StateText).Trim().ToLowerInvariant()
-  return ($s -eq "open")
+  $v = ("" + $StateValue).Trim().ToLowerInvariant()
+  if ($v -eq "1") { return $true }
+  if ($s -eq "1") { return $true }
+  if ($s -match '^\s*open\s*$|^\s*new\s*$') { return $true }
+  return $false
 }
 
-function Test-DashboardStateInProgress {
-  param([string]$StateText)
+function Test-DashboardTaskStateInProgress {
+  param(
+    [string]$StateText,
+    [string]$StateValue
+  )
   $s = ("" + $StateText).Trim().ToLowerInvariant()
+  $v = ("" + $StateValue).Trim().ToLowerInvariant()
+  if ($v -eq "2") { return $true }
+  if ($s -eq "2") { return $true }
   return ($s -match 'work\s*in\s*progress|in\s*progress')
 }
 
@@ -2037,12 +2071,32 @@ function Invoke-ServiceNowDomUpdate {
 
   $targetJson = ($TargetStateLabel | ConvertTo-Json -Compress)
   $noteJson = ($WorkNote | ConvertTo-Json -Compress)
+  $sysIdJson = ($SysId | ConvertTo-Json -Compress)
   $js = @"
 (function(){
   try {
     var target = $targetJson;
     var note = $noteJson;
+    var table = '$Table';
+    var targetSysId = $sysIdJson;
     function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function norm(x){ return s(x).toLowerCase().replace(/[\s_-]+/g,' ').trim(); }
+    function stateLooksLikeTarget(targetLabel, currentLabel, currentValue){
+      var t = norm(targetLabel);
+      var cl = norm(currentLabel);
+      var cv = norm(currentValue);
+      if (!t) return false;
+      if (t.indexOf('appoint') >= 0) {
+        return (cl.indexOf('appoint') >= 0 || cl.indexOf('appoin') >= 0);
+      }
+      if (t.indexOf('work in progress') >= 0) {
+        return (cl.indexOf('work in progress') >= 0 || cv === '2');
+      }
+      if (t.indexOf('closed complete') >= 0) {
+        return (cl.indexOf('closed complete') >= 0 || cv === '3');
+      }
+      return (cl === t || cl.indexOf(t) >= 0 || cv === t);
+    }
     function docs(){
       var out = [];
       var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
@@ -2084,10 +2138,48 @@ function Invoke-ServiceNowDomUpdate {
           if (t2.indexOf(wanted) >= 0) { best = el.options[j].value; break; }
         }
       }
+      if (best === null && wanted.indexOf('appoint') >= 0) {
+        for (var k=0; k<el.options.length; k++) {
+          var t3 = s(el.options[k].text).toLowerCase();
+          if (t3.indexOf('appoint') >= 0 || t3.indexOf('appoin') >= 0) { best = el.options[k].value; break; }
+        }
+      }
       if (best === null) return false;
       el.value = best;
       el.dispatchEvent(new Event('change', { bubbles:true }));
       return true;
+    }
+    function verifyPersistedState(sysId, tableName, targetLabel){
+      try {
+        if (!sysId || !tableName || !targetLabel) return {ok:false, reason:'missing_inputs'};
+        var lastLabel = '';
+        var lastValue = '';
+        for (var a=0; a<4; a++) {
+          var p = '/' + tableName + '.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=' + encodeURIComponent('sys_id=' + sysId);
+          var x = new XMLHttpRequest();
+          x.open('GET', p, false);
+          x.withCredentials = true;
+          x.send(null);
+          if (x.status>=200 && x.status<300) {
+            var o = {};
+            try { o = JSON.parse(x.responseText || '{}'); } catch(e0) { o = {}; }
+            var r = (o && o.records && o.records[0]) ? o.records[0] : ((o && o.result && o.result[0]) ? o.result[0] : null);
+            if (r) {
+              lastValue = s(r.state_value || r.state || '');
+              lastLabel = s(r.state_label || '');
+              if (!lastLabel) {
+                try { lastLabel = s(resolveStateLabel(tableName, lastValue)); } catch(e1) {}
+              }
+              if (stateLooksLikeTarget(targetLabel, lastLabel, lastValue)) {
+                return {ok:true, state_label:lastLabel, state_value:lastValue};
+              }
+            }
+          }
+        }
+        return {ok:false, reason:'state_not_persisted', state_label:lastLabel, state_value:lastValue};
+      } catch(e){
+        return {ok:false, reason:'verify_exception', error:''+e};
+      }
     }
     function findNotes(doc){
       var sels = [
@@ -2119,12 +2211,19 @@ function Invoke-ServiceNowDomUpdate {
     }
     function clickSave(doc){
       var sels = [
+        '#sysverb_update',
+        '#sysverb_update_and_stay',
         'button#sysverb_update',
         'button[name=\"sysverb_update\"]',
         'input#sysverb_update',
+        'input[name=\"sysverb_update\"]',
+        'button#sysverb_update_and_stay',
         'button[name=\"sysverb_update_and_stay\"]',
         'button.activity-submit',
-        'button[data-action=\"save\"]'
+        'button[data-action=\"save\"]',
+        'button[aria-label*=\"Update\" i]',
+        'button[title*=\"Update\" i]',
+        'input[value=\"Update\"]'
       ];
       for (var i=0; i<sels.length; i++) {
         var btn = doc.querySelector(sels[i]);
@@ -2134,12 +2233,51 @@ function Invoke-ServiceNowDomUpdate {
       }
       return false;
     }
+    function tryGFormUpdate(doc){
+      try {
+        if (!doc || !doc.defaultView) return {ok:false};
+        var w = doc.defaultView;
+        var gf = w.g_form;
+        if (!gf) return {ok:false};
+        var ctl = null;
+        try { ctl = gf.getControl('state'); } catch(e0) { ctl = null; }
+        if (!ctl || !ctl.options || ctl.options.length===0) return {ok:false};
+        var wanted = s(target).toLowerCase();
+        var best = null;
+        for (var i=0; i<ctl.options.length; i++) {
+          var t = s(ctl.options[i].text).toLowerCase();
+          if (t === wanted || t.indexOf(wanted) >= 0) { best = s(ctl.options[i].value); break; }
+        }
+        if (!best) return {ok:false};
+        try { gf.setValue('state', best); } catch(e1) { return {ok:false}; }
+        if (note) {
+          try { gf.setValue('work_notes', note); } catch(e2) {}
+        }
+        try {
+          if (typeof w.gsftSubmit === 'function') {
+            w.gsftSubmit(null, gf.getFormElement(), 'sysverb_update');
+            return {ok:true};
+          }
+        } catch(e3) {}
+        try {
+          if (typeof gf.save === 'function') { gf.save(); return {ok:true}; }
+        } catch(e4) {}
+        return {ok:false};
+      } catch(e){
+        return {ok:false};
+      }
+    }
     var stateApplied = false;
     var notesApplied = (note === '');
     var saved = false;
     var ds = docs();
+    var gformSaved = false;
     for (var di=0; di<ds.length; di++) {
       var d = ds[di];
+      if (!gformSaved) {
+        var g = tryGFormUpdate(d);
+        if (g && g.ok) { gformSaved = true; break; }
+      }
       if (!stateApplied) {
         var st = findState(d);
         if (st) stateApplied = setState(st, target);
@@ -2153,15 +2291,49 @@ function Invoke-ServiceNowDomUpdate {
       }
       if (stateApplied && notesApplied && saved) break;
     }
-    return JSON.stringify({ok:(stateApplied && notesApplied && saved), state_applied:stateApplied, notes_applied:notesApplied, saved:saved});
+    var okFinal = gformSaved || (stateApplied && notesApplied && saved);
+    var verify = {ok:false, reason:'not_run'};
+    if (okFinal) {
+      verify = verifyPersistedState(targetSysId, table, target);
+      if (!verify.ok) okFinal = false;
+    }
+    return JSON.stringify({
+      ok:okFinal,
+      state_applied:stateApplied,
+      notes_applied:notesApplied,
+      saved:saved,
+      gform_saved:gformSaved,
+      verify_ok:verify.ok,
+      verify_reason:s(verify.reason || ''),
+      verify_state_label:s(verify.state_label || ''),
+      verify_state_value:s(verify.state_value || ''),
+      verify_error:s(verify.error || '')
+    });
   } catch(e){
     return JSON.stringify({ok:false, error:''+e});
   }
 })();
 "@
-  $o = Parse-WV2Json (ExecJS $wv $js 12000)
+  $o = $null
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    $o = Parse-WV2Json (ExecJS $wv $js 12000)
+    if ($o -and $o.ok -eq $true) { break }
+    Start-Sleep -Milliseconds 900
+  }
   if (-not $o -or $o.ok -ne $true) {
-    $detail = if ($o -and $o.PSObject.Properties["error"]) { "" + $o.error } else { "unknown dom update failure" }
+    $detail = ""
+    if ($o -and $o.PSObject.Properties["error"]) { $detail = "" + $o.error }
+    if (-not $detail -and $o) {
+      $sa = if ($o.PSObject.Properties["state_applied"]) { "" + $o.state_applied } else { "n/a" }
+      $na = if ($o.PSObject.Properties["notes_applied"]) { "" + $o.notes_applied } else { "n/a" }
+      $sv = if ($o.PSObject.Properties["saved"]) { "" + $o.saved } else { "n/a" }
+      $gf = if ($o.PSObject.Properties["gform_saved"]) { "" + $o.gform_saved } else { "n/a" }
+      $vr = if ($o.PSObject.Properties["verify_reason"]) { "" + $o.verify_reason } else { "n/a" }
+      $vl = if ($o.PSObject.Properties["verify_state_label"]) { "" + $o.verify_state_label } else { "" }
+      $vv = if ($o.PSObject.Properties["verify_state_value"]) { "" + $o.verify_state_value } else { "" }
+      $detail = "state_applied=$sa notes_applied=$na saved=$sv gform_saved=$gf verify_reason=$vr verify_state='$vl/$vv'"
+    }
+    if (-not $detail) { $detail = "unknown dom update failure" }
     Log "ERROR" "Dashboard ServiceNow DOM update failed table='$Table' sys_id='$SysId' state='$TargetStateLabel' detail='$detail'"
     return $false
   }
@@ -2183,10 +2355,24 @@ function Invoke-DashboardCheckIn {
 
   Log "INFO" "Dashboard CHECK-IN started for $ritm row=$($RowItem.Row)"
   $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  if ($tasks.Count -eq 0) {
+    $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm)
+  }
   if ($tasks.Count -eq 0) { return [pscustomobject]@{ ok = $false; message = "No SCTASK found for $ritm." } }
 
-  $openTasks = @($tasks | Where-Object { Test-DashboardStateOpen -StateText ("" + $_.state) })
+  $openTasks = @($tasks | Where-Object {
+    $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+    $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+    Test-DashboardTaskStateOpen -StateText $st -StateValue $sv
+  })
   if ($openTasks.Count -eq 0) {
+    $diag = @($tasks | ForEach-Object {
+      $n = if ($_.PSObject.Properties["number"]) { ("" + $_.number) } else { "" }
+      $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+      $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+      "$n[$st/$sv]"
+    })
+    Log "INFO" "Dashboard CHECK-IN no open task for $ritm candidates=$($diag -join ', ')"
     return [pscustomobject]@{ ok = $false; message = "No task in state 'Open' for $ritm." }
   }
   $task = $openTasks[0]
@@ -2203,6 +2389,69 @@ function Invoke-DashboardCheckIn {
   return [pscustomobject]@{ ok = $true; message = "Checked-In: $ritm ($($task.number))" }
 }
 
+function Get-DashboardCheckInCandidate {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+  $ritm = ("" + $RitmNumber).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) { return $null }
+
+  $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  if ($tasks.Count -eq 0) { $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm) }
+  if ($tasks.Count -eq 0) { return $null }
+
+  foreach ($t in $tasks) {
+    $st = if ($t.PSObject.Properties["state"]) { ("" + $t.state) } elseif ($t.PSObject.Properties["state_label"]) { ("" + $t.state_label) } else { "" }
+    $sv = if ($t.PSObject.Properties["state_value"]) { ("" + $t.state_value) } else { "" }
+    if (Test-DashboardTaskStateOpen -StateText $st -StateValue $sv) {
+      return [pscustomobject]@{
+        number = if ($t.PSObject.Properties["number"]) { ("" + $t.number).Trim().ToUpperInvariant() } else { "" }
+        state_text = ("" + $st).Trim()
+        state_value = ("" + $sv).Trim()
+      }
+    }
+  }
+  return $null
+}
+
+function Get-DashboardCheckOutCandidate {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+  $ritm = ("" + $RitmNumber).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) { return $null }
+
+  $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  if ($tasks.Count -eq 0) { $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm) }
+  if ($tasks.Count -eq 0) { return $null }
+
+  foreach ($t in $tasks) {
+    $st = if ($t.PSObject.Properties["state"]) { ("" + $t.state) } elseif ($t.PSObject.Properties["state_label"]) { ("" + $t.state_label) } else { "" }
+    $sv = if ($t.PSObject.Properties["state_value"]) { ("" + $t.state_value) } else { "" }
+    if (Test-DashboardTaskStateOpen -StateText $st -StateValue $sv) {
+      return [pscustomobject]@{
+        number = if ($t.PSObject.Properties["number"]) { ("" + $t.number).Trim().ToUpperInvariant() } else { "" }
+        state_text = ("" + $st).Trim()
+        state_value = ("" + $sv).Trim()
+      }
+    }
+  }
+  foreach ($t in $tasks) {
+    $st = if ($t.PSObject.Properties["state"]) { ("" + $t.state) } elseif ($t.PSObject.Properties["state_label"]) { ("" + $t.state_label) } else { "" }
+    $sv = if ($t.PSObject.Properties["state_value"]) { ("" + $t.state_value) } else { "" }
+    if (Test-DashboardTaskStateInProgress -StateText $st -StateValue $sv) {
+      return [pscustomobject]@{
+        number = if ($t.PSObject.Properties["number"]) { ("" + $t.number).Trim().ToUpperInvariant() } else { "" }
+        state_text = ("" + $st).Trim()
+        state_value = ("" + $sv).Trim()
+      }
+    }
+  }
+  return $null
+}
+
 function Invoke-DashboardCheckOut {
   param(
     $wv,
@@ -2217,36 +2466,39 @@ function Invoke-DashboardCheckOut {
 
   Log "INFO" "Dashboard CHECK-OUT started for $ritm row=$($RowItem.Row)"
   $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  if ($tasks.Count -eq 0) {
+    $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm)
+  }
   if ($tasks.Count -eq 0) { return [pscustomobject]@{ ok = $false; message = "No SCTASK found for $ritm." } }
 
-  $openTasks = @($tasks | Where-Object { Test-DashboardStateOpen -StateText ("" + $_.state) })
-  $wipTasks = @($tasks | Where-Object { Test-DashboardStateInProgress -StateText ("" + $_.state) })
+  $openTasks = @($tasks | Where-Object {
+    $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+    $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+    Test-DashboardTaskStateOpen -StateText $st -StateValue $sv
+  })
+  $wipTasks = @($tasks | Where-Object {
+    $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+    $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+    Test-DashboardTaskStateInProgress -StateText $st -StateValue $sv
+  })
   $task = $null
   if ($openTasks.Count -gt 0) { $task = $openTasks[0] } elseif ($wipTasks.Count -gt 0) { $task = $wipTasks[0] }
   if (-not $task) {
     return [pscustomobject]@{ ok = $false; message = "No task in Open/Work in Progress for $ritm." }
   }
 
-  if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_task" -SysId ("" + $task.sys_id) -TargetStateLabel "Closed Complete" -WorkNote $WorkNote)) {
+  if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_task" -SysId ("" + $task.sys_id) -TargetStateLabel "Appointment" -WorkNote $WorkNote)) {
     return [pscustomobject]@{ ok = $false; message = "ServiceNow update failed for task $($task.number)." }
   }
-
-  $ritmRes = Extract-Ticket_JSONv2 -wv $wv -Ticket $ritm
-  $ritmSysId = if ($ritmRes -and $ritmRes.ok -eq $true -and $ritmRes.PSObject.Properties["sys_id"]) { ("" + $ritmRes.sys_id).Trim() } else { "" }
-  if ([string]::IsNullOrWhiteSpace($ritmSysId)) {
-    return [pscustomobject]@{ ok = $false; message = "Task closed, but parent RITM sys_id not found for $ritm." }
-  }
-
-  if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_req_item" -SysId $ritmSysId -TargetStateLabel "Closed Complete" -WorkNote "")) {
-    return [pscustomobject]@{ ok = $false; message = "Task closed, but failed to close parent RITM $ritm." }
-  }
+  # Temporary test mode:
+  # do not close parent RITM during CHECK-OUT; keep flow in Appointment for iterative testing.
 
   $excelOk = Update-DashboardExcelRow -ExcelPath $ExcelPath -SheetName $SheetName -RowIndex ([int]$RowItem.Row) `
-    -DashboardStatus "Completed" -TimestampHeader "Closed Time" -TaskNumberToWrite ("" + $task.number)
+    -DashboardStatus "Appointment" -TimestampHeader "Closed Time" -TaskNumberToWrite ("" + $task.number)
   if (-not $excelOk) { return [pscustomobject]@{ ok = $false; message = "ServiceNow updated, but Excel write failed." } }
 
   Log "INFO" "Dashboard CHECK-OUT completed for $ritm task=$($task.number)"
-  return [pscustomobject]@{ ok = $true; message = "Completed: $ritm ($($task.number))" }
+  return [pscustomobject]@{ ok = $true; message = "Appointment: $ritm ($($task.number))" }
 }
 
 function Invoke-DashboardRecalculateStatus {
@@ -2264,8 +2516,19 @@ function Invoke-DashboardRecalculateStatus {
 
   Log "INFO" "Dashboard RE-CALCULATE started for $ritm row=$($RowItem.Row)"
   $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
-  $openTasks = @($tasks | Where-Object { Test-DashboardStateOpen -StateText ("" + $_.state) })
-  $wipTasks = @($tasks | Where-Object { Test-DashboardStateInProgress -StateText ("" + $_.state) })
+  if ($tasks.Count -eq 0) {
+    $tasks = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $ritm)
+  }
+  $openTasks = @($tasks | Where-Object {
+    $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+    $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+    Test-DashboardTaskStateOpen -StateText $st -StateValue $sv
+  })
+  $wipTasks = @($tasks | Where-Object {
+    $st = if ($_.PSObject.Properties["state"]) { ("" + $_.state) } elseif ($_.PSObject.Properties["state_label"]) { ("" + $_.state_label) } else { "" }
+    $sv = if ($_.PSObject.Properties["state_value"]) { ("" + $_.state_value) } else { "" }
+    Test-DashboardTaskStateInProgress -StateText $st -StateValue $sv
+  })
 
   $ritmRes = Extract-Ticket_JSONv2 -wv $wv -Ticket $ritm
   $ritmStateRaw = ""
@@ -2354,6 +2617,12 @@ function Show-CheckInOutDashboard {
   $lblSearch.AutoSize = $true
   $lblSearch.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
 
+  $lblHint = New-Object System.Windows.Forms.Label
+  $lblHint.Text = "Live filter enabled. Start typing to load matching users and tasks."
+  $lblHint.Location = New-Object System.Drawing.Point(16, 58)
+  $lblHint.AutoSize = $true
+  $lblHint.ForeColor = [System.Drawing.Color]::FromArgb(120,180,255)
+
   $txtSearch = New-Object System.Windows.Forms.ComboBox
   $txtSearch.Location = New-Object System.Drawing.Point(16, 38)
   $txtSearch.Size = New-Object System.Drawing.Size(360, 24)
@@ -2413,8 +2682,8 @@ function Show-CheckInOutDashboard {
   & $btnStyle $btnOpen $false
 
   $grid = New-Object System.Windows.Forms.DataGridView
-  $grid.Location = New-Object System.Drawing.Point(16, 76)
-  $grid.Size = New-Object System.Drawing.Size(1070, 380)
+  $grid.Location = New-Object System.Drawing.Point(16, 86)
+  $grid.Size = New-Object System.Drawing.Size(1070, 370)
   $grid.ReadOnly = $true
   $grid.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
   $grid.MultiSelect = $false
@@ -2433,6 +2702,7 @@ function Show-CheckInOutDashboard {
   $grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
   $grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
   $grid.RowHeadersVisible = $false
+  $grid.RowTemplate.Height = 30
 
   $lblComment = New-Object System.Windows.Forms.Label
   $lblComment.Text = "Work Note (editable before submit):"
@@ -2484,7 +2754,7 @@ function Show-CheckInOutDashboard {
   $lblStatus.Size = New-Object System.Drawing.Size(700, 28)
   $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
 
-  $form.Controls.AddRange(@($lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpen, $chkOpenOnly, $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $lblStatus))
+  $form.Controls.AddRange(@($lblSearch, $lblHint, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpen, $chkOpenOnly, $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $lblStatus))
 
   $state = [pscustomobject]@{
     Rows = @()
@@ -2779,6 +3049,24 @@ function Show-CheckInOutDashboard {
         $note = $DashboardDefaultCheckInNote
         $txtComment.Text = $note
       }
+      $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
+      $candIn = Get-DashboardCheckInCandidate -wv $wv -RitmNumber $ritmSel
+      if (-not $candIn) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "No Open task detected for $ritmSel.",
+          "Check-In",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+        return
+      }
+      $confirmIn = [System.Windows.Forms.MessageBox]::Show(
+        "RITM: $ritmSel`r`nSCTASK: $($candIn.number)`r`nCurrent: $($candIn.state_text) [$($candIn.state_value)]`r`nTarget: Work in Progress`r`n`r`nContinue?",
+        "Confirm Check-In",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+      )
+      if ($confirmIn -ne [System.Windows.Forms.DialogResult]::Yes) { return }
       $res = Invoke-DashboardCheckIn -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
       if ($res.ok -eq $true) {
         $lblStatus.Text = "" + $res.message
@@ -2821,6 +3109,24 @@ function Show-CheckInOutDashboard {
         $note = $DashboardDefaultCheckOutNote
         $txtComment.Text = $note
       }
+      $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
+      $candOut = Get-DashboardCheckOutCandidate -wv $wv -RitmNumber $ritmSel
+      if (-not $candOut) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "No Open/Work in Progress task detected for $ritmSel.",
+          "Check-Out",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+        return
+      }
+      $confirmOut = [System.Windows.Forms.MessageBox]::Show(
+        "RITM: $ritmSel`r`nSCTASK: $($candOut.number)`r`nCurrent: $($candOut.state_text) [$($candOut.state_value)]`r`nTarget: Appointment (task only, parent RITM unchanged)`r`n`r`nContinue?",
+        "Confirm Check-Out",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+      )
+      if ($confirmOut -ne [System.Windows.Forms.DialogResult]::Yes) { return }
       $res = Invoke-DashboardCheckOut -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
       if ($res.ok -eq $true) {
         $lblStatus.Text = "" + $res.message
@@ -2913,6 +3219,8 @@ function Write-BackToExcel {
   if (-not $map.ContainsKey($PhoneHeader))  { throw "Missing header '$PhoneHeader'." }
   if (-not $map.ContainsKey($ActionHeader)) { throw "Missing header '$ActionHeader'." }
   $sctasksCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header $SCTasksHeader
+  $sctaskSplitCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "SCTask Split"
+  $sctaskExpansionRequests = New-Object System.Collections.Generic.List[object]
 
   # --- Iterate rows and fill values (only if empty/placeholder) ---
   $xlUp = -4162
@@ -3030,31 +3338,114 @@ function Write-BackToExcel {
           }
           if ($taskNumber) { [void]$openTaskNumbers.Add($taskNumber) }
         }
-        $display = if ($openTaskNumbers.Count -gt 0) { $openTaskNumbers -join ", " } else { "Open tasks: $($openTasks.Count)" }
-        $taskUrl = ""
-        if ($openTaskNumbers.Count -eq 1) {
-          $taskUrl = Build-SCTaskBestUrl -SysId $firstTaskSysId -TaskNumber $openTaskNumbers[0]
+        $existingSplit = ("" + $ws.Cells.Item($r, $sctaskSplitCol).Text).Trim()
+        if ($openTaskNumbers.Count -gt 0) {
+          $firstTask = $openTaskNumbers[0]
+          $taskUrl = Build-SCTaskBestUrl -SysId $firstTaskSysId -TaskNumber $firstTask
+          if (-not [string]::IsNullOrWhiteSpace($taskUrl)) {
+            Set-ExcelHyperlinkSafe -ws $ws -Row $r -Col $sctasksCol -DisplayText $firstTask -Url $taskUrl -TicketForLog $ticket
+          }
+          else {
+            $ws.Cells.Item($r, $sctasksCol) = $firstTask
+          }
+          $ws.Cells.Item($r, $sctaskSplitCol) = "PARENT"
         }
         else {
-          $taskUrl = Build-SCTaskListByNumbersUrl -TaskNumbers @($openTaskNumbers)
+          $ws.Cells.Item($r, $sctasksCol) = "Open tasks: $($openTasks.Count)"
+          $ws.Cells.Item($r, $sctaskSplitCol) = "PARENT"
         }
-        if (-not [string]::IsNullOrWhiteSpace($taskUrl)) {
-          Set-ExcelHyperlinkSafe -ws $ws -Row $r -Col $sctasksCol -DisplayText $display -Url $taskUrl -TicketForLog $ticket
+
+        if ($openTaskNumbers.Count -gt 1) {
+          $sctaskExpansionRequests.Add([pscustomobject]@{
+            Row = [int]$r
+            Ticket = $ticket
+            TaskItems = @($openTasks)
+            NameValue = ("" + $ws.Cells.Item($r, $map[$NameHeader]).Text)
+            PhoneValue = ("" + $ws.Cells.Item($r, $map[$PhoneHeader]).Text)
+            ActionValue = ("" + $ws.Cells.Item($r, $map[$ActionHeader]).Text)
+            TicketUrl = if ($ticket -like "RITM*") { Build-RitmBestUrl -SysId $sysIdOut -RitmNumber $ticket } else { "" }
+          }) | Out-Null
         }
-        else {
-          $ws.Cells.Item($r, $sctasksCol) = $display
+        elseif ($openTaskNumbers.Count -eq 1) {
+          # Remove stale AUTO split rows left from previous runs when only one task remains.
+          $ws.Cells.Item($r, $sctaskSplitCol) = "PARENT"
         }
       }
       else {
         $cell = $ws.Cells.Item($r, $sctasksCol)
         try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
         $ws.Cells.Item($r, $sctasksCol) = "No open tasks."
+        $ws.Cells.Item($r, $sctaskSplitCol) = ""
       }
     }
     else {
       $cell = $ws.Cells.Item($r, $sctasksCol)
       try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
       $ws.Cells.Item($r, $sctasksCol) = ""
+      $ws.Cells.Item($r, $sctaskSplitCol) = ""
+    }
+  }
+
+  # Expand RITM rows: one Excel row per open SCTASK with direct hyperlink.
+  if ($sctaskExpansionRequests.Count -gt 0) {
+    $expansionSorted = @($sctaskExpansionRequests | Sort-Object -Property Row -Descending)
+    foreach ($req in $expansionSorted) {
+      $baseRow = [int]$req.Row
+      $ticket = ("" + $req.Ticket).Trim().ToUpperInvariant()
+      $taskObjs = @($req.TaskItems)
+      if ($taskObjs.Count -le 1) { continue }
+
+      # Delete previous AUTO rows directly under parent to avoid duplicates between runs.
+      $scan = $baseRow + 1
+      while ($true) {
+        $ticketTxt = ("" + $ws.Cells.Item($scan, $ticketCol).Text).Trim().ToUpperInvariant()
+        $splitTxt = ("" + $ws.Cells.Item($scan, $sctaskSplitCol).Text).Trim().ToUpperInvariant()
+        if (($ticketTxt -eq $ticket) -and ($splitTxt -eq "AUTO")) {
+          $ws.Rows.Item($scan).Delete() | Out-Null
+          continue
+        }
+        break
+      }
+
+      # Build task list and keep parent row = first task.
+      $taskNums = New-Object System.Collections.Generic.List[string]
+      $taskSysMap = @{}
+      foreach ($to in $taskObjs) {
+        $tn = if ($to.PSObject.Properties["number"]) { ("" + $to.number).Trim().ToUpperInvariant() } else { "" }
+        $ts = if ($to.PSObject.Properties["sys_id"]) { ("" + $to.sys_id).Trim() } else { "" }
+        if ([string]::IsNullOrWhiteSpace($tn)) { continue }
+        if (-not $taskSysMap.ContainsKey($tn)) {
+          $taskSysMap[$tn] = $ts
+          [void]$taskNums.Add($tn)
+        }
+      }
+      if ($taskNums.Count -le 1) { continue }
+
+      for ($iTask = 1; $iTask -lt $taskNums.Count; $iTask++) {
+        $insRow = $baseRow + $iTask
+        $ws.Rows.Item($insRow).Insert() | Out-Null
+
+        # Keep key values aligned with parent.
+        $ws.Cells.Item($insRow, $ticketCol) = $ticket
+        $ws.Cells.Item($insRow, $map[$NameHeader]) = "" + $req.NameValue
+        $ws.Cells.Item($insRow, $map[$PhoneHeader]) = "" + $req.PhoneValue
+        $ws.Cells.Item($insRow, $map[$ActionHeader]) = "" + $req.ActionValue
+        $ws.Cells.Item($insRow, $sctaskSplitCol) = "AUTO"
+
+        if (-not [string]::IsNullOrWhiteSpace($req.TicketUrl)) {
+          Set-ExcelHyperlinkSafe -ws $ws -Row $insRow -Col $ticketCol -DisplayText $ticket -Url ("" + $req.TicketUrl) -TicketForLog $ticket
+        }
+
+        $tn2 = $taskNums[$iTask]
+        $ts2 = if ($taskSysMap.ContainsKey($tn2)) { "" + $taskSysMap[$tn2] } else { "" }
+        $tu2 = Build-SCTaskBestUrl -SysId $ts2 -TaskNumber $tn2
+        if (-not [string]::IsNullOrWhiteSpace($tu2)) {
+          Set-ExcelHyperlinkSafe -ws $ws -Row $insRow -Col $sctasksCol -DisplayText $tn2 -Url $tu2 -TicketForLog $ticket
+        }
+        else {
+          $ws.Cells.Item($insRow, $sctasksCol) = $tn2
+        }
+      }
     }
   }
 
@@ -3886,25 +4277,33 @@ try {
     }
 
     if (($r.ok -eq $true) -and ($t -like "RITM*")) {
-      $openCountCurrent = 0
-      if ($r.PSObject.Properties["open_tasks"]) {
-        try { $openCountCurrent = [int]$r.open_tasks } catch { $openCountCurrent = 0 }
-      }
-      if ($r.PSObject.Properties["open_task_items"] -and $r.open_task_items) {
-        try {
-          $itemsNow = @($r.open_task_items).Count
-          if ($itemsNow -gt $openCountCurrent) { $openCountCurrent = $itemsNow }
-        } catch {}
-      }
-
-      if ($openCountCurrent -eq 0) {
-        $openFallback = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $t)
-        if ($openFallback.Count -gt 0) {
-          $r | Add-Member -NotePropertyName open_task_items -NotePropertyValue @($openFallback) -Force
-          $r | Add-Member -NotePropertyName open_tasks -NotePropertyValue ([int]$openFallback.Count) -Force
-          $r | Add-Member -NotePropertyName status -NotePropertyValue ("Open:" + $openFallback.Count) -Force
-          Log "INFO" "$t open SCTASK fallback recovered count=$($openFallback.Count)"
+      try {
+        $openCountCurrent = 0
+        if ($r.PSObject.Properties["open_tasks"]) {
+          try { $openCountCurrent = [int]$r.open_tasks } catch { $openCountCurrent = 0 }
         }
+        if ($r.PSObject.Properties["open_task_items"] -and $r.open_task_items) {
+          try {
+            $itemsNow = @($r.open_task_items).Count
+            if ($itemsNow -gt $openCountCurrent) { $openCountCurrent = $itemsNow }
+          } catch {}
+        }
+
+        if ($openCountCurrent -eq 0) {
+          $openFallback = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $t)
+          if ($openFallback.Count -gt 0) {
+            $r | Add-Member -NotePropertyName open_task_items -NotePropertyValue @($openFallback) -Force
+            $r | Add-Member -NotePropertyName open_tasks -NotePropertyValue ([int]$openFallback.Count) -Force
+            $r | Add-Member -NotePropertyName status -NotePropertyValue ("Open:" + $openFallback.Count) -Force
+            $nums = @($openFallback | ForEach-Object { if ($_.PSObject.Properties["number"]) { ("" + $_.number).Trim() } else { "" } } | Where-Object { $_ })
+            Log "INFO" "$t open SCTASK fallback recovered count=$($openFallback.Count) tasks='$($nums -join ", ")'"
+          }
+        }
+      }
+      catch {
+        $errMsg = $_.Exception.Message
+        $errPos = $_.InvocationInfo.PositionMessage
+        Log "ERROR" "$t open SCTASK fallback failed: $errMsg | $errPos"
       }
     }
 
