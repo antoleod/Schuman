@@ -847,3 +847,426 @@
 2026-02-17 14:37:28 [INFO] RITM0104655 PI force-updated in 'PI' => ''
 2026-02-17 14:37:28 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
 2026-02-17 14:37:31 [INFO] Excel updated.
+2026-02-17 14:48:59 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_144859
+2026-02-17 14:48:59 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 14:48:59 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 14:48:59 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 14:48:59 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:48:59 [INFO] Starting SSO login...
+2026-02-17 14:49:02 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 14:49:02 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:49:02 [INFO] No EXCEL process to kill. before read open
+2026-02-17 14:49:02 [INFO] Creating Excel COM (read)...
+2026-02-17 14:49:04 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 14:49:06 [INFO] Workbook opened (read).
+2026-02-17 14:49:06 [INFO] Opening worksheet 'BRU'...
+2026-02-17 14:49:06 [INFO] Worksheet opened.
+2026-02-17 14:49:06 [INFO] Building header map...
+2026-02-17 14:49:06 [INFO] Header map built. Columns=10
+2026-02-17 14:49:06 [INFO] Ticket column resolved: 4
+2026-02-17 14:49:06 [INFO] Scanning ticket rows 2..1048423
+2026-02-17 14:49:07 [INFO] Stopping read scan at row=57 after 50 consecutive empty rows.
+2026-02-17 14:49:07 [INFO] Ticket scan completed. Found=6
+2026-02-17 14:49:07 [INFO] Tickets found: 6
+2026-02-17 14:49:07 [INFO] Processing scope: RITM only (no INC detected). Count=6
+2026-02-17 14:49:07 [INFO] [1/6] Open + extract: RITM0493918
+2026-02-17 14:49:08 [INFO] RITM0493918 user resolved from sys_id => 'Sara AHMAD TORRES'
+2026-02-17 14:49:14 [INFO] RITM0493918 Legal name extracted from form => 'Sara AHMAD TORRES'
+2026-02-17 14:49:14 [INFO] RITM0493918 PI not found in activity stream
+2026-02-17 14:49:14 [INFO] RITM0493918 => OK reason= user='Sara AHMAD TORRES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493918'
+2026-02-17 14:49:14 [INFO] [2/6] Open + extract: RITM0493919
+2026-02-17 14:49:14 [INFO] RITM0493919 user resolved from sys_id => 'Ledio AHMETAJ'
+2026-02-17 14:49:18 [INFO] RITM0493919 Legal name extracted from form => 'Ledio AHMETAJ'
+2026-02-17 14:49:18 [INFO] RITM0493919 PI not found in activity stream
+2026-02-17 14:49:19 [INFO] RITM0493919 => OK reason= user='Ledio AHMETAJ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493919'
+2026-02-17 14:49:19 [INFO] [3/6] Open + extract: RITM0493920
+2026-02-17 14:49:19 [INFO] RITM0493920 user resolved from sys_id => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 14:49:23 [INFO] RITM0493920 Legal name extracted from form => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 14:49:23 [INFO] RITM0493920 PI not found in activity stream
+2026-02-17 14:49:23 [INFO] RITM0493920 => OK reason= user='Antoine Patrick Colin ANDRAULT' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493920'
+2026-02-17 14:49:24 [INFO] [4/6] Open + extract: RITM0427680
+2026-02-17 14:49:24 [INFO] RITM0427680 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 14:49:29 [INFO] RITM0427680 Legal name extracted from form => 'Juan DIOSES'
+2026-02-17 14:49:29 [INFO] RITM0427680 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0427680'
+2026-02-17 14:49:29 [INFO] [5/6] Open + extract: RITM0105308
+2026-02-17 14:49:34 [INFO] RITM0105308 Legal name extracted from form => 'CEBOLLA NICUESA Mireia'
+2026-02-17 14:49:34 [INFO] RITM0105308 PI not found in activity stream
+2026-02-17 14:49:34 [INFO] RITM0105308 Name updated from Legal name => 'CEBOLLA NICUESA Mireia'
+2026-02-17 14:49:34 [INFO] RITM0105308 => OK reason= user='CEBOLLA NICUESA Mireia' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0105308'
+2026-02-17 14:49:34 [INFO] [6/6] Open + extract: RITM0104655
+2026-02-17 14:49:35 [INFO] RITM0104655 user resolved from sys_id => 'New EP User'
+2026-02-17 14:49:39 [INFO] RITM0104655 Legal name extracted from form => 'Zeljana VUKOVIC'
+2026-02-17 14:49:39 [INFO] RITM0104655 PI not found in activity stream
+2026-02-17 14:49:39 [INFO] RITM0104655 Name updated from Legal name => 'Zeljana VUKOVIC'
+2026-02-17 14:49:39 [INFO] RITM0104655 => OK reason= user='Zeljana VUKOVIC' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0104655'
+2026-02-17 14:49:39 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_144859\tickets_export.json
+2026-02-17 14:49:39 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_144859\run.log.txt
+2026-02-17 14:49:39 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:49:39 [INFO] No EXCEL process to kill. before write open
+2026-02-17 14:49:39 [INFO] Creating Excel COM (write)...
+2026-02-17 14:49:41 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 14:49:44 [INFO] Workbook opened (write).
+2026-02-17 14:49:45 [INFO] Write-back scan rows 2..1048423
+2026-02-17 14:49:45 [INFO] RITM0493918 PI force-updated in 'PI' => ''
+2026-02-17 14:49:45 [INFO] RITM0493919 PI force-updated in 'PI' => ''
+2026-02-17 14:49:45 [INFO] RITM0493920 PI force-updated in 'PI' => ''
+2026-02-17 14:49:46 [INFO] RITM0427680 PI force-updated in 'PI' => 'MUSTBRUN2424012'
+2026-02-17 14:49:46 [INFO] RITM0105308 PI force-updated in 'PI' => ''
+2026-02-17 14:49:46 [INFO] RITM0104655 PI force-updated in 'PI' => ''
+2026-02-17 14:49:46 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
+2026-02-17 14:49:49 [INFO] Excel updated.
+2026-02-17 14:52:59 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_145259
+2026-02-17 14:52:59 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 14:52:59 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 14:52:59 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 14:52:59 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:53:00 [INFO] Starting SSO login...
+2026-02-17 14:53:03 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 14:53:03 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:53:03 [INFO] Killing EXCEL processes: 1. before read open
+2026-02-17 14:53:03 [INFO] Creating Excel COM (read)...
+2026-02-17 14:53:05 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 14:53:08 [INFO] Workbook opened (read).
+2026-02-17 14:53:08 [INFO] Opening worksheet 'BRU'...
+2026-02-17 14:53:08 [INFO] Worksheet opened.
+2026-02-17 14:53:08 [INFO] Building header map...
+2026-02-17 14:53:08 [INFO] Header map built. Columns=10
+2026-02-17 14:53:08 [INFO] Ticket column resolved: 4
+2026-02-17 14:53:08 [INFO] Scanning ticket rows 2..1048423
+2026-02-17 14:53:08 [INFO] Stopping read scan at row=57 after 50 consecutive empty rows.
+2026-02-17 14:53:08 [INFO] Ticket scan completed. Found=6
+2026-02-17 14:53:09 [INFO] Tickets found: 6
+2026-02-17 14:53:09 [INFO] Processing scope: RITM only (no INC detected). Count=6
+2026-02-17 14:53:09 [INFO] [1/6] Open + extract: RITM0493918
+2026-02-17 14:53:10 [INFO] RITM0493918 user resolved from sys_id => 'Sara AHMAD TORRES'
+2026-02-17 14:53:15 [INFO] RITM0493918 Legal name extracted from form => 'Sara AHMAD TORRES'
+2026-02-17 14:53:15 [INFO] RITM0493918 PI not found in activity stream
+2026-02-17 14:53:15 [INFO] RITM0493918 => OK reason= user='Sara AHMAD TORRES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493918'
+2026-02-17 14:53:15 [INFO] [2/6] Open + extract: RITM0493919
+2026-02-17 14:53:16 [INFO] RITM0493919 user resolved from sys_id => 'Ledio AHMETAJ'
+2026-02-17 14:53:21 [INFO] RITM0493919 Legal name extracted from form => 'Ledio AHMETAJ'
+2026-02-17 14:53:21 [INFO] RITM0493919 PI not found in activity stream
+2026-02-17 14:53:21 [INFO] RITM0493919 => OK reason= user='Ledio AHMETAJ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493919'
+2026-02-17 14:53:21 [INFO] [3/6] Open + extract: RITM0493920
+2026-02-17 14:53:21 [INFO] RITM0493920 user resolved from sys_id => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 14:53:25 [INFO] RITM0493920 Legal name extracted from form => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 14:53:25 [INFO] RITM0493920 PI not found in activity stream
+2026-02-17 14:53:26 [INFO] RITM0493920 => OK reason= user='Antoine Patrick Colin ANDRAULT' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493920'
+2026-02-17 14:53:26 [INFO] [4/6] Open + extract: RITM0427680
+2026-02-17 14:53:26 [INFO] RITM0427680 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 14:53:31 [INFO] RITM0427680 Legal name extracted from form => 'Juan DIOSES'
+2026-02-17 14:53:31 [INFO] RITM0427680 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0427680'
+2026-02-17 14:53:31 [INFO] [5/6] Open + extract: RITM0105308
+2026-02-17 14:53:31 [INFO] RITM0105308 user resolved from sys_id => 'New EP User'
+2026-02-17 14:53:36 [INFO] RITM0105308 Legal name extracted from form => 'CEBOLLA NICUESA Mireia'
+2026-02-17 14:53:36 [INFO] RITM0105308 PI not found in activity stream
+2026-02-17 14:53:36 [INFO] RITM0105308 Name updated from Legal name => 'CEBOLLA NICUESA Mireia'
+2026-02-17 14:53:37 [INFO] RITM0105308 => OK reason= user='CEBOLLA NICUESA Mireia' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0105308'
+2026-02-17 14:53:37 [INFO] [6/6] Open + extract: RITM0104655
+2026-02-17 14:53:37 [INFO] RITM0104655 user resolved from sys_id => 'New EP User'
+2026-02-17 14:53:41 [INFO] RITM0104655 Legal name extracted from form => 'Zeljana VUKOVIC'
+2026-02-17 14:53:41 [INFO] RITM0104655 PI not found in activity stream
+2026-02-17 14:53:41 [INFO] RITM0104655 Name updated from Legal name => 'Zeljana VUKOVIC'
+2026-02-17 14:53:41 [INFO] RITM0104655 => OK reason= user='Zeljana VUKOVIC' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0104655'
+2026-02-17 14:53:41 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_145259\tickets_export.json
+2026-02-17 14:53:41 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_145259\run.log.txt
+2026-02-17 14:53:41 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:53:41 [INFO] No EXCEL process to kill. before write open
+2026-02-17 14:53:41 [INFO] Creating Excel COM (write)...
+2026-02-17 14:53:42 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 14:53:45 [INFO] Workbook opened (write).
+2026-02-17 14:53:45 [INFO] Write-back scan rows 2..1048423
+2026-02-17 14:53:45 [INFO] RITM0493918 PI force-updated in 'PI' => ''
+2026-02-17 14:53:46 [INFO] RITM0493919 PI force-updated in 'PI' => ''
+2026-02-17 14:53:46 [INFO] RITM0493920 PI force-updated in 'PI' => ''
+2026-02-17 14:53:46 [INFO] RITM0427680 PI force-updated in 'PI' => 'MUSTBRUN2424012'
+2026-02-17 14:53:46 [INFO] RITM0105308 PI force-updated in 'PI' => ''
+2026-02-17 14:53:46 [INFO] RITM0104655 PI force-updated in 'PI' => ''
+2026-02-17 14:53:46 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
+2026-02-17 14:53:49 [INFO] Excel updated.
+2026-02-17 14:59:10 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_145910
+2026-02-17 14:59:10 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 14:59:10 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 14:59:10 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 14:59:10 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:59:10 [INFO] Starting SSO login...
+2026-02-17 14:59:13 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 14:59:13 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:59:13 [INFO] Killing EXCEL processes: 1. before read open
+2026-02-17 14:59:14 [INFO] Creating Excel COM (read)...
+2026-02-17 14:59:15 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 14:59:18 [INFO] Workbook opened (read).
+2026-02-17 14:59:18 [INFO] Opening worksheet 'BRU'...
+2026-02-17 14:59:18 [INFO] Worksheet opened.
+2026-02-17 14:59:18 [INFO] Building header map...
+2026-02-17 14:59:18 [INFO] Header map built. Columns=10
+2026-02-17 14:59:18 [INFO] Ticket column resolved: 4
+2026-02-17 14:59:19 [INFO] Scanning ticket rows 2..1048423
+2026-02-17 14:59:19 [INFO] Stopping read scan at row=57 after 50 consecutive empty rows.
+2026-02-17 14:59:19 [INFO] Ticket scan completed. Found=6
+2026-02-17 14:59:19 [INFO] Tickets found: 6
+2026-02-17 14:59:20 [INFO] Processing scope: RITM only (no INC detected). Count=6
+2026-02-17 14:59:20 [INFO] [1/6] Open + extract: RITM0493918
+2026-02-17 14:59:21 [INFO] RITM0493918 user resolved from sys_id => 'Sara AHMAD TORRES'
+2026-02-17 14:59:26 [INFO] RITM0493918 Legal name extracted from form => 'Sara AHMAD TORRES'
+2026-02-17 14:59:27 [INFO] RITM0493918 SCTASK UI list scanned, PI not found (len=6441)
+2026-02-17 14:59:27 [INFO] RITM0493918 PI not found in activity stream
+2026-02-17 14:59:27 [INFO] RITM0493918 => OK reason= user='Sara AHMAD TORRES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493918'
+2026-02-17 14:59:27 [INFO] [2/6] Open + extract: RITM0493919
+2026-02-17 14:59:27 [INFO] RITM0493919 user resolved from sys_id => 'Ledio AHMETAJ'
+2026-02-17 14:59:32 [INFO] RITM0493919 Legal name extracted from form => 'Ledio AHMETAJ'
+2026-02-17 14:59:32 [INFO] RITM0493919 SCTASK UI list scanned, PI not found (len=421)
+2026-02-17 14:59:32 [INFO] RITM0493919 PI not found in activity stream
+2026-02-17 14:59:33 [INFO] RITM0493919 => OK reason= user='Ledio AHMETAJ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493919'
+2026-02-17 14:59:33 [INFO] [3/6] Open + extract: RITM0493920
+2026-02-17 14:59:33 [INFO] RITM0493920 user resolved from sys_id => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 14:59:37 [INFO] RITM0493920 Legal name extracted from form => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 14:59:38 [INFO] RITM0493920 SCTASK UI list scanned, PI not found (len=6600)
+2026-02-17 14:59:38 [INFO] [4/6] Open + extract: RITM0427680
+2026-02-17 14:59:39 [INFO] RITM0427680 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 14:59:44 [INFO] RITM0427680 Legal name extracted from form => 'Juan DIOSES'
+2026-02-17 14:59:44 [INFO] RITM0427680 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0427680'
+2026-02-17 14:59:44 [INFO] [5/6] Open + extract: RITM0105308
+2026-02-17 14:59:44 [INFO] RITM0105308 user resolved from sys_id => 'New EP User'
+2026-02-17 14:59:48 [INFO] RITM0105308 Legal name extracted from form => 'CEBOLLA NICUESA Mireia'
+2026-02-17 14:59:49 [INFO] RITM0105308 SCTASK UI list scanned, PI not found (len=10574)
+2026-02-17 14:59:49 [INFO] RITM0105308 PI not found in activity stream
+2026-02-17 14:59:49 [INFO] RITM0105308 Name updated from Legal name => 'CEBOLLA NICUESA Mireia'
+2026-02-17 14:59:49 [INFO] RITM0105308 => OK reason= user='CEBOLLA NICUESA Mireia' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0105308'
+2026-02-17 14:59:50 [INFO] RITM0104655 user resolved from sys_id => 'New EP User'
+2026-02-17 14:59:55 [INFO] RITM0104655 Legal name extracted from form => 'Zeljana VUKOVIC'
+2026-02-17 14:59:56 [INFO] RITM0104655 SCTASK UI list scanned, PI not found (len=10772)
+2026-02-17 14:59:56 [INFO] RITM0104655 PI not found in activity stream
+2026-02-17 14:59:56 [INFO] RITM0104655 Name updated from Legal name => 'Zeljana VUKOVIC'
+2026-02-17 14:59:56 [INFO] RITM0104655 => OK reason= user='Zeljana VUKOVIC' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0104655'
+2026-02-17 14:59:56 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_145910\run.log.txt
+2026-02-17 14:59:56 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 14:59:56 [INFO] No EXCEL process to kill. before write open
+2026-02-17 14:59:56 [INFO] Creating Excel COM (write)...
+2026-02-17 14:59:57 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 15:00:01 [INFO] Workbook opened (write).
+2026-02-17 15:00:02 [INFO] Write-back scan rows 2..1048423
+2026-02-17 15:00:02 [INFO] RITM0493918 PI force-updated in 'PI' => ''
+2026-02-17 15:00:02 [INFO] RITM0493919 PI force-updated in 'PI' => ''
+2026-02-17 15:00:03 [INFO] RITM0493920 PI force-updated in 'PI' => ''
+2026-02-17 15:00:03 [INFO] RITM0427680 PI force-updated in 'PI' => 'MUSTBRUN2424012'
+2026-02-17 15:00:03 [INFO] RITM0105308 PI force-updated in 'PI' => ''
+2026-02-17 15:00:03 [INFO] RITM0104655 PI force-updated in 'PI' => ''
+2026-02-17 15:00:03 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
+2026-02-17 15:00:06 [INFO] Excel updated.
+2026-02-17 15:04:59 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_150459
+2026-02-17 15:04:59 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 15:04:59 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 15:04:59 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 15:04:59 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:04:59 [INFO] Starting SSO login...
+2026-02-17 15:05:03 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 15:05:03 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:05:03 [INFO] No EXCEL process to kill. before read open
+2026-02-17 15:05:03 [INFO] Creating Excel COM (read)...
+2026-02-17 15:05:05 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 15:05:07 [INFO] Workbook opened (read).
+2026-02-17 15:05:07 [INFO] Opening worksheet 'BRU'...
+2026-02-17 15:05:07 [INFO] Worksheet opened.
+2026-02-17 15:05:07 [INFO] Building header map...
+2026-02-17 15:05:07 [INFO] Header map built. Columns=10
+2026-02-17 15:05:07 [INFO] Ticket column resolved: 4
+2026-02-17 15:05:07 [INFO] Scanning ticket rows 2..1048423
+2026-02-17 15:05:08 [INFO] Stopping read scan at row=57 after 50 consecutive empty rows.
+2026-02-17 15:05:08 [INFO] Ticket scan completed. Found=6
+2026-02-17 15:05:08 [INFO] Tickets found: 6
+2026-02-17 15:05:08 [INFO] Processing scope: RITM only (no INC detected). Count=6
+2026-02-17 15:05:08 [INFO] [1/6] Open + extract: RITM0493918
+2026-02-17 15:05:09 [INFO] RITM0493918 user resolved from sys_id => 'Sara AHMAD TORRES'
+2026-02-17 15:05:15 [INFO] RITM0493918 Legal name extracted from form => 'Sara AHMAD TORRES'
+2026-02-17 15:05:16 [INFO] RITM0493919 user resolved from sys_id => 'Ledio AHMETAJ'
+2026-02-17 15:05:21 [INFO] RITM0493919 Legal name extracted from form => 'Ledio AHMETAJ'
+2026-02-17 15:05:22 [INFO] RITM0493919 SCTASK UI list scanned, PI not found (len=6310)
+2026-02-17 15:05:22 [INFO] RITM0493919 PI not found in activity stream
+2026-02-17 15:05:22 [INFO] RITM0493919 => OK reason= user='Ledio AHMETAJ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493919'
+2026-02-17 15:05:22 [INFO] [3/6] Open + extract: RITM0493920
+2026-02-17 15:05:22 [INFO] RITM0493920 user resolved from sys_id => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 15:05:27 [INFO] RITM0493920 Legal name extracted from form => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 15:05:28 [INFO] RITM0493920 SCTASK UI list scanned, PI not found (len=7096)
+2026-02-17 15:05:28 [INFO] RITM0493920 PI not found in activity stream
+2026-02-17 15:05:28 [INFO] RITM0493920 => OK reason= user='Antoine Patrick Colin ANDRAULT' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493920'
+2026-02-17 15:05:28 [INFO] [4/6] Open + extract: RITM0427680
+2026-02-17 15:05:29 [INFO] RITM0427680 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 15:05:33 [INFO] RITM0427680 Legal name extracted from form => 'Juan DIOSES'
+2026-02-17 15:05:33 [INFO] RITM0427680 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0427680'
+2026-02-17 15:05:33 [INFO] [5/6] Open + extract: RITM0105308
+2026-02-17 15:05:34 [INFO] RITM0105308 user resolved from sys_id => 'New EP User'
+2026-02-17 15:05:39 [INFO] RITM0105308 Legal name extracted from form => 'CEBOLLA NICUESA Mireia'
+2026-02-17 15:05:40 [INFO] RITM0105308 SCTASK UI list scanned, PI not found (len=11343)
+2026-02-17 15:05:40 [INFO] RITM0105308 PI not found in activity stream
+2026-02-17 15:05:40 [INFO] RITM0105308 Name updated from Legal name => 'CEBOLLA NICUESA Mireia'
+2026-02-17 15:05:40 [INFO] RITM0105308 => OK reason= user='CEBOLLA NICUESA Mireia' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0105308'
+2026-02-17 15:05:40 [INFO] [6/6] Open + extract: RITM0104655
+2026-02-17 15:05:40 [INFO] RITM0104655 user resolved from sys_id => 'New EP User'
+2026-02-17 15:05:45 [INFO] RITM0104655 Legal name extracted from form => 'Zeljana VUKOVIC'
+2026-02-17 15:05:46 [INFO] RITM0104655 SCTASK UI list scanned, PI not found (len=11268)
+2026-02-17 15:05:46 [INFO] RITM0104655 PI not found in activity stream
+2026-02-17 15:05:46 [INFO] RITM0104655 Name updated from Legal name => 'Zeljana VUKOVIC'
+2026-02-17 15:05:46 [INFO] RITM0104655 => OK reason= user='Zeljana VUKOVIC' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0104655'
+2026-02-17 15:05:46 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_150459\tickets_export.json
+2026-02-17 15:05:46 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_150459\run.log.txt
+2026-02-17 15:05:46 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:05:46 [INFO] No EXCEL process to kill. before write open
+2026-02-17 15:05:46 [INFO] Creating Excel COM (write)...
+2026-02-17 15:05:48 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 15:05:50 [INFO] Workbook opened (write).
+2026-02-17 15:05:50 [INFO] Write-back scan rows 2..1048423
+2026-02-17 15:05:50 [INFO] RITM0493918 PI force-updated in 'PI' => ''
+2026-02-17 15:05:50 [INFO] RITM0493919 PI force-updated in 'PI' => ''
+2026-02-17 15:05:51 [INFO] RITM0493920 PI force-updated in 'PI' => ''
+2026-02-17 15:05:51 [INFO] RITM0427680 PI force-updated in 'PI' => 'MUSTBRUN2424012'
+2026-02-17 15:05:51 [INFO] RITM0105308 PI force-updated in 'PI' => ''
+2026-02-17 15:05:51 [INFO] RITM0104655 PI force-updated in 'PI' => ''
+2026-02-17 15:05:51 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
+2026-02-17 15:05:54 [INFO] Excel updated.
+2026-02-17 15:07:26 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_150726
+2026-02-17 15:07:26 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 15:07:26 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 15:07:26 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 15:07:26 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:07:26 [INFO] Starting SSO login...
+2026-02-17 15:07:29 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 15:07:29 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:07:29 [INFO] Killing EXCEL processes: 1. before read open
+2026-02-17 15:07:29 [INFO] Creating Excel COM (read)...
+2026-02-17 15:07:31 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 15:07:33 [INFO] Workbook opened (read).
+2026-02-17 15:07:33 [INFO] Opening worksheet 'BRU'...
+2026-02-17 15:07:33 [INFO] Worksheet opened.
+2026-02-17 15:07:33 [INFO] Building header map...
+2026-02-17 15:07:33 [INFO] Header map built. Columns=10
+2026-02-17 15:07:33 [INFO] Ticket column resolved: 4
+2026-02-17 15:07:33 [INFO] Scanning ticket rows 2..1048423
+2026-02-17 15:07:34 [INFO] Stopping read scan at row=57 after 50 consecutive empty rows.
+2026-02-17 15:07:34 [INFO] Tickets found: 6
+2026-02-17 15:07:34 [INFO] Processing scope: RITM only (no INC detected). Count=6
+2026-02-17 15:07:34 [INFO] [1/6] Open + extract: RITM0493918
+2026-02-17 15:07:36 [INFO] RITM0493918 user resolved from sys_id => 'Sara AHMAD TORRES'
+2026-02-17 15:07:41 [INFO] RITM0493918 Legal name extracted from form => 'Sara AHMAD TORRES'
+2026-02-17 15:07:42 [INFO] RITM0493918 SCTASK UI list scanned, PI not found (len=418)
+2026-02-17 15:07:42 [INFO] RITM0493918 PI not found in activity stream
+2026-02-17 15:07:42 [INFO] RITM0493918 => OK reason= user='Sara AHMAD TORRES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493918'
+2026-02-17 15:07:43 [INFO] RITM0493919 user resolved from sys_id => 'Ledio AHMETAJ'
+2026-02-17 15:07:47 [INFO] RITM0493919 Legal name extracted from form => 'Ledio AHMETAJ'
+2026-02-17 15:07:48 [INFO] RITM0493919 SCTASK UI list scanned, PI not found (len=7009)
+2026-02-17 15:07:51 [INFO] RITM0493919 PI not found in activity stream
+2026-02-17 15:07:51 [INFO] RITM0493919 => OK reason= user='Ledio AHMETAJ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493919'
+2026-02-17 15:07:51 [INFO] [3/6] Open + extract: RITM0493920
+2026-02-17 15:07:52 [INFO] RITM0493920 user resolved from sys_id => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 15:07:56 [INFO] RITM0493920 Legal name extracted from form => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 15:07:57 [INFO] RITM0493920 SCTASK UI list scanned, PI not found (len=421)
+2026-02-17 15:07:57 [INFO] RITM0493920 PI not found in activity stream
+2026-02-17 15:07:57 [INFO] RITM0493920 => OK reason= user='Antoine Patrick Colin ANDRAULT' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493920'
+2026-02-17 15:07:57 [INFO] [4/6] Open + extract: RITM0427680
+2026-02-17 15:07:57 [INFO] RITM0427680 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 15:08:02 [INFO] RITM0427680 Legal name extracted from form => 'Juan DIOSES'
+2026-02-17 15:08:02 [INFO] RITM0427680 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0427680'
+2026-02-17 15:08:02 [INFO] [5/6] Open + extract: RITM0105308
+2026-02-17 15:08:03 [INFO] RITM0105308 user resolved from sys_id => 'New EP User'
+2026-02-17 15:08:07 [INFO] RITM0105308 Legal name extracted from form => 'CEBOLLA NICUESA Mireia'
+2026-02-17 15:08:08 [INFO] RITM0105308 SCTASK UI list scanned, PI not found (len=10574)
+2026-02-17 15:08:08 [INFO] RITM0105308 deep SCTASK scan starting. tasks=6 limit=6
+2026-02-17 15:08:14 [INFO] RITM0105308 PI not found in activity stream
+2026-02-17 15:08:14 [INFO] RITM0105308 Name updated from Legal name => 'CEBOLLA NICUESA Mireia'
+2026-02-17 15:08:14 [INFO] RITM0105308 => OK reason= user='CEBOLLA NICUESA Mireia' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0105308'
+2026-02-17 15:08:14 [INFO] [6/6] Open + extract: RITM0104655
+2026-02-17 15:08:14 [INFO] RITM0104655 user resolved from sys_id => 'New EP User'
+2026-02-17 15:08:19 [INFO] RITM0104655 Legal name extracted from form => 'Zeljana VUKOVIC'
+2026-02-17 15:08:20 [INFO] RITM0104655 SCTASK UI list scanned, PI not found (len=11268)
+2026-02-17 15:08:20 [INFO] RITM0104655 deep SCTASK scan starting. tasks=6 limit=6
+2026-02-17 15:08:26 [INFO] RITM0104655 PI not found in activity stream
+2026-02-17 15:08:26 [INFO] RITM0104655 Name updated from Legal name => 'Zeljana VUKOVIC'
+2026-02-17 15:08:26 [INFO] RITM0104655 => OK reason= user='Zeljana VUKOVIC' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0104655'
+2026-02-17 15:08:26 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_150726\tickets_export.json
+2026-02-17 15:08:26 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_150726\run.log.txt
+2026-02-17 15:08:26 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:08:26 [INFO] No EXCEL process to kill. before write open
+2026-02-17 15:08:26 [INFO] Creating Excel COM (write)...
+2026-02-17 15:08:32 [INFO] Workbook opened (write).
+2026-02-17 15:08:32 [INFO] Write-back scan rows 2..1048423
+2026-02-17 15:08:32 [INFO] RITM0493918 PI force-updated in 'PI' => ''
+2026-02-17 15:08:32 [INFO] RITM0493919 PI force-updated in 'PI' => ''
+2026-02-17 15:08:33 [INFO] RITM0493920 PI force-updated in 'PI' => ''
+2026-02-17 15:08:33 [INFO] RITM0427680 PI force-updated in 'PI' => 'MUSTBRUN2424012'
+2026-02-17 15:08:33 [INFO] RITM0105308 PI force-updated in 'PI' => ''
+2026-02-17 15:08:33 [INFO] RITM0104655 PI force-updated in 'PI' => ''
+2026-02-17 15:08:33 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
+2026-02-17 15:08:36 [INFO] Excel updated.
+2026-02-17 15:23:55 [INFO] Output folder: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_152355
+2026-02-17 15:23:55 [INFO] Using WebView2 profile: C:\Users\X1\AppData\Local\SNOW_Export_UI\WebView2\X1
+2026-02-17 15:23:55 [INFO] Searching WebView2 DLLs in Teams Meeting Add-in...
+2026-02-17 15:23:55 [INFO] Loaded WebView2 from: C:\Users\X1\AppData\Local\Microsoft\TeamsMeetingAdd-in\1.25.28902\x64
+2026-02-17 15:23:55 [INFO] Excel selected: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:23:55 [INFO] Starting SSO login...
+2026-02-17 15:23:58 [INFO] SSO confirmed. Reusing same WebView2 instance.
+2026-02-17 15:23:58 [INFO] Opening Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:23:58 [INFO] No EXCEL process to kill. before read open
+2026-02-17 15:23:58 [INFO] Creating Excel COM (read)...
+2026-02-17 15:24:00 [INFO] Excel COM created (read), opening workbook...
+2026-02-17 15:24:02 [INFO] Workbook opened (read).
+2026-02-17 15:24:02 [INFO] Opening worksheet 'BRU'...
+2026-02-17 15:24:02 [INFO] Worksheet opened.
+2026-02-17 15:24:02 [INFO] Building header map...
+2026-02-17 15:24:02 [INFO] Header map built. Columns=10
+2026-02-17 15:24:02 [INFO] Ticket column resolved: 4
+2026-02-17 15:24:02 [INFO] Scanning ticket rows 2..1048423
+2026-02-17 15:24:03 [INFO] Ticket scan completed. Found=6
+2026-02-17 15:24:03 [INFO] Tickets found: 6
+2026-02-17 15:24:03 [INFO] Processing scope: RITM only (no INC detected). Count=6
+2026-02-17 15:24:03 [INFO] [1/6] Open + extract: RITM0493918
+2026-02-17 15:24:04 [INFO] RITM0493918 user resolved from sys_id => 'Sara AHMAD TORRES'
+2026-02-17 15:24:10 [INFO] RITM0493918 Legal name extracted from form => 'Sara AHMAD TORRES'
+2026-02-17 15:24:11 [INFO] RITM0493918 SCTASK UI list scanned, PI not found (len=7105)
+2026-02-17 15:24:11 [INFO] RITM0493918 deep SCTASK scan starting. tasks=3 limit=3 new_ep_user=False
+2026-02-17 15:24:14 [INFO] RITM0493918 PI not found in activity stream
+2026-02-17 15:24:14 [INFO] RITM0493918 => OK reason= user='Sara AHMAD TORRES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493918'
+2026-02-17 15:24:14 [INFO] [2/6] Open + extract: RITM0493919
+2026-02-17 15:24:14 [INFO] RITM0493919 user resolved from sys_id => 'Ledio AHMETAJ'
+2026-02-17 15:24:19 [INFO] RITM0493919 Legal name extracted from form => 'Ledio AHMETAJ'
+2026-02-17 15:24:20 [INFO] RITM0493919 SCTASK UI list scanned, PI not found (len=6310)
+2026-02-17 15:24:23 [INFO] RITM0493919 PI not found in activity stream
+2026-02-17 15:24:23 [INFO] RITM0493919 => OK reason= user='Ledio AHMETAJ' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493919'
+2026-02-17 15:24:23 [INFO] [3/6] Open + extract: RITM0493920
+2026-02-17 15:24:24 [INFO] RITM0493920 user resolved from sys_id => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 15:24:28 [INFO] RITM0493920 Legal name extracted from form => 'Antoine Patrick Colin ANDRAULT'
+2026-02-17 15:24:29 [INFO] RITM0493920 deep SCTASK scan starting. tasks=3 limit=3 new_ep_user=False
+2026-02-17 15:24:31 [INFO] RITM0493920 PI not found in activity stream
+2026-02-17 15:24:31 [INFO] RITM0493920 => OK reason= user='Antoine Patrick Colin ANDRAULT' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0493920'
+2026-02-17 15:24:31 [INFO] [4/6] Open + extract: RITM0427680
+2026-02-17 15:24:32 [INFO] RITM0427680 user resolved from sys_id => 'Juan Carlos DIOSES'
+2026-02-17 15:24:36 [INFO] RITM0427680 Legal name extracted from form => 'Juan DIOSES'
+2026-02-17 15:24:36 [INFO] RITM0427680 => OK reason= user='Juan Carlos DIOSES' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0427680'
+2026-02-17 15:24:36 [INFO] [5/6] Open + extract: RITM0105308
+2026-02-17 15:24:37 [INFO] RITM0105308 user resolved from sys_id => 'New EP User'
+2026-02-17 15:24:41 [INFO] RITM0105308 Legal name extracted from form => 'CEBOLLA NICUESA Mireia'
+2026-02-17 15:24:43 [INFO] RITM0105308 SCTASK UI list scanned, PI not found (len=421)
+2026-02-17 15:24:43 [INFO] RITM0105308 PI not found in activity stream
+2026-02-17 15:24:43 [INFO] RITM0105308 Name updated from Legal name => 'CEBOLLA NICUESA Mireia'
+2026-02-17 15:24:43 [INFO] RITM0105308 => OK reason= user='CEBOLLA NICUESA Mireia' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0105308'
+2026-02-17 15:24:43 [INFO] [6/6] Open + extract: RITM0104655
+2026-02-17 15:24:44 [INFO] RITM0104655 user resolved from sys_id => 'New EP User'
+2026-02-17 15:24:48 [INFO] RITM0104655 Legal name extracted from form => 'Zeljana VUKOVIC'
+2026-02-17 15:24:49 [INFO] RITM0104655 SCTASK UI list scanned, PI not found (len=421)
+2026-02-17 15:24:49 [INFO] RITM0104655 PI not found in activity stream
+2026-02-17 15:24:49 [INFO] RITM0104655 => OK reason= user='Zeljana VUKOVIC' ci='' url='/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=number%3DRITM0104655'
+2026-02-17 15:24:49 [INFO] ALL JSON: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_152355\tickets_export.json
+2026-02-17 15:24:49 [INFO] DONE. Logs: C:\Users\X1\AppData\Local\Temp\SNOW_Tickets_Export_20260217_152355\run.log.txt
+2026-02-17 15:24:49 [INFO] Writing back to Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-17 15:24:49 [INFO] No EXCEL process to kill. before write open
+2026-02-17 15:24:49 [INFO] Creating Excel COM (write)...
+2026-02-17 15:24:51 [INFO] Excel COM created (write), opening workbook...
+2026-02-17 15:24:53 [INFO] Workbook opened (write).
+2026-02-17 15:24:53 [INFO] Write-back scan rows 2..1048423
+2026-02-17 15:24:54 [INFO] RITM0493918 PI force-updated in 'PI' => ''
+2026-02-17 15:24:54 [INFO] RITM0493919 PI force-updated in 'PI' => ''
+2026-02-17 15:24:54 [INFO] RITM0493920 PI force-updated in 'PI' => ''
+2026-02-17 15:24:54 [INFO] RITM0427680 PI force-updated in 'PI' => 'MUSTBRUN2424012'
+2026-02-17 15:24:54 [INFO] RITM0105308 PI force-updated in 'PI' => ''
+2026-02-17 15:24:54 [INFO] RITM0104655 PI force-updated in 'PI' => ''
+2026-02-17 15:24:54 [INFO] Stopping write-back scan at row=57 after 50 consecutive empty rows.
+2026-02-17 15:24:57 [INFO] Excel updated.

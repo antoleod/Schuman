@@ -672,6 +672,14 @@ function Build-SCTaskListByNumbersUrl {
   return "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task_list.do%3Fsysparm_query%3D$safeQuery"
 }
 
+function Build-SCTaskListByRitmUrl {
+  param([string]$RitmNumber)
+  if ([string]::IsNullOrWhiteSpace($RitmNumber)) { return "" }
+  $query = "request_item.number=" + $RitmNumber.Trim()
+  $safeQuery = [System.Uri]::EscapeDataString($query)
+  return "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task_list.do%3Fsysparm_query%3D$safeQuery"
+}
+
 function Get-DetectedPiFromActivityText {
   param([string]$ActivityText)
   if (-not $EnableActivityStreamSearch) { return "" }
@@ -679,19 +687,23 @@ function Get-DetectedPiFromActivityText {
     return $(if ($WriteNotFoundText) { "Not found" } else { "" })
   }
 
-  $matches = [regex]::Matches(
-    $ActivityText,
-    '\b(?:02PI20[A-Z0-9_-]*|ITEC(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|MUST(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|EDPSBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|PRESBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*)\b',
-    'IgnoreCase'
+  $patterns = @(
+    '\b(?:02PI20[A-Z0-9_-]*|ITEC(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|MUST(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|EDPSBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|PRESBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|[A-Z]{3,}BRUN[A-Z0-9_-]*\d[A-Z0-9_-]*)\b',
+    '\b(?:MUST|ITEC|EDPS|PRES)\s*[-_ ]?\s*BRUN\s*[-_ ]?\s*\d{6,}\b',
+    '\b02\s*PI\s*20\s*\d{6,}\b'
   )
 
   $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
   $vals = New-Object System.Collections.Generic.List[string]
-  foreach ($m in $matches) {
-    $v = ("" + $m.Value).Trim().ToUpperInvariant()
-    if ($v -notmatch '\d') { continue }
-    if ($v -and $seen.Add($v)) {
-      [void]$vals.Add($v)
+  foreach ($p in $patterns) {
+    $matches = [regex]::Matches($ActivityText, $p, 'IgnoreCase')
+    foreach ($m in $matches) {
+      $v = ("" + $m.Value).Trim().ToUpperInvariant()
+      if ($v -match '\s|-' ) { $v = ($v -replace '[\s-]+', '') }
+      if ($v -notmatch '\d') { continue }
+      if ($v -and $seen.Add($v)) {
+        [void]$vals.Add($v)
+      }
     }
   }
 
@@ -968,6 +980,153 @@ function Get-LegalNameFromUiForm {
     }
     Start-Sleep -Milliseconds 400
   }
+  return ""
+}
+
+function Get-RitmTaskListTextFromUiPage {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+
+  if ([string]::IsNullOrWhiteSpace($RitmNumber)) { return "" }
+  $taskListUrl = Build-SCTaskListByRitmUrl -RitmNumber $RitmNumber
+  if ([string]::IsNullOrWhiteSpace($taskListUrl)) { return "" }
+
+  try { $wv.CoreWebView2.Navigate($taskListUrl) } catch { return "" }
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt 10000) {
+    Start-Sleep -Milliseconds 250
+    $isReady = Parse-WV2Json (ExecJS $wv "document.readyState==='complete'" 2000)
+    if ($isReady -eq $true) { break }
+  }
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function collectFromDoc(doc){
+      if (!doc) return '';
+      var out = [];
+      var seen = {};
+      var sels = [
+        'table',
+        '.list2_body',
+        '.list2_body tr',
+        '.list2 td',
+        '.vt',
+        '.list_decoration',
+        '.linked',
+        'a'
+      ];
+      for (var si = 0; si < sels.length; si++) {
+        var nodes = doc.querySelectorAll(sels[si]);
+        for (var ni = 0; ni < nodes.length; ni++) {
+          var t = s(nodes[ni].innerText || nodes[ni].textContent || '');
+          if (t && !seen[t]) { seen[t] = true; out.push(t); }
+        }
+      }
+      var b = s(doc.body && (doc.body.innerText || doc.body.textContent));
+      if (b && !seen[b]) { seen[b] = true; out.push(b); }
+      return out.join(' ');
+    }
+    var shell = collectFromDoc(document);
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+    var ft = collectFromDoc(fdoc);
+    return JSON.stringify({ ok:true, text: ft ? ft : shell, frame_text:ft, shell_text:shell });
+  } catch(e){
+    return JSON.stringify({ ok:false, text:'' });
+  }
+})();
+"@
+  $o = $null
+  for ($attempt = 1; $attempt -le 8; $attempt++) {
+    $o = Parse-WV2Json (ExecJS $wv $js 6000)
+    $txt = if ($o -and $o.PSObject.Properties["text"]) { ("" + $o.text) } else { "" }
+    if (-not [string]::IsNullOrWhiteSpace($txt)) { break }
+    Start-Sleep -Milliseconds 350
+  }
+  if (-not $o) { return "" }
+  if ($o.PSObject.Properties["text"]) { return ("" + $o.text) }
+  return ""
+}
+
+function Get-TaskNumbersFromText {
+  param([string]$Text)
+  if ([string]::IsNullOrWhiteSpace($Text)) { return @() }
+  $matches = [regex]::Matches($Text, '\bSCTASK\d{6,}\b', 'IgnoreCase')
+  $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+  $out = New-Object System.Collections.Generic.List[string]
+  foreach ($m in $matches) {
+    $v = ("" + $m.Value).Trim().ToUpperInvariant()
+    if ($v -and $seen.Add($v)) { [void]$out.Add($v) }
+  }
+  return ,@($out)
+}
+
+function Get-SCTaskRecordTextFromUiPage {
+  param(
+    $wv,
+    [string]$TaskNumber
+  )
+
+  if ([string]::IsNullOrWhiteSpace($TaskNumber)) { return "" }
+  $taskUrl = Build-SCTaskFallbackUrl -TaskNumber $TaskNumber
+  if ([string]::IsNullOrWhiteSpace($taskUrl)) { return "" }
+
+  try { $wv.CoreWebView2.Navigate($taskUrl) } catch { return "" }
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt 10000) {
+    Start-Sleep -Milliseconds 250
+    $isReady = Parse-WV2Json (ExecJS $wv "document.readyState==='complete'" 2000)
+    if ($isReady -eq $true) { break }
+  }
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function collect(doc){
+      if (!doc) return '';
+      var out = [];
+      var seen = {};
+      var sels = [
+        '.sn-widget-textblock-body',
+        '.sn-widget-textblock-body_formatted',
+        '.sn-card-component_accent-bar',
+        '.sn-card-component_accent-bar_dark',
+        '.activities-form',
+        'activities-form',
+        'table',
+        'input',
+        'textarea',
+        'label'
+      ];
+      for (var si = 0; si < sels.length; si++) {
+        var nodes = doc.querySelectorAll(sels[si]);
+        for (var ni = 0; ni < nodes.length; ni++) {
+          var t = s(nodes[ni].innerText || nodes[ni].textContent || nodes[ni].value || (nodes[ni].getAttribute && nodes[ni].getAttribute('value')) || '');
+          if (t && !seen[t]) { seen[t] = true; out.push(t); }
+        }
+      }
+      var b = s(doc.body && (doc.body.innerText || doc.body.textContent));
+      if (b && !seen[b]) out.push(b);
+      return out.join(' ');
+    }
+    var shell = collect(document);
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+    var ft = collect(fdoc);
+    return JSON.stringify({ok:true, text: ft ? ft : shell});
+  } catch(e){
+    return JSON.stringify({ok:false, text:''});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 7000)
+  if (-not $o) { return "" }
+  if ($o.PSObject.Properties["text"]) { return ("" + $o.text) }
   return ""
 }
 
@@ -1351,10 +1510,35 @@ function Extract-Ticket_JSONv2 {
     var activityRetrievalError = "";
 
     function getRows(path, query){
-      var p = path + '?JSONv2&sysparm_limit=200&sysparm_query=' + encodeURIComponent(query);
+      var p = path + '?JSONv2&sysparm_limit=200&sysparm_display_value=true&sysparm_query=' + encodeURIComponent(query);
       var o = httpGetJsonV2(p);
       var rows = (o && o.records) ? o.records : ((o && o.result) ? o.result : []);
       return Array.isArray(rows) ? rows : [];
+    }
+
+    function splitIntoChunks(arr, size){
+      var out = [];
+      if (!Array.isArray(arr) || size <= 0) return out;
+      for (var i = 0; i < arr.length; i += size) {
+        out.push(arr.slice(i, i + size));
+      }
+      return out;
+    }
+
+    function collectAllTextFromRow(row, out){
+      try {
+        if (!row || !out) return;
+        for (var k in row) {
+          if (!Object.prototype.hasOwnProperty.call(row, k)) continue;
+          var v = row[k];
+          if (v === null || v === undefined) continue;
+          var t = s(v);
+          if (!t) continue;
+          // Skip noisy pure sys_ids
+          if (/^[0-9a-f]{32}$/i.test(t)) continue;
+          out.push(t);
+        }
+      } catch(e) {}
     }
 
     function getRitmActivitiesText(reqItemSysId, ritmNumber){
@@ -1487,31 +1671,32 @@ function Extract-Ticket_JSONv2 {
         var r = rows[i];
         var desc = s(r.short_description || "");
         if (desc) out.push(desc);
-        var fields = [
-          r.number, r.item, r.description, r.comments, r.work_notes, r.close_notes, r.u_comments
-        ];
-        for (var fi = 0; fi < fields.length; fi++) {
-          var v = s(fields[fi] || "");
-          if (v) out.push(v);
-        }
+        // Include known fields and all textual fields defensively.
+        var fields = [r.number, r.item, r.description, r.comments, r.work_notes, r.close_notes, r.u_comments];
+        for (var fi = 0; fi < fields.length; fi++) { var v = s(fields[fi] || ""); if (v) out.push(v); }
+        collectAllTextFromRow(r, out);
 
         if (/prepare\s*device\s*for\s*new\s*user/i.test(desc)) {
           out.push("TASK_HINT:PREPARE_DEVICE_FOR_NEW_USER");
         }
       }
 
-      // Add journal entries from task(s) - capped for performance.
+      // Add journal entries from task(s) in batches for speed.
       try {
-        var maxTaskJournals = 20;
-        for (var j = 0; j < rows.length && j < maxTaskJournals; j++) {
+        var taskIds = [];
+        for (var j = 0; j < rows.length; j++) {
           var ts = s(rows[j].sys_id || "");
-          if (!looksSysId(ts)) continue;
-          var jAll = [];
-          jAll = jAll.concat(getRows('/sys_journal_field.do', 'name=sc_task^element_id=' + ts));
-          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + ts + '^elementINcomments,work_notes'));
+          if (looksSysId(ts)) taskIds.push(ts);
+        }
+        var chunks = splitIntoChunks(taskIds, 20);
+        for (var ci = 0; ci < chunks.length; ci++) {
+          var inClause = chunks[ci].join(',');
+          var q = 'name=sc_task^element_idIN' + inClause + '^elementINcomments,work_notes';
+          var jAll = getRows('/sys_journal_field.do', q);
           for (var k2 = 0; k2 < jAll.length; k2++) {
             var jv = s(jAll[k2].value || jAll[k2].message || jAll[k2].comments || jAll[k2].work_notes || "");
             if (jv) out.push(jv);
+            collectAllTextFromRow(jAll[k2], out);
           }
         }
       } catch(ej) {
@@ -1552,8 +1737,19 @@ function Extract-Ticket_JSONv2 {
       var txt = s(activityText);
       if (!txt) return "";
 
-      var m = txt.match(/\b(?:02PI20[A-Z0-9_-]*|ITEC(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|MUST(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|EDPSBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|PRESBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*)\b/i);
-      return m ? s(m[0]).toUpperCase() : "";
+      var pats = [
+        /\b(?:02PI20[A-Z0-9_-]*|ITEC(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|MUST(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|EDPSBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|PRESBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|[A-Z]{3,}BRUN[A-Z0-9_-]*\d[A-Z0-9_-]*)\b/i,
+        /\b(?:MUST|ITEC|EDPS|PRES)\s*[-_ ]?\s*BRUN\s*[-_ ]?\s*\d{6,}\b/i,
+        /\b02\s*PI\s*20\s*\d{6,}\b/i
+      ];
+      for (var i = 0; i < pats.length; i++) {
+        var m = txt.match(pats[i]);
+        if (!m || !m[0]) continue;
+        var v = s(m[0]).toUpperCase();
+        if (/\s|-/.test(v)) v = v.replace(/[\s-]+/g, '');
+        if (/\d/.test(v)) return v;
+      }
+      return "";
     }
 
     function extractLegalNameFromText(txt){
@@ -1619,6 +1815,8 @@ function Extract-Ticket_JSONv2 {
     var openTasks = [];
     var acts = "";
     var legalName = "";
+    var taskEvidenceLength = 0;
+    var piSource = "";
     if ('$table' === 'sc_req_item') {
       openTasks = getOpenCatalogTasks(s(r1.sys_id || ""), '$Ticket');
       openTaskCount = openTasks.length;
@@ -1628,11 +1826,14 @@ function Extract-Ticket_JSONv2 {
       if ($enableActivitySearchJs) {
         acts = getRitmActivitiesText(s(r1.sys_id || ""), '$Ticket');
         var piFromActivity = extractMachineFromActivityText(acts);
+        if (piFromActivity) piSource = "ritm_activity";
         if (!piFromActivity) {
           var taskActs = getRitmTasksEvidenceText(s(r1.sys_id || ""), '$Ticket');
           if (taskActs) {
+            taskEvidenceLength = s(taskActs).length;
             acts = acts ? (acts + ' ' + taskActs) : taskActs;
             piFromActivity = extractMachineFromActivityText(acts);
+            if (piFromActivity) piSource = "sctask_evidence";
           }
         }
         if (piFromActivity) {
@@ -1683,6 +1884,8 @@ function Extract-Ticket_JSONv2 {
       open_tasks:openTaskCount,
       open_task_items:openTasks,
       legal_name:legalName,
+      task_evidence_length:taskEvidenceLength,
+      pi_source:piSource,
       activity_text:acts,
       activity_error:activityRetrievalError,
       query:p1
@@ -1735,6 +1938,8 @@ function Extract-Ticket_JSONv2 {
       open_tasks:0,
       open_task_items:[],
       legal_name:"",
+      task_evidence_length:0,
+      pi_source:"",
       activity_text:"",
       activity_error:"",
       query:p
@@ -1759,6 +1964,8 @@ function Extract-Ticket_JSONv2 {
     open_tasks         = 0
     open_task_items    = @()
     legal_name         = ""
+    task_evidence_length = 0
+    pi_source         = ""
     activity_text      = ""
     activity_error     = ""
     href               = "" + $wv.Source
@@ -1855,6 +2062,7 @@ try {
         }
         $detectedPi = Get-DetectedPiFromActivityText -ActivityText $activityText
         $currentUserSnapshot = if ($r.PSObject.Properties["affected_user"]) { ("" + $r.affected_user).Trim() } else { "" }
+        $isNewEpUserContext = ($currentUserSnapshot -match '(?i)^new\b.*\buser$')
         $needsLegalNameFallback = (
           ($t -like "RITM*") -and
           (-not $legalName) -and
@@ -1899,6 +2107,52 @@ try {
             Log "INFO" "$t Legal name extracted from form => '$legalName'"
           }
         }
+        if ([string]::IsNullOrWhiteSpace($detectedPi) -and ($t -like "RITM*")) {
+          $taskUiText = Get-RitmTaskListTextFromUiPage -wv $wv -RitmNumber $t
+          $taskUiLen = if ($taskUiText) { $taskUiText.Length } else { 0 }
+          if ($taskUiLen -gt 0) {
+            $piFromTaskUi = Get-DetectedPiFromActivityText -ActivityText $taskUiText
+            if (-not [string]::IsNullOrWhiteSpace($piFromTaskUi)) {
+              $detectedPi = $piFromTaskUi
+              $r | Add-Member -NotePropertyName pi_source -NotePropertyValue "sctask_ui_list" -Force
+              Log "INFO" "$t PI found from SCTASK UI list => '$detectedPi' (len=$taskUiLen)"
+            }
+            else {
+              Log "INFO" "$t SCTASK UI list scanned, PI not found (len=$taskUiLen)"
+              $taskNums = Get-TaskNumbersFromText -Text $taskUiText
+              if ($taskNums.Count -gt 0) {
+                $maxTaskDeepScan = if ($isNewEpUserContext) { 12 } else { 4 }
+                $scanCount = [Math]::Min($taskNums.Count, $maxTaskDeepScan)
+                Log "INFO" "$t deep SCTASK scan starting. tasks=$($taskNums.Count) limit=$scanCount new_ep_user=$isNewEpUserContext"
+                $matchedPrepareTask = $false
+                for ($ti = 0; $ti -lt $scanCount; $ti++) {
+                  $tn = $taskNums[$ti]
+                  $taskRecordText = Get-SCTaskRecordTextFromUiPage -wv $wv -TaskNumber $tn
+                  if ([string]::IsNullOrWhiteSpace($taskRecordText)) { continue }
+                  if ($isNewEpUserContext) {
+                    if ($taskRecordText -match '(?is)prepare[\s\W_]*device[\s\W_]*for[\s\W_]*new[\s\W_]*user') {
+                      $matchedPrepareTask = $true
+                    }
+                    else {
+                      continue
+                    }
+                  }
+                  $piFromTaskRecord = Get-DetectedPiFromActivityText -ActivityText $taskRecordText
+                  if (-not [string]::IsNullOrWhiteSpace($piFromTaskRecord)) {
+                    $detectedPi = $piFromTaskRecord
+                    $src = if ($isNewEpUserContext) { "sctask_prepare_device_record:" + $tn } else { "sctask_ui_record:" + $tn }
+                    $r | Add-Member -NotePropertyName pi_source -NotePropertyValue $src -Force
+                    Log "INFO" "$t PI found from SCTASK record $tn => '$detectedPi' source='$src'"
+                    break
+                  }
+                }
+                if ($isNewEpUserContext -and (-not $matchedPrepareTask)) {
+                  Log "INFO" "$t prepare-device task not found in scanned SCTASK records"
+                }
+              }
+            }
+          }
+        }
         if ($t -eq $DebugActivityTicket) {
           $backendDump = $activityText
           if ($backendDump.Length -gt $DebugActivityMaxChars) { $backendDump = $backendDump.Substring(0, $DebugActivityMaxChars) }
@@ -1911,6 +2165,14 @@ try {
         }
         if ([string]::IsNullOrWhiteSpace($detectedPi)) {
           Log "INFO" "$t PI not found in activity stream"
+        }
+        $piSource = if ($r.PSObject.Properties["pi_source"]) { ("" + $r.pi_source).Trim() } else { "" }
+        $taskEvidenceLen = 0
+        if ($r.PSObject.Properties["task_evidence_length"]) {
+          try { $taskEvidenceLen = [int]$r.task_evidence_length } catch { $taskEvidenceLen = 0 }
+        }
+        if ($taskEvidenceLen -gt 0 -or $piSource) {
+          Log "INFO" "$t PI scan source='$piSource' task_evidence_len=$taskEvidenceLen"
         }
         $r | Add-Member -NotePropertyName detected_pi_machine -NotePropertyValue $detectedPi -Force
         if ($legalName) {
