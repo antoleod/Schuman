@@ -35,6 +35,7 @@ param(
   [string]$PhoneHeader = "PI",
   [string]$ActionHeader = "Estado de RITM",
   [string]$SCTasksHeader = "SCTasks",
+  [switch]$DashboardMode,
   [switch]$NoPopups,
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
@@ -143,6 +144,8 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $LogPath = Join-Path $OutDir "run.log.txt"
 $HistoryLogPath = Join-Path $PSScriptRoot "auto-excel.history.log"
 $ScriptBuildTag = "auto-excel build 2026-02-17 18:30 inc-hold-status-ux"
+$DashboardDefaultCheckInNote = "Deliver all credentials to the new user"
+$DashboardDefaultCheckOutNote = "Laptop has been delivered.`r`nFirst login made with the user.`r`nOutlook, Teams and Jabber successfully tested."
 
 # Combined JSON file path.
 $AllJson = Join-Path $OutDir "tickets_export.json"
@@ -619,16 +622,36 @@ function Get-CompletionStatusForExcel {
     if ($Res.PSObject.Properties["open_tasks"]) {
       try { $openTasks = [int]$Res.open_tasks } catch { $openTasks = 0 }
     }
+    if ($Res.PSObject.Properties["open_task_items"] -and $Res.open_task_items) {
+      try {
+        $itemsCount = @($Res.open_task_items).Count
+        if ($itemsCount -gt $openTasks) { $openTasks = $itemsCount }
+      } catch {}
+    }
     if ($openTasks -gt 0) { return "Pending" }
 
-    $s = ""
-    if ($Res.PSObject.Properties["status"]) { $s = ("" + $Res.status) }
-    if (-not $s -and $Res.PSObject.Properties["status_label"]) { $s = ("" + $Res.status_label) }
-    if (-not $s -and $Res.PSObject.Properties["status_value"]) { $s = ("" + $Res.status_value) }
-    $st = $s.Trim().ToLowerInvariant()
+    $statusText = ""
+    if ($Res.PSObject.Properties["status"]) { $statusText = ("" + $Res.status) }
+    if (-not $statusText -and $Res.PSObject.Properties["status_label"]) { $statusText = ("" + $Res.status_label) }
+    if (-not $statusText -and $Res.PSObject.Properties["status_value"]) { $statusText = ("" + $Res.status_value) }
+    $st = $statusText.Trim().ToLowerInvariant()
 
-    if ($st -match 'open|new|progress|pending|hold|work') { return "Pending" }
-    return "Complete"
+    $statusValue = ""
+    if ($Res.PSObject.Properties["status_value"]) { $statusValue = ("" + $Res.status_value).Trim().ToLowerInvariant() }
+
+    if ($Ticket -like "RITM*") {
+      # RITM is strict: only explicit closed numeric states are considered Complete.
+      # 1=Open, 2=In Progress, 3=Closed Complete, 4=Closed Incomplete, 7=Cancelled
+      if ($statusValue -in @("3", "4", "7")) { return "Complete" }
+      if ($statusValue -in @("1", "2")) { return "Pending" }
+
+      # Fallback only when numeric value is unavailable.
+      if ($st -match '^(closed(\s+(complete|incomplete|skipped))?|complete|completed|resolved|cancelled|canceled)$') { return "Complete" }
+      return "Pending"
+    }
+
+    if ($st -match 'closed|close|complete|completed|resolved|cancel') { return "Complete" }
+    return "Pending"
   }
 
   if ($Res.PSObject.Properties["status"]) { return ("" + $Res.status) }
@@ -649,6 +672,76 @@ function Get-OrCreateHeaderColumn {
 function Build-RitmRecordUrl([string]$SysId) {
   if ([string]::IsNullOrWhiteSpace($SysId)) { return "" }
   return [string]::Format($RitmRecordUrlTemplate, $SysId.Trim())
+}
+
+function Get-DashboardUserDirectory {
+  param(
+    [string]$ExcelPath,
+    [string]$SheetName
+  )
+
+  Close-ExcelProcessesIfRequested -Reason "before dashboard user directory read"
+  $excel = $null
+  $wb = $null
+  $ws = $null
+  try {
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    $wb = $excel.Workbooks.Open($ExcelPath, $null, $true)
+    $ws = $wb.Worksheets.Item($SheetName)
+
+    $map = Get-ExcelHeaderMap -ws $ws
+    $ritmCol = Resolve-DashboardRitmColumn -HeaderMap $map -Required
+    $nameCols = Resolve-DashboardNameColumns -HeaderMap $map
+    $requestedForCols = @($nameCols.RequestedForCols)
+    $firstNameCols = @($nameCols.FirstNameCols)
+    $lastNameCols = @($nameCols.LastNameCols)
+    if (($requestedForCols.Count -eq 0) -and ($firstNameCols.Count -eq 0) -and ($lastNameCols.Count -eq 0)) { return @() }
+
+    $xlUp = -4162
+    $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ritmCol).End($xlUp).Row
+    if ($rows -lt 2) { return @() }
+
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    $out = New-Object System.Collections.Generic.List[string]
+    for ($r = 2; $r -le $rows; $r++) {
+      $ritm = ("" + $ws.Cells.Item($r, $ritmCol).Text).Trim().ToUpperInvariant()
+      if (-not ($ritm -match '^RITM\d{6,8}$')) { continue }
+
+      $requestedFor = ""
+      foreach ($c in $requestedForCols) {
+        $v = ("" + $ws.Cells.Item($r, [int]$c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $requestedFor = $v; break }
+      }
+      $firstName = ""
+      foreach ($c in $firstNameCols) {
+        $v = ("" + $ws.Cells.Item($r, [int]$c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $firstName = $v; break }
+      }
+      $lastName = ""
+      foreach ($c in $lastNameCols) {
+        $v = ("" + $ws.Cells.Item($r, [int]$c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $lastName = $v; break }
+      }
+
+      $name = $requestedFor
+      if ([string]::IsNullOrWhiteSpace($name)) { $name = (($firstName + " " + $lastName).Trim()) }
+      if ([string]::IsNullOrWhiteSpace($name)) { continue }
+
+      if ($seen.Add($name)) { [void]$out.Add($name) }
+    }
+
+    return @($out | Sort-Object)
+  }
+  finally {
+    try { if ($wb) { $wb.Close($false) | Out-Null } } catch {}
+    try { if ($excel) { $excel.Quit() | Out-Null } } catch {}
+    try { if ($ws) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) } } catch {}
+    try { if ($wb) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } } catch {}
+    try { if ($excel) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } } catch {}
+    [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+  }
 }
 
 function Build-RitmByNumberUrl([string]$RitmNumber) {
@@ -1435,6 +1528,1336 @@ function Get-SCTaskNumbersFromBackendByRitm {
 }
 
 # =============================================================================
+# DASHBOARD: CHECK-IN / CHECK-OUT (NEW FEATURE)
+# =============================================================================
+function Get-ExcelHeaderMap {
+  param($ws)
+  $map = @{}
+  $cols = $ws.UsedRange.Columns.Count
+  for ($c = 1; $c -le $cols; $c++) {
+    $h = ("" + $ws.Cells.Item(1, $c).Text).Trim()
+    if ($h -and -not $map.ContainsKey($h)) { $map[$h] = $c }
+  }
+  return $map
+}
+
+function Resolve-HeaderColumn {
+  param(
+    [hashtable]$HeaderMap,
+    [string[]]$Patterns,
+    [string]$LogicalName = "",
+    [switch]$Required
+  )
+
+  foreach ($k in $HeaderMap.Keys) {
+    foreach ($p in $Patterns) {
+      if (("" + $k) -match $p) { return [int]$HeaderMap[$k] }
+    }
+  }
+
+  if ($Required) {
+    throw "Dashboard missing required column for '$LogicalName'. Headers found: $($HeaderMap.Keys -join ', ')"
+  }
+  return $null
+}
+
+function Resolve-DashboardRitmColumn {
+  param(
+    [hashtable]$HeaderMap,
+    [switch]$Required
+  )
+
+  foreach ($k in $HeaderMap.Keys) {
+    if (("" + $k) -match '(?i)^\s*ritm\s*$') { return [int]$HeaderMap[$k] }
+  }
+  foreach ($k in $HeaderMap.Keys) {
+    if (("" + $k) -match '(?i)^\s*request\s*item\s*$') { return [int]$HeaderMap[$k] }
+  }
+  foreach ($k in $HeaderMap.Keys) {
+    if (("" + $k) -match '(?i)^\s*number\s*$') { return [int]$HeaderMap[$k] }
+  }
+  foreach ($k in $HeaderMap.Keys) {
+    $hk = ("" + $k)
+    if (($hk -match '(?i)\britm\b') -and ($hk -notmatch '(?i)estado|status|action|finished|state')) {
+      return [int]$HeaderMap[$k]
+    }
+  }
+
+  if ($Required) {
+    throw "Dashboard missing required RITM column. Headers found: $($HeaderMap.Keys -join ', ')"
+  }
+  return $null
+}
+
+function Resolve-DashboardNameColumns {
+  param([hashtable]$HeaderMap)
+
+  $requestedForCols = @()
+  $firstNameCols = @()
+  $lastNameCols = @()
+  foreach ($k in $HeaderMap.Keys) {
+    $kText = "" + $k
+    if ($kText -match '(?i)^requested\s*for$|^name$|employee|user') { $requestedForCols += [int]$HeaderMap[$k] }
+    if ($kText -match '(?i)^first\s*name$') { $firstNameCols += [int]$HeaderMap[$k] }
+    if ($kText -match '(?i)^last\s*name$') { $lastNameCols += [int]$HeaderMap[$k] }
+  }
+  return [pscustomobject]@{
+    RequestedForCols = @($requestedForCols | Select-Object -Unique)
+    FirstNameCols    = @($firstNameCols | Select-Object -Unique)
+    LastNameCols     = @($lastNameCols | Select-Object -Unique)
+  }
+}
+
+function Ensure-DashboardExcelColumns {
+  param(
+    [string]$ExcelPath,
+    [string]$SheetName
+  )
+
+  Log "INFO" "Dashboard: ensuring required Excel columns for '$ExcelPath' sheet '$SheetName'"
+  Close-ExcelProcessesIfRequested -Reason "before dashboard ensure columns"
+
+  $excel = $null
+  $wb = $null
+  $ws = $null
+  try {
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    $wb = $excel.Workbooks.Open($ExcelPath, $null, $false)
+    $ws = $wb.Worksheets.Item($SheetName)
+
+    $map = Get-ExcelHeaderMap -ws $ws
+    $ritmCol = Resolve-DashboardRitmColumn -HeaderMap $map -Required
+    $nameCols = Resolve-DashboardNameColumns -HeaderMap $map
+    $requestedForCols = @($nameCols.RequestedForCols)
+    $firstNameCols = @($nameCols.FirstNameCols)
+    $lastNameCols = @($nameCols.LastNameCols)
+    if (($requestedForCols.Count -eq 0) -and ($firstNameCols.Count -eq 0) -and ($lastNameCols.Count -eq 0)) {
+      throw "Dashboard requires one of: Requested for, Name, First Name/Last Name."
+    }
+
+    $statusCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Dashboard Status"
+    $presentCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Present Time"
+    $closedCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Closed Time"
+    $sctaskCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^\s*sctask\s*$', '(?i)sc\s*task', '(?i)\bsctasks?\b')
+
+    $wb.Save()
+
+    return [pscustomobject]@{
+      RITM          = $ritmCol
+      RequestedFor  = if ($requestedForCols.Count -gt 0) { [int]$requestedForCols[0] } else { $null }
+      FirstName     = if ($firstNameCols.Count -gt 0) { [int]$firstNameCols[0] } else { $null }
+      LastName      = if ($lastNameCols.Count -gt 0) { [int]$lastNameCols[0] } else { $null }
+      SCTASK        = $sctaskCol
+      Status        = $statusCol
+      PresentTime   = $presentCol
+      ClosedTime    = $closedCol
+    }
+  }
+  finally {
+    try { if ($wb) { $wb.Close($false) | Out-Null } } catch {}
+    try { if ($excel) { $excel.Quit() | Out-Null } } catch {}
+    try { if ($ws) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) } } catch {}
+    try { if ($wb) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } } catch {}
+    try { if ($excel) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } } catch {}
+    [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+  }
+}
+
+function Search-DashboardRows {
+  param(
+    [string]$ExcelPath,
+    [string]$SheetName,
+    [string]$SearchText
+  )
+
+  $query = ("" + $SearchText).Trim()
+
+  $excel = $null
+  $wb = $null
+  $ws = $null
+  try {
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    $wb = $excel.Workbooks.Open($ExcelPath, $null, $true)
+    $ws = $wb.Worksheets.Item($SheetName)
+
+    $map = Get-ExcelHeaderMap -ws $ws
+    $ritmCol = Resolve-DashboardRitmColumn -HeaderMap $map -Required
+    $nameCols = Resolve-DashboardNameColumns -HeaderMap $map
+    $requestedForCols = @($nameCols.RequestedForCols)
+    $firstNameCols = @($nameCols.FirstNameCols)
+    $lastNameCols = @($nameCols.LastNameCols)
+    if (($requestedForCols.Count -eq 0) -and ($firstNameCols.Count -eq 0) -and ($lastNameCols.Count -eq 0)) {
+      throw "Dashboard requires one of: Requested for, Name, First Name/Last Name."
+    }
+
+    $sctaskCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^\s*sctask\s*$', '(?i)sc\s*task', '(?i)\bsctasks?\b')
+    $statusCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^dashboard\s*status$')
+    $presentCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^present\s*time$')
+    $closedCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^closed\s*time$')
+
+    $used = $ws.UsedRange
+    $rows = 0
+    try { $rows = [int]($used.Row + $used.Rows.Count - 1) } catch { $rows = 0 }
+    $cols = 0
+    try { $cols = [int]$used.Columns.Count } catch { $cols = 0 }
+    if ($rows -lt 2) { return @() }
+    if ($cols -lt 1) { $cols = [int]$ws.UsedRange.Columns.Count }
+
+    $out = New-Object System.Collections.Generic.List[object]
+    for ($r = 2; $r -le $rows; $r++) {
+      $ritm = ("" + $ws.Cells.Item($r, $ritmCol).Text).Trim().ToUpperInvariant()
+
+      # Collect full row text so search works even when name headers vary in Excel.
+      $rowTexts = New-Object System.Collections.Generic.List[string]
+      for ($c = 1; $c -le $cols; $c++) {
+        $cv = ("" + $ws.Cells.Item($r, $c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($cv)) { [void]$rowTexts.Add($cv) }
+      }
+      $rowBlob = ($rowTexts -join " ")
+      if ([string]::IsNullOrWhiteSpace($rowBlob)) { continue }
+      if ((-not [string]::IsNullOrWhiteSpace($query)) -and ($rowBlob.IndexOf($query, [System.StringComparison]::OrdinalIgnoreCase) -lt 0)) { continue }
+
+      $requestedFor = ""
+      foreach ($c in $requestedForCols) {
+        $v = ("" + $ws.Cells.Item($r, [int]$c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $requestedFor = $v; break }
+      }
+      $firstName = ""
+      foreach ($c in $firstNameCols) {
+        $v = ("" + $ws.Cells.Item($r, [int]$c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $firstName = $v; break }
+      }
+      $lastName = ""
+      foreach ($c in $lastNameCols) {
+        $v = ("" + $ws.Cells.Item($r, [int]$c).Text).Trim()
+        if (-not [string]::IsNullOrWhiteSpace($v)) { $lastName = $v; break }
+      }
+      if ([string]::IsNullOrWhiteSpace($requestedFor)) {
+        $requestedFor = (($firstName + " " + $lastName).Trim())
+      }
+      if ([string]::IsNullOrWhiteSpace($requestedFor)) {
+        foreach ($txt in $rowTexts) {
+          if ($txt -match '^(?i)(RITM|SCTASK|INC)\d{6,8}$') { continue }
+          if ($txt -match '^\d{4}-\d{2}-\d{2}') { continue }
+          if ($txt -match '^\d{1,2}:\d{2}(:\d{2})?$') { continue }
+          if ($txt.Length -lt 3) { continue }
+          $requestedFor = $txt
+          break
+        }
+      }
+      $sctask = if ($sctaskCol) { ("" + $ws.Cells.Item($r, $sctaskCol).Text).Trim() } else { "" }
+
+      $status = if ($statusCol) { ("" + $ws.Cells.Item($r, $statusCol).Text).Trim() } else { "" }
+      $presentTime = if ($presentCol) { ("" + $ws.Cells.Item($r, $presentCol).Text).Trim() } else { "" }
+      $closedTime = if ($closedCol) { ("" + $ws.Cells.Item($r, $closedCol).Text).Trim() } else { "" }
+
+      $out.Add([pscustomobject]@{
+        Row           = [int]$r
+        RequestedFor  = $requestedFor
+        FirstName     = $firstName
+        LastName      = $lastName
+        RITM          = $ritm
+        SCTASK        = $sctask
+        DashboardStatus = $status
+        PresentTime   = $presentTime
+        ClosedTime    = $closedTime
+      }) | Out-Null
+    }
+
+    Log "INFO" "Dashboard search query='$query' => matches=$($out.Count)"
+    return @($out.ToArray())
+  }
+  finally {
+    try { if ($wb) { $wb.Close($false) | Out-Null } } catch {}
+    try { if ($excel) { $excel.Quit() | Out-Null } } catch {}
+    try { if ($ws) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) } } catch {}
+    try { if ($wb) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } } catch {}
+    try { if ($excel) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } } catch {}
+    [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+  }
+}
+
+function Update-DashboardExcelRow {
+  param(
+    [string]$ExcelPath,
+    [string]$SheetName,
+    [int]$RowIndex,
+    [string]$DashboardStatus,
+    [string]$TimestampHeader,
+    [string]$TaskNumberToWrite
+  )
+
+  Close-ExcelProcessesIfRequested -Reason "before dashboard write"
+  $excel = $null
+  $wb = $null
+  $ws = $null
+  try {
+    $excel = New-Object -ComObject Excel.Application
+    $excel.Visible = $false
+    $excel.DisplayAlerts = $false
+    $wb = $excel.Workbooks.Open($ExcelPath, $null, $false)
+    $ws = $wb.Worksheets.Item($SheetName)
+
+    $map = Get-ExcelHeaderMap -ws $ws
+    $statusCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Dashboard Status"
+    $presentCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Present Time"
+    $closedCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "Closed Time"
+    $sctaskCol = Resolve-HeaderColumn -HeaderMap $map -Patterns @('(?i)^\s*sctask\s*$', '(?i)sc\s*task', '(?i)\bsctasks?\b')
+
+    $ws.Cells.Item($RowIndex, $statusCol) = $DashboardStatus
+
+    $timestampCol = if ($TimestampHeader -eq "Present Time") { $presentCol } elseif ($TimestampHeader -eq "Closed Time") { $closedCol } else { $null }
+    if ($timestampCol) {
+      $currentTs = ("" + $ws.Cells.Item($RowIndex, $timestampCol).Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($currentTs)) {
+        $ws.Cells.Item($RowIndex, $timestampCol) = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+      }
+      else {
+        Log "INFO" "Dashboard timestamp preserved at row=$RowIndex col='$TimestampHeader' value='$currentTs'"
+      }
+    }
+
+    if ($sctaskCol -and -not [string]::IsNullOrWhiteSpace($TaskNumberToWrite)) {
+      $existingTask = ("" + $ws.Cells.Item($RowIndex, $sctaskCol).Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($existingTask)) {
+        $ws.Cells.Item($RowIndex, $sctaskCol) = $TaskNumberToWrite
+      }
+    }
+
+    $wb.Save()
+    return $true
+  }
+  catch {
+    Log "ERROR" "Dashboard Excel update failed at row=${RowIndex}: $($_.Exception.Message)"
+    return $false
+  }
+  finally {
+    try { if ($wb) { $wb.Close($false) | Out-Null } } catch {}
+    try { if ($excel) { $excel.Quit() | Out-Null } } catch {}
+    try { if ($ws) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) } } catch {}
+    try { if ($wb) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } } catch {}
+    try { if ($excel) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } } catch {}
+    [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+  }
+}
+
+function Get-SCTaskCandidatesForRitm {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+
+  if ([string]::IsNullOrWhiteSpace($RitmNumber)) { return @() }
+  [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
+  $safeRitm = $RitmNumber.Trim().ToUpperInvariant()
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRows(o){
+      if (o && Array.isArray(o.records)) return o.records;
+      if (o && Array.isArray(o.result)) return o.result;
+      return [];
+    }
+    var p = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_display_value=true&sysparm_query=' + encodeURIComponent('request_item.number=$safeRitm');
+    var x = new XMLHttpRequest();
+    x.open('GET', p, false);
+    x.withCredentials = true;
+    x.send(null);
+    if (!(x.status>=200 && x.status<300)) return JSON.stringify({ok:false, tasks:[]});
+    var o = JSON.parse(x.responseText || '{}');
+    var rows = pickRows(o);
+    var out = [];
+    for (var i=0; i<rows.length; i++) {
+      var r = rows[i] || {};
+      var num = s(r.number || '');
+      if (!num) continue;
+      out.push({
+        number: num.toUpperCase(),
+        sys_id: s(r.sys_id || ''),
+        state: s(r.state || ''),
+        state_value: s(r.state_value || '')
+      });
+    }
+    return JSON.stringify({ok:true, tasks:out});
+  } catch(e){
+    return JSON.stringify({ok:false, tasks:[]});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 9000)
+  if (-not $o -or $o.ok -ne $true -or -not $o.PSObject.Properties["tasks"]) { return @() }
+  return @($o.tasks)
+}
+
+function Test-SCTaskClosedState {
+  param(
+    [string]$StateValue,
+    [string]$StateLabel
+  )
+  $sv = ("" + $StateValue).Trim().ToLowerInvariant()
+  $sl = ("" + $StateLabel).Trim().ToLowerInvariant()
+
+  if ($sv -in @("3", "4", "7")) { return $true }
+  if ($sv -match 'closed|complete|cancel') { return $true }
+  if ($sl -match 'closed|complete|cancel') { return $true }
+  return $false
+}
+
+function Get-SCTaskByNumber {
+  param(
+    $wv,
+    [string]$TaskNumber
+  )
+  if ([string]::IsNullOrWhiteSpace($TaskNumber)) { return $null }
+  $safeTask = $TaskNumber.Trim().ToUpperInvariant()
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRec(o){
+      return (o && o.records && o.records[0]) ? o.records[0] :
+             (o && o.result && o.result[0]) ? o.result[0] : null;
+    }
+    var p = '/sc_task.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=' + encodeURIComponent('number=$safeTask');
+    var x = new XMLHttpRequest();
+    x.open('GET', p, false);
+    x.withCredentials = true;
+    x.send(null);
+    if (!(x.status>=200 && x.status<300)) return JSON.stringify({ok:false});
+    var o = JSON.parse(x.responseText || '{}');
+    var r = pickRec(o);
+    if (!r) return JSON.stringify({ok:false});
+    return JSON.stringify({
+      ok:true,
+      number:s(r.number || ''),
+      sys_id:s(r.sys_id || ''),
+      state:s(r.state || ''),
+      state_value:s(r.state_value || '')
+    });
+  } catch(e){
+    return JSON.stringify({ok:false});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 7000)
+  if (-not $o -or $o.ok -ne $true) { return $null }
+  return $o
+}
+
+function Get-OpenSCTasksForRitmFallback {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+
+  $ritm = ("" + $RitmNumber).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) { return @() }
+
+  # 1) Backend relation query (fast path)
+  $candidates = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  $open = New-Object System.Collections.Generic.List[object]
+  foreach ($t in $candidates) {
+    $num = if ($t.PSObject.Properties["number"]) { ("" + $t.number).Trim().ToUpperInvariant() } else { "" }
+    $sid = if ($t.PSObject.Properties["sys_id"]) { ("" + $t.sys_id).Trim() } else { "" }
+    $st = if ($t.PSObject.Properties["state"]) { ("" + $t.state).Trim() } else { "" }
+    $sv = if ($t.PSObject.Properties["state_value"]) { ("" + $t.state_value).Trim() } else { "" }
+    if ([string]::IsNullOrWhiteSpace($num)) { continue }
+    if (-not (Test-SCTaskClosedState -StateValue $sv -StateLabel $st)) {
+      $open.Add([pscustomobject]@{
+        number = $num
+        sys_id = $sid
+        state_value = $sv
+        state_label = $st
+      }) | Out-Null
+    }
+  }
+  if ($open.Count -gt 0) { return @($open) }
+
+  # 2) UI list fallback: discover task numbers visible in list
+  $taskListText = Get-RitmTaskListTextFromUiPage -wv $wv -RitmNumber $ritm
+  $taskNumbers = @(Get-TaskNumbersFromText -Text $taskListText)
+  if ($taskNumbers.Count -eq 0) { return @() }
+
+  $openUi = New-Object System.Collections.Generic.List[object]
+  foreach ($n in $taskNumbers) {
+    $row = Get-SCTaskByNumber -wv $wv -TaskNumber $n
+    if ($row) {
+      $st = if ($row.PSObject.Properties["state"]) { ("" + $row.state).Trim() } else { "" }
+      $sv = if ($row.PSObject.Properties["state_value"]) { ("" + $row.state_value).Trim() } else { "" }
+      if (-not (Test-SCTaskClosedState -StateValue $sv -StateLabel $st)) {
+        $openUi.Add([pscustomobject]@{
+          number = ("" + $row.number).Trim().ToUpperInvariant()
+          sys_id = ("" + $row.sys_id).Trim()
+          state_value = $sv
+          state_label = $st
+        }) | Out-Null
+      }
+    }
+  }
+  return @($openUi)
+}
+
+function Test-DashboardStateOpen {
+  param([string]$StateText)
+  $s = ("" + $StateText).Trim().ToLowerInvariant()
+  return ($s -eq "open")
+}
+
+function Test-DashboardStateInProgress {
+  param([string]$StateText)
+  $s = ("" + $StateText).Trim().ToLowerInvariant()
+  return ($s -match 'work\s*in\s*progress|in\s*progress')
+}
+
+function Invoke-ServiceNowDomUpdate {
+  param(
+    $wv,
+    [string]$Table,
+    [string]$SysId,
+    [string]$TargetStateLabel,
+    [string]$WorkNote
+  )
+
+  if ([string]::IsNullOrWhiteSpace($SysId)) { return $false }
+  $recordUrl = if ($Table -eq "sc_req_item") { Build-RitmRecordUrl -SysId $SysId } else { Build-SCTaskRecordUrl -SysId $SysId }
+  if ([string]::IsNullOrWhiteSpace($recordUrl)) { return $false }
+
+  try { $wv.CoreWebView2.Navigate($recordUrl) } catch { return $false }
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt 15000) {
+    Start-Sleep -Milliseconds 250
+    $isReady = Parse-WV2Json (ExecJS $wv "document.readyState==='complete'" 2000)
+    if ($isReady -eq $true) { break }
+  }
+
+  $targetJson = ($TargetStateLabel | ConvertTo-Json -Compress)
+  $noteJson = ($WorkNote | ConvertTo-Json -Compress)
+  $js = @"
+(function(){
+  try {
+    var target = $targetJson;
+    var note = $noteJson;
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function docs(){
+      var out = [];
+      var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+      if (frame && frame.contentDocument) out.push(frame.contentDocument);
+      out.push(document);
+      return out;
+    }
+    function findState(doc){
+      var sels = [
+        'select#sc_task\\.state',
+        'select#sc_req_item\\.state',
+        'select[name=\"sc_task.state\"]',
+        'select[name=\"sc_req_item.state\"]',
+        'select[name=\"state\"]',
+        'select[id$=\".state\"]'
+      ];
+      for (var i=0; i<sels.length; i++) {
+        var el = doc.querySelector(sels[i]);
+        if (el) return el;
+      }
+      var all = doc.querySelectorAll('select');
+      for (var j=0; j<all.length; j++) {
+        var idn = s(all[j].id) + ' ' + s(all[j].name);
+        if (/state/i.test(idn)) return all[j];
+      }
+      return null;
+    }
+    function setState(el, stateLabel){
+      if (!el || !stateLabel) return true;
+      var wanted = s(stateLabel).toLowerCase();
+      var best = null;
+      for (var i=0; i<el.options.length; i++) {
+        var t = s(el.options[i].text).toLowerCase();
+        if (t === wanted) { best = el.options[i].value; break; }
+      }
+      if (best === null) {
+        for (var j=0; j<el.options.length; j++) {
+          var t2 = s(el.options[j].text).toLowerCase();
+          if (t2.indexOf(wanted) >= 0) { best = el.options[j].value; break; }
+        }
+      }
+      if (best === null) return false;
+      el.value = best;
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+      return true;
+    }
+    function findNotes(doc){
+      var sels = [
+        'textarea#activity-stream-work_notes-textarea',
+        'textarea[name=\"work_notes\"]',
+        'textarea[id*=\"work_notes\"]',
+        'textarea[id$=\".work_notes\"]',
+        'textarea[aria-label*=\"Work notes\"]'
+      ];
+      for (var i=0; i<sels.length; i++) {
+        var el = doc.querySelector(sels[i]);
+        if (el) return el;
+      }
+      return null;
+    }
+    function setNotes(el, txt){
+      if (!txt) return true;
+      if (!el) return false;
+      if (typeof el.value !== 'undefined') {
+        el.value = txt;
+      } else if (el.isContentEditable) {
+        el.innerText = txt;
+      } else {
+        return false;
+      }
+      el.dispatchEvent(new Event('input', { bubbles:true }));
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+      return true;
+    }
+    function clickSave(doc){
+      var sels = [
+        'button#sysverb_update',
+        'button[name=\"sysverb_update\"]',
+        'input#sysverb_update',
+        'button[name=\"sysverb_update_and_stay\"]',
+        'button.activity-submit',
+        'button[data-action=\"save\"]'
+      ];
+      for (var i=0; i<sels.length; i++) {
+        var btn = doc.querySelector(sels[i]);
+        if (!btn) continue;
+        btn.click();
+        return true;
+      }
+      return false;
+    }
+    var stateApplied = false;
+    var notesApplied = (note === '');
+    var saved = false;
+    var ds = docs();
+    for (var di=0; di<ds.length; di++) {
+      var d = ds[di];
+      if (!stateApplied) {
+        var st = findState(d);
+        if (st) stateApplied = setState(st, target);
+      }
+      if (!notesApplied) {
+        var wn = findNotes(d);
+        if (wn) notesApplied = setNotes(wn, note);
+      }
+      if ((stateApplied && notesApplied) && !saved) {
+        saved = clickSave(d);
+      }
+      if (stateApplied && notesApplied && saved) break;
+    }
+    return JSON.stringify({ok:(stateApplied && notesApplied && saved), state_applied:stateApplied, notes_applied:notesApplied, saved:saved});
+  } catch(e){
+    return JSON.stringify({ok:false, error:''+e});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 12000)
+  if (-not $o -or $o.ok -ne $true) {
+    $detail = if ($o -and $o.PSObject.Properties["error"]) { "" + $o.error } else { "unknown dom update failure" }
+    Log "ERROR" "Dashboard ServiceNow DOM update failed table='$Table' sys_id='$SysId' state='$TargetStateLabel' detail='$detail'"
+    return $false
+  }
+  Start-Sleep -Milliseconds 1200
+  return $true
+}
+
+function Invoke-DashboardCheckIn {
+  param(
+    $wv,
+    [string]$ExcelPath,
+    [string]$SheetName,
+    $RowItem,
+    [string]$WorkNote
+  )
+
+  $ritm = ("" + $RowItem.RITM).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) { return [pscustomobject]@{ ok = $false; message = "Selected row has no RITM." } }
+
+  Log "INFO" "Dashboard CHECK-IN started for $ritm row=$($RowItem.Row)"
+  $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  if ($tasks.Count -eq 0) { return [pscustomobject]@{ ok = $false; message = "No SCTASK found for $ritm." } }
+
+  $openTasks = @($tasks | Where-Object { Test-DashboardStateOpen -StateText ("" + $_.state) })
+  if ($openTasks.Count -eq 0) {
+    return [pscustomobject]@{ ok = $false; message = "No task in state 'Open' for $ritm." }
+  }
+  $task = $openTasks[0]
+
+  if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_task" -SysId ("" + $task.sys_id) -TargetStateLabel "Work in Progress" -WorkNote $WorkNote)) {
+    return [pscustomobject]@{ ok = $false; message = "ServiceNow update failed for task $($task.number)." }
+  }
+
+  $excelOk = Update-DashboardExcelRow -ExcelPath $ExcelPath -SheetName $SheetName -RowIndex ([int]$RowItem.Row) `
+    -DashboardStatus "Checked-In" -TimestampHeader "Present Time" -TaskNumberToWrite ("" + $task.number)
+  if (-not $excelOk) { return [pscustomobject]@{ ok = $false; message = "ServiceNow updated, but Excel write failed." } }
+
+  Log "INFO" "Dashboard CHECK-IN completed for $ritm task=$($task.number)"
+  return [pscustomobject]@{ ok = $true; message = "Checked-In: $ritm ($($task.number))" }
+}
+
+function Invoke-DashboardCheckOut {
+  param(
+    $wv,
+    [string]$ExcelPath,
+    [string]$SheetName,
+    $RowItem,
+    [string]$WorkNote
+  )
+
+  $ritm = ("" + $RowItem.RITM).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) { return [pscustomobject]@{ ok = $false; message = "Selected row has no RITM." } }
+
+  Log "INFO" "Dashboard CHECK-OUT started for $ritm row=$($RowItem.Row)"
+  $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  if ($tasks.Count -eq 0) { return [pscustomobject]@{ ok = $false; message = "No SCTASK found for $ritm." } }
+
+  $openTasks = @($tasks | Where-Object { Test-DashboardStateOpen -StateText ("" + $_.state) })
+  $wipTasks = @($tasks | Where-Object { Test-DashboardStateInProgress -StateText ("" + $_.state) })
+  $task = $null
+  if ($openTasks.Count -gt 0) { $task = $openTasks[0] } elseif ($wipTasks.Count -gt 0) { $task = $wipTasks[0] }
+  if (-not $task) {
+    return [pscustomobject]@{ ok = $false; message = "No task in Open/Work in Progress for $ritm." }
+  }
+
+  if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_task" -SysId ("" + $task.sys_id) -TargetStateLabel "Closed Complete" -WorkNote $WorkNote)) {
+    return [pscustomobject]@{ ok = $false; message = "ServiceNow update failed for task $($task.number)." }
+  }
+
+  $ritmRes = Extract-Ticket_JSONv2 -wv $wv -Ticket $ritm
+  $ritmSysId = if ($ritmRes -and $ritmRes.ok -eq $true -and $ritmRes.PSObject.Properties["sys_id"]) { ("" + $ritmRes.sys_id).Trim() } else { "" }
+  if ([string]::IsNullOrWhiteSpace($ritmSysId)) {
+    return [pscustomobject]@{ ok = $false; message = "Task closed, but parent RITM sys_id not found for $ritm." }
+  }
+
+  if (-not (Invoke-ServiceNowDomUpdate -wv $wv -Table "sc_req_item" -SysId $ritmSysId -TargetStateLabel "Closed Complete" -WorkNote "")) {
+    return [pscustomobject]@{ ok = $false; message = "Task closed, but failed to close parent RITM $ritm." }
+  }
+
+  $excelOk = Update-DashboardExcelRow -ExcelPath $ExcelPath -SheetName $SheetName -RowIndex ([int]$RowItem.Row) `
+    -DashboardStatus "Completed" -TimestampHeader "Closed Time" -TaskNumberToWrite ("" + $task.number)
+  if (-not $excelOk) { return [pscustomobject]@{ ok = $false; message = "ServiceNow updated, but Excel write failed." } }
+
+  Log "INFO" "Dashboard CHECK-OUT completed for $ritm task=$($task.number)"
+  return [pscustomobject]@{ ok = $true; message = "Completed: $ritm ($($task.number))" }
+}
+
+function Invoke-DashboardRecalculateStatus {
+  param(
+    $wv,
+    [string]$ExcelPath,
+    [string]$SheetName,
+    $RowItem
+  )
+
+  $ritm = ("" + $RowItem.RITM).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) {
+    return [pscustomobject]@{ ok = $false; message = "Selected row has no RITM." }
+  }
+
+  Log "INFO" "Dashboard RE-CALCULATE started for $ritm row=$($RowItem.Row)"
+  $tasks = @(Get-SCTaskCandidatesForRitm -wv $wv -RitmNumber $ritm)
+  $openTasks = @($tasks | Where-Object { Test-DashboardStateOpen -StateText ("" + $_.state) })
+  $wipTasks = @($tasks | Where-Object { Test-DashboardStateInProgress -StateText ("" + $_.state) })
+
+  $ritmRes = Extract-Ticket_JSONv2 -wv $wv -Ticket $ritm
+  $ritmStateRaw = ""
+  if ($ritmRes -and $ritmRes.PSObject.Properties["status"]) { $ritmStateRaw = "" + $ritmRes.status }
+  if ([string]::IsNullOrWhiteSpace($ritmStateRaw) -and $ritmRes -and $ritmRes.PSObject.Properties["status_label"]) { $ritmStateRaw = "" + $ritmRes.status_label }
+  if ([string]::IsNullOrWhiteSpace($ritmStateRaw) -and $ritmRes -and $ritmRes.PSObject.Properties["status_value"]) { $ritmStateRaw = "" + $ritmRes.status_value }
+  $ritmState = $ritmStateRaw.Trim().ToLowerInvariant()
+  $ritmClosed = ($ritmState -match 'closed|close|complete|completed|resolved|cancel')
+
+  $targetStatus = ""
+  $tsHeader = ""
+  if (($openTasks.Count -gt 0) -or ($wipTasks.Count -gt 0)) {
+    $targetStatus = "Checked-In"
+    $tsHeader = "Present Time"
+  }
+  elseif ($ritmClosed) {
+    $targetStatus = "Completed"
+    $tsHeader = "Closed Time"
+  }
+  else {
+    return [pscustomobject]@{
+      ok = $false
+      message = "No deterministic state for $ritm. RITM state='$ritmStateRaw', open=$($openTasks.Count), in-progress=$($wipTasks.Count)."
+    }
+  }
+
+  $taskNum = ""
+  if ($openTasks.Count -gt 0) { $taskNum = "" + $openTasks[0].number }
+  elseif ($wipTasks.Count -gt 0) { $taskNum = "" + $wipTasks[0].number }
+  elseif ($tasks.Count -gt 0) { $taskNum = "" + $tasks[0].number }
+
+  $excelOk = Update-DashboardExcelRow -ExcelPath $ExcelPath -SheetName $SheetName -RowIndex ([int]$RowItem.Row) `
+    -DashboardStatus $targetStatus -TimestampHeader $tsHeader -TaskNumberToWrite $taskNum
+  if (-not $excelOk) {
+    return [pscustomobject]@{ ok = $false; message = "SNOW checked, but Excel update failed for $ritm." }
+  }
+
+  Log "INFO" "Dashboard RE-CALCULATE completed for $ritm => status='$targetStatus' open=$($openTasks.Count) wip=$($wipTasks.Count) ritm_state='$ritmStateRaw'"
+  return [pscustomobject]@{ ok = $true; message = "Recalculated: $ritm => $targetStatus" }
+}
+
+function Test-DashboardRowOpenLocal {
+  param($RowItem)
+  if (-not $RowItem) { return $false }
+
+  $status = ("" + $RowItem.DashboardStatus).Trim().ToLowerInvariant()
+  if ($status -match 'completed|complete|closed|cerrado') { return $false }
+  return $true
+}
+
+function Open-DashboardRowInServiceNow {
+  param(
+    $wv,
+    $RowItem
+  )
+
+  $ritm = ("" + $RowItem.RITM).Trim().ToUpperInvariant()
+  if ([string]::IsNullOrWhiteSpace($ritm)) { return }
+  $url = Build-RitmByNumberUrl -RitmNumber $ritm
+  if ([string]::IsNullOrWhiteSpace($url)) { return }
+  try { $wv.CoreWebView2.Navigate($url) } catch {}
+  try { Start-Process $url | Out-Null } catch {}
+}
+
+function Show-CheckInOutDashboard {
+  param(
+    $wv,
+    [string]$ExcelPath,
+    [string]$SheetName
+  )
+
+  [void](Ensure-DashboardExcelColumns -ExcelPath $ExcelPath -SheetName $SheetName)
+
+  $form = New-Object System.Windows.Forms.Form
+  $form.Text = "Check-in / Check-out Dashboard"
+  $form.StartPosition = "CenterScreen"
+  $form.Size = New-Object System.Drawing.Size(1120, 760)
+  $form.MinimumSize = New-Object System.Drawing.Size(980, 680)
+  $form.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+  $form.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $form.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+
+  $lblSearch = New-Object System.Windows.Forms.Label
+  $lblSearch.Text = "Search Last Name or First Name:"
+  $lblSearch.Location = New-Object System.Drawing.Point(16, 16)
+  $lblSearch.AutoSize = $true
+  $lblSearch.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+
+  $txtSearch = New-Object System.Windows.Forms.ComboBox
+  $txtSearch.Location = New-Object System.Drawing.Point(16, 38)
+  $txtSearch.Size = New-Object System.Drawing.Size(360, 24)
+  $txtSearch.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $txtSearch.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $txtSearch.FlatStyle = "Flat"
+  $txtSearch.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDown
+  $txtSearch.AutoCompleteMode = [System.Windows.Forms.AutoCompleteMode]::SuggestAppend
+  $txtSearch.AutoCompleteSource = [System.Windows.Forms.AutoCompleteSource]::ListItems
+  $txtSearch.MaxDropDownItems = 14
+
+  $btnRefresh = New-Object System.Windows.Forms.Button
+  $btnRefresh.Text = "Refresh"
+  $btnRefresh.Location = New-Object System.Drawing.Point(390, 36)
+  $btnRefresh.Size = New-Object System.Drawing.Size(100, 28)
+
+  $btnClear = New-Object System.Windows.Forms.Button
+  $btnClear.Text = "Clear"
+  $btnClear.Location = New-Object System.Drawing.Point(500, 36)
+  $btnClear.Size = New-Object System.Drawing.Size(80, 28)
+
+  $btnRecalc = New-Object System.Windows.Forms.Button
+  $btnRecalc.Text = "Recalculate from SNOW"
+  $btnRecalc.Location = New-Object System.Drawing.Point(590, 36)
+  $btnRecalc.Size = New-Object System.Drawing.Size(170, 28)
+
+  $btnOpen = New-Object System.Windows.Forms.Button
+  $btnOpen.Text = "Open in ServiceNow"
+  $btnOpen.Location = New-Object System.Drawing.Point(770, 36)
+  $btnOpen.Size = New-Object System.Drawing.Size(160, 28)
+
+  $chkOpenOnly = New-Object System.Windows.Forms.CheckBox
+  $chkOpenOnly.Text = "Solo RITM abiertos"
+  $chkOpenOnly.Location = New-Object System.Drawing.Point(940, 40)
+  $chkOpenOnly.Size = New-Object System.Drawing.Size(180, 24)
+  $chkOpenOnly.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+  $chkOpenOnly.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+
+  $btnStyle = {
+    param($b, [bool]$accent = $false)
+    $b.FlatStyle = "Flat"
+    $b.FlatAppearance.BorderSize = 1
+    if ($accent) {
+      $b.BackColor = [System.Drawing.Color]::FromArgb(10,132,255)
+      $b.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+      $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(10,132,255)
+    }
+    else {
+      $b.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+      $b.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+      $b.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(60,60,60)
+    }
+  }
+  & $btnStyle $btnRefresh $false
+  & $btnStyle $btnClear $false
+  & $btnStyle $btnRecalc $false
+  & $btnStyle $btnOpen $false
+
+  $grid = New-Object System.Windows.Forms.DataGridView
+  $grid.Location = New-Object System.Drawing.Point(16, 76)
+  $grid.Size = New-Object System.Drawing.Size(1070, 380)
+  $grid.ReadOnly = $true
+  $grid.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+  $grid.MultiSelect = $false
+  $grid.AllowUserToAddRows = $false
+  $grid.AllowUserToDeleteRows = $false
+  $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+  $grid.EnableHeadersVisualStyles = $false
+  $grid.BackgroundColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $grid.GridColor = [System.Drawing.Color]::FromArgb(60,60,60)
+  $grid.BorderStyle = "None"
+  $grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+  $grid.DefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(30,30,30)
+  $grid.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(55,55,62)
+  $grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $grid.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $grid.RowHeadersVisible = $false
+
+  $lblComment = New-Object System.Windows.Forms.Label
+  $lblComment.Text = "Work Note (editable before submit):"
+  $lblComment.Location = New-Object System.Drawing.Point(16, 470)
+  $lblComment.AutoSize = $true
+  $lblComment.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+
+  $txtComment = New-Object System.Windows.Forms.TextBox
+  $txtComment.Location = New-Object System.Drawing.Point(16, 492)
+  $txtComment.Size = New-Object System.Drawing.Size(1070, 130)
+  $txtComment.Multiline = $true
+  $txtComment.ScrollBars = "Vertical"
+  $txtComment.Text = $DashboardDefaultCheckInNote
+  $txtComment.BackColor = [System.Drawing.Color]::FromArgb(37,37,38)
+  $txtComment.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $txtComment.BorderStyle = "FixedSingle"
+
+  $btnUseCheckInNote = New-Object System.Windows.Forms.Button
+  $btnUseCheckInNote.Text = "Use Check-In Note"
+  $btnUseCheckInNote.Location = New-Object System.Drawing.Point(16, 626)
+  $btnUseCheckInNote.Size = New-Object System.Drawing.Size(160, 28)
+
+  $btnUseCheckOutNote = New-Object System.Windows.Forms.Button
+  $btnUseCheckOutNote.Text = "Use Check-Out Note"
+  $btnUseCheckOutNote.Location = New-Object System.Drawing.Point(188, 626)
+  $btnUseCheckOutNote.Size = New-Object System.Drawing.Size(160, 28)
+
+  $btnCheckIn = New-Object System.Windows.Forms.Button
+  $btnCheckIn.Text = "CHECK-IN"
+  $btnCheckIn.Location = New-Object System.Drawing.Point(360, 626)
+  $btnCheckIn.Size = New-Object System.Drawing.Size(160, 36)
+
+  $btnCheckOut = New-Object System.Windows.Forms.Button
+  $btnCheckOut.Text = "CHECK-OUT"
+  $btnCheckOut.Location = New-Object System.Drawing.Point(532, 626)
+  $btnCheckOut.Size = New-Object System.Drawing.Size(160, 36)
+  & $btnStyle $btnUseCheckInNote $false
+  & $btnStyle $btnUseCheckOutNote $false
+  & $btnStyle $btnCheckIn $true
+  & $btnStyle $btnCheckOut $false
+  $btnCheckIn.Enabled = $false
+  $btnCheckOut.Enabled = $false
+  $btnRecalc.Enabled = $false
+  $btnOpen.Enabled = $false
+
+  $lblStatus = New-Object System.Windows.Forms.Label
+  $lblStatus.Text = "Type to filter users. Nothing is loaded by default."
+  $lblStatus.Location = New-Object System.Drawing.Point(710, 634)
+  $lblStatus.Size = New-Object System.Drawing.Size(700, 28)
+  $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170,170,170)
+
+  $form.Controls.AddRange(@($lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpen, $chkOpenOnly, $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $lblStatus))
+
+  $state = [pscustomobject]@{
+    Rows = @()
+    AllRows = @()
+    LastSearch = ""
+    UserDirectory = @()
+  }
+
+  $grid.AutoGenerateColumns = $false
+  $grid.Columns.Clear()
+  $colRow = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colRow.Name = "Row"
+  $colRow.HeaderText = "Row"
+  $colRow.Visible = $false
+  [void]$grid.Columns.Add($colRow)
+
+  $colRequestedFor = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colRequestedFor.Name = "Requested For"
+  $colRequestedFor.HeaderText = "Requested For"
+  [void]$grid.Columns.Add($colRequestedFor)
+
+  $colRitm = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colRitm.Name = "RITM"
+  $colRitm.HeaderText = "RITM"
+  [void]$grid.Columns.Add($colRitm)
+
+  $colSctask = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colSctask.Name = "SCTASK"
+  $colSctask.HeaderText = "SCTASK"
+  [void]$grid.Columns.Add($colSctask)
+
+  $bindRowsToGrid = {
+    param($rows)
+    $grid.SuspendLayout()
+    try {
+      $grid.Rows.Clear()
+      foreach ($x in @($rows)) {
+        [void]$grid.Rows.Add(
+          ("" + $x.Row),
+          ("" + $x.RequestedFor),
+          ("" + $x.RITM),
+          ("" + $x.SCTASK)
+        )
+      }
+      $grid.ClearSelection()
+      if ($grid.Rows.Count -gt 0) {
+        $grid.Rows[0].Selected = $true
+        $grid.CurrentCell = $grid.Rows[0].Cells["Requested For"]
+      }
+    }
+    finally {
+      $grid.ResumeLayout()
+    }
+    & $updateActionButtons
+  }
+
+  $getSelectedRow = {
+    if ($grid.SelectedRows.Count -eq 0) { return $null }
+    $selected = $grid.SelectedRows[0]
+    if (-not $selected) { return $null }
+    $rowNum = 0
+    $rowTxt = ""
+    try { $rowTxt = ("" + $selected.Cells["Row"].Value).Trim() } catch { return $null }
+    $okParse = [int]::TryParse($rowTxt, [ref]$rowNum)
+    if (-not $okParse) { return $null }
+    foreach ($item in $state.Rows) {
+      if ([int]$item.Row -eq $rowNum) { return $item }
+    }
+    return $null
+  }
+
+  $updateActionButtons = {
+    $sel = & $getSelectedRow
+    $hasValidRitm = $false
+    if ($sel) {
+      $ritmTxt = ("" + $sel.RITM).Trim().ToUpperInvariant()
+      $hasValidRitm = ($ritmTxt -match '^RITM\d{6,8}$')
+    }
+    $btnCheckIn.Enabled = $hasValidRitm
+    $btnCheckOut.Enabled = $hasValidRitm
+    $btnRecalc.Enabled = $hasValidRitm
+    $btnOpen.Enabled = $hasValidRitm
+  }
+
+  $getVisibleRows = {
+    $rows = @($state.AllRows)
+    if ($chkOpenOnly.Checked) {
+      $rows = @($rows | Where-Object { Test-DashboardRowOpenLocal -RowItem $_ })
+    }
+    return @($rows)
+  }
+
+  $updateSearchUserSuggestions = {
+    $q = ("" + $txtSearch.Text).Trim()
+    $allUsers = @($state.UserDirectory)
+    if ($allUsers.Count -eq 0) { return }
+
+    $matches = @()
+    if ([string]::IsNullOrWhiteSpace($q)) {
+      $matches = @($allUsers | Select-Object -First 200)
+    }
+    else {
+      $matches = @($allUsers | Where-Object { ("" + $_).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } | Select-Object -First 200)
+    }
+
+    $caret = $txtSearch.SelectionStart
+    $txtSearch.BeginUpdate()
+    try {
+      $txtSearch.Items.Clear()
+      foreach ($u in $matches) { [void]$txtSearch.Items.Add($u) }
+    }
+    finally {
+      $txtSearch.EndUpdate()
+    }
+    $txtSearch.SelectionStart = [Math]::Min($caret, $txtSearch.Text.Length)
+    $txtSearch.SelectionLength = 0
+  }
+
+  $performSearch = {
+    param([switch]$ReloadFromExcel)
+    try {
+      $q = ("" + $txtSearch.Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($q)) {
+        $state.Rows = @()
+        $state.AllRows = @()
+        & $bindRowsToGrid @()
+        $lblStatus.Text = "Type First/Last name to search."
+        return
+      }
+      if ($ReloadFromExcel -or (-not $state.AllRows) -or ($state.AllRows.Count -eq 0) -or ($state.LastSearch -ne $q)) {
+        $state.AllRows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText $q)
+      }
+      $rows = & $getVisibleRows
+      $state.Rows = @($rows)
+      $state.LastSearch = $q
+      & $bindRowsToGrid $rows
+      $filterNote = if ($chkOpenOnly.Checked) { " (solo abiertos)" } else { "" }
+      $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+    }
+    catch {
+      $errMsg = $_.Exception.Message
+      $errPos = $_.InvocationInfo.PositionMessage
+      Log "ERROR" "Dashboard search failed: $errMsg | $errPos"
+      [System.Windows.Forms.MessageBox]::Show(
+        "Search failed: $errMsg`r`n$errPos",
+        "Dashboard Error",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+      ) | Out-Null
+    }
+  }
+
+  $searchTimer = New-Object System.Windows.Forms.Timer
+  $searchTimer.Interval = 260
+  $searchTimer.Add_Tick({
+    $searchTimer.Stop()
+    & $performSearch
+  })
+  $scheduleSearch = {
+    $searchTimer.Stop()
+    $searchTimer.Start()
+  }
+
+  $txtSearch.Add_KeyDown({
+    param($sender, $e)
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+      $e.SuppressKeyPress = $true
+      $searchTimer.Stop()
+      & $performSearch
+    }
+  })
+  $txtSearch.Add_TextUpdate({
+    & $updateSearchUserSuggestions
+    & $scheduleSearch
+  })
+  $txtSearch.Add_DropDown({
+    & $updateSearchUserSuggestions
+  })
+  $txtSearch.Add_SelectedIndexChanged({
+    & $scheduleSearch
+  })
+  $chkOpenOnly.Add_CheckedChanged({
+    if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
+      $state.Rows = @()
+      & $bindRowsToGrid @()
+      $lblStatus.Text = "Type First/Last name to search."
+      return
+    }
+    $rows = & $getVisibleRows
+    $state.Rows = @($rows)
+    & $bindRowsToGrid $rows
+    $filterNote = if ($chkOpenOnly.Checked) { " (solo abiertos)" } else { "" }
+    $lblStatus.Text = "Results: $($rows.Count) for '$($state.LastSearch)'$filterNote"
+  })
+  $grid.Add_SelectionChanged({
+    & $updateActionButtons
+  })
+  $btnRefresh.Add_Click({
+    if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
+      $lblStatus.Text = "No previous search."
+      return
+    }
+    $txtSearch.Text = $state.LastSearch
+    & $performSearch -ReloadFromExcel
+  })
+  $btnClear.Add_Click({
+    $txtSearch.Text = ""
+    $state.Rows = @()
+    $state.AllRows = @()
+    $state.LastSearch = ""
+    & $bindRowsToGrid @()
+    $lblStatus.Text = "Cleared. Type First/Last name to search."
+  })
+  $btnUseCheckInNote.Add_Click({
+    $txtComment.Text = $DashboardDefaultCheckInNote
+  })
+  $btnUseCheckOutNote.Add_Click({
+    $txtComment.Text = $DashboardDefaultCheckOutNote
+  })
+
+  $btnOpen.Add_Click({
+    try {
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Select one row first.",
+          "Dashboard",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        return
+      }
+      Open-DashboardRowInServiceNow -wv $wv -RowItem $row
+    }
+    catch {
+      Log "ERROR" "Dashboard open-in-SNOW failed: $($_.Exception.Message)"
+    }
+  })
+
+  $btnRecalc.Add_Click({
+    try {
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Select one row first.",
+          "Dashboard",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        return
+      }
+
+      $res = Invoke-DashboardRecalculateStatus -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row
+      if ($res.ok -eq $true) {
+        $lblStatus.Text = "" + $res.message
+        & $performSearch -ReloadFromExcel
+      }
+      else {
+        [System.Windows.Forms.MessageBox]::Show(
+          "" + $res.message,
+          "Recalculate",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+      }
+    }
+    catch {
+      Log "ERROR" "Dashboard RE-CALCULATE failed: $($_.Exception.Message)"
+      [System.Windows.Forms.MessageBox]::Show(
+        "Recalculate failed: $($_.Exception.Message)",
+        "Recalculate Error",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+      ) | Out-Null
+    }
+  })
+
+  $btnCheckIn.Add_Click({
+    try {
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Select one row first.",
+          "Dashboard",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        return
+      }
+      $note = ("" + $txtComment.Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($note)) {
+        $note = $DashboardDefaultCheckInNote
+        $txtComment.Text = $note
+      }
+      $res = Invoke-DashboardCheckIn -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
+      if ($res.ok -eq $true) {
+        $lblStatus.Text = "" + $res.message
+        & $performSearch -ReloadFromExcel
+      }
+      else {
+        [System.Windows.Forms.MessageBox]::Show(
+          "" + $res.message,
+          "Check-In Failed",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+      }
+    }
+    catch {
+      Log "ERROR" "Dashboard CHECK-IN failed: $($_.Exception.Message)"
+      [System.Windows.Forms.MessageBox]::Show(
+        "Check-In failed: $($_.Exception.Message)",
+        "Check-In Error",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+      ) | Out-Null
+    }
+  })
+
+  $btnCheckOut.Add_Click({
+    try {
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Select one row first.",
+          "Dashboard",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        return
+      }
+      $note = ("" + $txtComment.Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($note)) {
+        $note = $DashboardDefaultCheckOutNote
+        $txtComment.Text = $note
+      }
+      $res = Invoke-DashboardCheckOut -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row -WorkNote $note
+      if ($res.ok -eq $true) {
+        $lblStatus.Text = "" + $res.message
+        & $performSearch -ReloadFromExcel
+      }
+      else {
+        [System.Windows.Forms.MessageBox]::Show(
+          "" + $res.message,
+          "Check-Out Failed",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+      }
+    }
+    catch {
+      Log "ERROR" "Dashboard CHECK-OUT failed: $($_.Exception.Message)"
+      [System.Windows.Forms.MessageBox]::Show(
+        "Check-Out failed: $($_.Exception.Message)",
+        "Check-Out Error",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+      ) | Out-Null
+    }
+  })
+
+  # Initial load: keep grid empty by design.
+  try {
+    $state.UserDirectory = @(Get-DashboardUserDirectory -ExcelPath $ExcelPath -SheetName $SheetName)
+    & $updateSearchUserSuggestions
+    & $bindRowsToGrid @()
+    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count). Search by First/Last name."
+  } catch {}
+
+  [void]$form.ShowDialog()
+}
+
+# =============================================================================
 # EXCEL: WRITE BACK RESULTS (optional)
 # =============================================================================
 function Write-BackToExcel {
@@ -1582,8 +3005,8 @@ function Write-BackToExcel {
     # Fill "Action finished?" (status)
     $actionCell = "" + $ws.Cells.Item($r, $map[$ActionHeader]).Text
     $statusOut = Get-CompletionStatusForExcel -Ticket $ticket -Res $res
-    if ($ticket -like "INC*") {
-      # Always refresh INC status so stale "Complete" values are corrected (e.g. Hold).
+    if (($ticket -like "INC*") -or ($ticket -like "RITM*")) {
+      # Always refresh INC/RITM status so stale values are corrected.
       $ws.Cells.Item($r, $map[$ActionHeader]) = $statusOut
     }
     elseif (Is-EmptyOrPlaceholder $actionCell $ticket) {
@@ -2399,6 +3822,13 @@ try {
     Log "ERROR" "SNOW session not ready after SSO; extraction may fail."
   }
 
+  # Dashboard mode is isolated and does not run export logic.
+  if ($DashboardMode) {
+    Log "INFO" "Dashboard mode enabled. Launching Check-in / Check-out dashboard."
+    Show-CheckInOutDashboard -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName
+    return
+  }
+
   # 4) Read tickets list from Excel
   $tickets = Read-TicketsFromExcel -ExcelPath $ExcelPath -TicketHeader $TicketHeader -SheetName $SheetName -TicketColumn $TicketColumn
   Log "INFO" "Tickets found: $($tickets.Count)"
@@ -2451,6 +3881,29 @@ try {
         if (-not [string]::IsNullOrWhiteSpace($uResolved)) {
           $r | Add-Member -NotePropertyName affected_user -NotePropertyValue $uResolved -Force
           Log "INFO" "$t user resolved from sys_id => '$uResolved'"
+        }
+      }
+    }
+
+    if (($r.ok -eq $true) -and ($t -like "RITM*")) {
+      $openCountCurrent = 0
+      if ($r.PSObject.Properties["open_tasks"]) {
+        try { $openCountCurrent = [int]$r.open_tasks } catch { $openCountCurrent = 0 }
+      }
+      if ($r.PSObject.Properties["open_task_items"] -and $r.open_task_items) {
+        try {
+          $itemsNow = @($r.open_task_items).Count
+          if ($itemsNow -gt $openCountCurrent) { $openCountCurrent = $itemsNow }
+        } catch {}
+      }
+
+      if ($openCountCurrent -eq 0) {
+        $openFallback = @(Get-OpenSCTasksForRitmFallback -wv $wv -RitmNumber $t)
+        if ($openFallback.Count -gt 0) {
+          $r | Add-Member -NotePropertyName open_task_items -NotePropertyValue @($openFallback) -Force
+          $r | Add-Member -NotePropertyName open_tasks -NotePropertyValue ([int]$openFallback.Count) -Force
+          $r | Add-Member -NotePropertyName status -NotePropertyValue ("Open:" + $openFallback.Count) -Force
+          Log "INFO" "$t open SCTASK fallback recovered count=$($openFallback.Count)"
         }
       }
     }

@@ -549,3 +549,5 @@
 [2026-02-17 20:23:07] Saved: C:\Users\X1\Documents\Schuman\WORD files\INC0404926_Juan Emilio AYUSO GONZÁLEZ.docx
 [2026-02-17 20:23:07] Excel saved
 [2026-02-17 20:23:07] === RUN END === Total=7 Saved=7 Skipped=0 Errors=0
+[2026-02-17 20:54:56] Running auto-excel.ps1 before PDF generation.
+[2026-02-17 20:55:09] Excel is ready. Choose DOCX/PDF and click Generate Documents.
