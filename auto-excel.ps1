@@ -20,7 +20,7 @@
 #
 # IMPORTANT NOTES
 # ---------------
-# - “NO API” here means: no token-based REST Table API usage, no ServiceNow API keys.
+# - â€œNO APIâ€ here means: no token-based REST Table API usage, no ServiceNow API keys.
 # - This script depends on your current SNOW permissions. If JSONv2 endpoints/fields are ACL-blocked,
 #   extraction may fail or return empty fields.
 # - WebView2 is loaded from Teams Meeting Add-in (corporate friendly, no install step).
@@ -34,6 +34,8 @@ param(
   [string]$NameHeader = "Name",
   [string]$PhoneHeader = "PI",
   [string]$ActionHeader = "Estado de RITM",
+  [string]$SCTasksHeader = "SCTasks",
+  [switch]$NoPopups,
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
   [string]$DefaultStartDir = $PSScriptRoot
@@ -66,6 +68,7 @@ $ServiceNowBase = $InstanceBaseUrl
 
 # Consistent URL templates
 $RitmRecordUrlTemplate         = "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_req_item.do%3Fsys_id%3D{0}%26sysparm_view%3D"
+$IncidentRecordUrlTemplate     = "$InstanceBaseUrl/nav_to.do?uri=%2Fincident.do%3Fsys_id%3D{0}%26sysparm_view%3D"
 $SctaskRecordUrlTemplate       = "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task.do%3Fsys_id%3D{0}"
 $SctaskListByNumberUrlTemplate = "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task_list.do%3Fsysparm_query%3Dnumber%3D{0}"
 
@@ -100,9 +103,29 @@ $KillExcelBeforeOpen = $true
 $StopScanAfterEmptyRows = 50
 $MaxRowsAfterFirstTicket = 300
 $ReadProgressEveryRows = 2000
-$DebugActivityTicket = "RITM0427680"
+$FastMode = $true
+$EnableUiFallbackActivitySearch = $true
+$UiFallbackMinBackendChars = 200
+$DebugActivityTicket = ""
 $DebugActivityMaxChars = 4000
 $ForceUpdateDetectedPI = $true
+$ForceUpdateNameFromLegal = $true
+$WritePerTicketJson = $true
+$VerboseTicketLogging = $true
+$ExtractJsTimeoutMs = 12000
+$ExtractRetryCount = 3
+$ExtractRetryDelayMs = 1200
+
+if ($FastMode) {
+  $EnableUiFallbackActivitySearch = $true
+  $WritePerTicketJson = $false
+  $VerboseTicketLogging = $false
+  $ReadProgressEveryRows = 5000
+  $ExtractJsTimeoutMs = 12000
+  $ExtractRetryCount = 4
+  $ExtractRetryDelayMs = 1500
+  $UiFallbackMinBackendChars = 120
+}
 
 # NameHeader/PhoneHeader/ActionHeader are provided via param().
 
@@ -118,6 +141,7 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 # Log file path.
 $LogPath = Join-Path $OutDir "run.log.txt"
+$HistoryLogPath = Join-Path $PSScriptRoot "auto-excel.history.log"
 
 # Combined JSON file path.
 $AllJson = Join-Path $OutDir "tickets_export.json"
@@ -134,6 +158,8 @@ function Log([string]$level, [string]$msg) {
 
   # Also write to run log file (best effort; do not crash if file write fails).
   try { Add-Content -Path $LogPath -Value $line } catch {}
+  # Persistent history across runs.
+  try { Add-Content -Path $HistoryLogPath -Value $line } catch {}
 }
 
 function Close-ExcelProcessesIfRequested {
@@ -284,6 +310,56 @@ function Parse-WV2Json([string]$Raw) {
   }
 }
 
+function Ensure-SnowReady {
+  param($wv, [int]$MaxWaitMs = 12000)
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt $MaxWaitMs) {
+    $diag = Parse-WV2Json (ExecJS $wv "JSON.stringify({href:location.href,ready:document.readyState})" 2500)
+    if ($diag -and $diag.PSObject.Properties["href"]) {
+      $href = ("" + $diag.href).ToLowerInvariant()
+      $ready = if ($diag.PSObject.Properties["ready"]) { "" + $diag.ready } else { "" }
+      if ($href -like "*service-now.com*" -and ($ready -eq "complete" -or $ready -eq "interactive")) {
+        return $true
+      }
+    }
+    Start-Sleep -Milliseconds 300
+  }
+  return $false
+}
+
+function Resolve-UserDisplayNameFromSysId {
+  param($wv, [string]$UserSysId)
+  if ([string]::IsNullOrWhiteSpace($UserSysId)) { return "" }
+  if ($UserSysId -notmatch '^[0-9a-fA-F]{32}$') { return "" }
+
+  $safeId = $UserSysId.Trim()
+  $js = @"
+(function(){
+  try {
+    var q = encodeURIComponent('sys_id=$safeId');
+    var p = '/sys_user.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=' + q;
+    var x = new XMLHttpRequest();
+    x.open('GET', p, false);
+    x.withCredentials = true;
+    x.send(null);
+    if (!(x.status>=200 && x.status<300)) return JSON.stringify({ok:false});
+    var o = JSON.parse(x.responseText || "{}");
+    var r = (o && o.records && o.records[0]) ? o.records[0] : ((o && o.result && o.result[0]) ? o.result[0] : null);
+    if (!r) return JSON.stringify({ok:false});
+    var n = (r.name || r.user_name || r.display_name || "").toString().trim();
+    return JSON.stringify({ok:true,name:n});
+  } catch(e){
+    return JSON.stringify({ok:false});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 6000)
+  if ($o -and $o.ok -eq $true -and $o.PSObject.Properties["name"]) {
+    return ("" + $o.name).Trim()
+  }
+  return ""
+}
+
 # =============================================================================
 # LOGIN SSO (interactive WebView2 window)
 # =============================================================================
@@ -328,7 +404,7 @@ function Connect-ServiceNowSSO {
 
   while ($form.Visible -and -not $ok -and $sw.Elapsed.TotalSeconds -lt 240) {
 
-    # JS logic: detect whether we're on IdP, on SNOW, and “logged in” indicators.
+    # JS logic: detect whether we're on IdP, on SNOW, and â€œlogged inâ€ indicators.
     $js = @"
 (function(){
   try{
@@ -513,6 +589,41 @@ function Is-EmptyOrPlaceholder([string]$CellText, [string]$Ticket) {
   return $false
 }
 
+function Is-InvalidUserDisplay([string]$UserText) {
+  $u = ("" + $UserText).Trim()
+  if (-not $u) { return $true }
+  if ($u -match '^[0-9a-fA-F]{32}$') { return $true }
+  if ($u -match '(?i)^new\b.*\buser$') { return $true }
+  if ($u -match '(?i)^explanation$') { return $true }
+  if ($u -match '(?i)^n/?a$') { return $true }
+  return $false
+}
+
+function Get-CompletionStatusForExcel {
+  param([string]$Ticket, $Res)
+  if (-not $Res) { return "Pending" }
+
+  if (($Ticket -like "RITM*") -or ($Ticket -like "INC*")) {
+    $openTasks = 0
+    if ($Res.PSObject.Properties["open_tasks"]) {
+      try { $openTasks = [int]$Res.open_tasks } catch { $openTasks = 0 }
+    }
+    if ($openTasks -gt 0) { return "Pending" }
+
+    $s = ""
+    if ($Res.PSObject.Properties["status"]) { $s = ("" + $Res.status) }
+    if (-not $s -and $Res.PSObject.Properties["status_label"]) { $s = ("" + $Res.status_label) }
+    if (-not $s -and $Res.PSObject.Properties["status_value"]) { $s = ("" + $Res.status_value) }
+    $st = $s.Trim().ToLowerInvariant()
+
+    if ($st -match 'open|new|progress|pending|hold|work') { return "Pending" }
+    return "Complete"
+  }
+
+  if ($Res.PSObject.Properties["status"]) { return ("" + $Res.status) }
+  return "Pending"
+}
+
 function Get-OrCreateHeaderColumn {
   param($ws, [hashtable]$map, [string]$Header)
   if ($map.ContainsKey($Header)) {
@@ -527,6 +638,11 @@ function Get-OrCreateHeaderColumn {
 function Build-RitmRecordUrl([string]$SysId) {
   if ([string]::IsNullOrWhiteSpace($SysId)) { return "" }
   return [string]::Format($RitmRecordUrlTemplate, $SysId.Trim())
+}
+
+function Build-IncidentRecordUrl([string]$SysId) {
+  if ([string]::IsNullOrWhiteSpace($SysId)) { return "" }
+  return [string]::Format($IncidentRecordUrlTemplate, $SysId.Trim())
 }
 
 function Build-SCTaskRecordUrl([string]$SysId) {
@@ -546,6 +662,16 @@ function Build-SCTaskBestUrl([string]$SysId, [string]$TaskNumber) {
   return Build-SCTaskFallbackUrl $TaskNumber
 }
 
+function Build-SCTaskListByNumbersUrl {
+  param([string[]]$TaskNumbers)
+  $nums = @($TaskNumbers | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.Trim() })
+  if ($nums.Count -eq 0) { return "" }
+  if ($nums.Count -eq 1) { return Build-SCTaskFallbackUrl -TaskNumber $nums[0] }
+  $query = "numberIN" + ($nums -join ",")
+  $safeQuery = [System.Uri]::EscapeDataString($query)
+  return "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task_list.do%3Fsysparm_query%3D$safeQuery"
+}
+
 function Get-DetectedPiFromActivityText {
   param([string]$ActivityText)
   if (-not $EnableActivityStreamSearch) { return "" }
@@ -555,7 +681,7 @@ function Get-DetectedPiFromActivityText {
 
   $matches = [regex]::Matches(
     $ActivityText,
-    '\b(?:02PI20[A-Z0-9_-]*|ITECBRUN[A-Z0-9_-]*|MUSTBRUN[A-Z0-9_-]*)\b',
+    '\b(?:02PI20[A-Z0-9_-]*|ITEC(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|MUST(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|EDPSBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|PRESBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*)\b',
     'IgnoreCase'
   )
 
@@ -563,6 +689,7 @@ function Get-DetectedPiFromActivityText {
   $vals = New-Object System.Collections.Generic.List[string]
   foreach ($m in $matches) {
     $v = ("" + $m.Value).Trim().ToUpperInvariant()
+    if ($v -notmatch '\d') { continue }
     if ($v -and $seen.Add($v)) {
       [void]$vals.Add($v)
     }
@@ -572,6 +699,27 @@ function Get-DetectedPiFromActivityText {
     return $(if ($WriteNotFoundText) { "Not found" } else { "" })
   }
   return ($vals -join ", ")
+}
+
+function Get-LegalNameFromText {
+  param([string]$Text)
+  if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
+
+  $patterns = @(
+    '(?im)\bLegal\s*name\s*[:\-\s]*([A-Za-z''\- ]{3,})',
+    '(?is)\bLegal\s*name\b[\s\S]{0,200}?\bvalue\s*=\s*["'']([^"'']{3,})["'']',
+    '(?is)<input[^>]*\bvalue\s*=\s*["'']([^"'']{3,})["''][^>]*\bplaceholder\s*=\s*["'']Joe Willy Smith["'']',
+    '(?im)\bLegal\s*name\b[\r\n\t ]+([A-Z][A-Za-z''\- ]{3,})'
+  )
+
+  foreach ($p in $patterns) {
+    $m = [regex]::Match($Text, $p)
+    if ($m.Success -and $m.Groups.Count -gt 1) {
+      $v = ("" + $m.Groups[1].Value).Trim()
+      if ($v -and -not (Is-InvalidUserDisplay $v)) { return $v }
+    }
+  }
+  return ""
 }
 
 function Set-ExcelHyperlinkSafe {
@@ -605,18 +753,28 @@ function Set-ExcelHyperlinkSafe {
   }
 }
 
-function Get-RitmActivityTextFromUiPage {
-  param($wv, [string]$RitmSysId)
+function Get-RecordActivityTextFromUiPage {
+  param(
+    $wv,
+    [string]$RecordSysId,
+    [string]$Table
+  )
 
-  if ([string]::IsNullOrWhiteSpace($RitmSysId)) { return "" }
-  $ritmUrl = Build-RitmRecordUrl -SysId $RitmSysId
-  if ([string]::IsNullOrWhiteSpace($ritmUrl)) { return "" }
+  if ([string]::IsNullOrWhiteSpace($RecordSysId)) { return "" }
+  $recordUrl = ""
+  if ($Table -eq "incident") {
+    $recordUrl = Build-IncidentRecordUrl -SysId $RecordSysId
+  }
+  else {
+    $recordUrl = Build-RitmRecordUrl -SysId $RecordSysId
+  }
+  if ([string]::IsNullOrWhiteSpace($recordUrl)) { return "" }
 
   try {
-    $wv.CoreWebView2.Navigate($ritmUrl)
+    $wv.CoreWebView2.Navigate($recordUrl)
   }
   catch {
-    Log "ERROR" "RITM UI navigate failed sys_id='$RitmSysId': $($_.Exception.Message)"
+    Log "ERROR" "Record UI navigate failed table='$Table' sys_id='$RecordSysId': $($_.Exception.Message)"
     return ""
   }
 
@@ -650,6 +808,14 @@ function Get-RitmActivityTextFromUiPage {
           if (t && !seen[t]) { seen[t] = true; out.push(t); }
         }
       }
+      try {
+        var li = doc.querySelector('input[placeholder="Joe Willy Smith"]');
+        var lv = s(li && (li.value || li.getAttribute('value') || ""));
+        if (lv && !seen["LEGAL_NAME:"+lv]) {
+          seen["LEGAL_NAME:"+lv] = true;
+          out.push("LEGAL_NAME:" + lv);
+        }
+      } catch(el) {}
       var bodyTxt = s(doc.body && (doc.body.innerText || doc.body.textContent));
       if (bodyTxt && !seen[bodyTxt]) { seen[bodyTxt] = true; out.push(bodyTxt); }
     }
@@ -695,21 +861,113 @@ function Get-RitmActivityTextFromUiPage {
   }
   if (-not $o) { return "" }
   if ($o.ok -ne $true -and $o.PSObject.Properties["error"]) {
-    Log "ERROR" "RITM UI activity read failed sys_id='$RitmSysId': $($o.error)"
+    Log "ERROR" "Record UI activity read failed table='$Table' sys_id='$RecordSysId': $($o.error)"
   }
   if ($o.PSObject.Properties["frame_text"]) {
     $ft = "" + $o.frame_text
-    Log "INFO" "RITM UI frame text length sys_id='$RitmSysId': $($ft.Length) ready=$frameReady"
+    if ($VerboseTicketLogging) {
+      Log "INFO" "Record UI frame text length table='$Table' sys_id='$RecordSysId': $($ft.Length) ready=$frameReady"
+    }
   }
   if ($o.PSObject.Properties["shell_text"]) {
     $st = "" + $o.shell_text
-    Log "INFO" "RITM UI shell text length sys_id='$RitmSysId': $($st.Length)"
+    if ($VerboseTicketLogging) {
+      Log "INFO" "Record UI shell text length table='$Table' sys_id='$RecordSysId': $($st.Length)"
+    }
   }
   if ($o.PSObject.Properties["frame_text"]) {
     $ft = ("" + $o.frame_text)
     if (-not [string]::IsNullOrWhiteSpace($ft)) { return $ft }
   }
   if ($o.PSObject.Properties["text"]) { return ("" + $o.text) }
+  return ""
+}
+
+function Get-LegalNameFromUiForm {
+  param(
+    $wv,
+    [string]$RecordSysId,
+    [string]$Table = "sc_req_item"
+  )
+
+  if ([string]::IsNullOrWhiteSpace($RecordSysId)) { return "" }
+  $recordUrl = if ($Table -eq "incident") { Build-IncidentRecordUrl -SysId $RecordSysId } else { Build-RitmRecordUrl -SysId $RecordSysId }
+  if ([string]::IsNullOrWhiteSpace($recordUrl)) { return "" }
+
+  try { $wv.CoreWebView2.Navigate($recordUrl) } catch { return "" }
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt 12000) {
+    Start-Sleep -Milliseconds 250
+    $isReady = Parse-WV2Json (ExecJS $wv "document.readyState==='complete'" 2000)
+    if ($isReady -eq $true) { break }
+  }
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function extractFromDoc(doc){
+      if (!doc) return '';
+
+      function valid(v){
+        var t = s(v);
+        if (!t) return '';
+        if (/^explanation$/i.test(t)) return '';
+        return t;
+      }
+
+      // Exact known pattern from catalog variable input
+      var exact = doc.querySelector('input[placeholder=\"Joe Willy Smith\"],textarea[placeholder=\"Joe Willy Smith\"]');
+      var ev = valid(exact && (exact.value || (exact.getAttribute && exact.getAttribute('value')) || ''));
+      if (ev) return ev;
+
+      // Label-driven lookup: "Legal name" -> associated control via aria-labelledby / for
+      var labels = doc.querySelectorAll('label, span, div');
+      for (var i=0; i<labels.length; i++) {
+        var lt = s(labels[i].innerText || labels[i].textContent || '');
+        if (!/legal\s*name/i.test(lt)) continue;
+        var lid = s(labels[i].id || '');
+        var fr = s(labels[i].getAttribute && labels[i].getAttribute('for'));
+        var cands = [];
+        if (lid) cands = cands.concat([].slice.call(doc.querySelectorAll('[aria-labelledby=\"'+lid+'\"], [aria-describedby=\"'+lid+'\"]')));
+        if (fr) cands = cands.concat([].slice.call(doc.querySelectorAll('#'+fr)));
+        for (var j=0; j<cands.length; j++) {
+          var v = valid(cands[j].value || cands[j].getAttribute && cands[j].getAttribute('value') || cands[j].innerText || '');
+          if (v) return v;
+        }
+      }
+
+      // Fallback: any ni.* input carrying Joe Willy Smith placeholder
+      var vars = doc.querySelectorAll('input[id^=\"ni.\"],textarea[id^=\"ni.\"]');
+      for (var vi=0; vi<vars.length; vi++) {
+        var ph = s(vars[vi].getAttribute && vars[vi].getAttribute('placeholder'));
+        if (!/Joe Willy Smith/i.test(ph)) continue;
+        var vv = valid(vars[vi].value || (vars[vi].getAttribute && vars[vi].getAttribute('value')) || '');
+        if (vv) return vv;
+      }
+
+      return '';
+    }
+
+    var out = extractFromDoc(document);
+    if (out) return JSON.stringify({ok:true, legal_name:out});
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+    out = extractFromDoc(fdoc);
+    return JSON.stringify({ok:true, legal_name:out});
+  } catch(e){
+    return JSON.stringify({ok:false, legal_name:''});
+  }
+})();
+"@
+  for ($attempt = 1; $attempt -le 8; $attempt++) {
+    $o = Parse-WV2Json (ExecJS $wv $js 8000)
+    if ($o -and $o.ok -eq $true -and $o.PSObject.Properties["legal_name"]) {
+      $ln = ("" + $o.legal_name).Trim()
+      if ($ln -and -not (Is-InvalidUserDisplay $ln)) { return $ln }
+    }
+    Start-Sleep -Milliseconds 400
+  }
   return ""
 }
 
@@ -725,6 +983,7 @@ function Write-BackToExcel {
     [string]$NameHeader,
     [string]$PhoneHeader,
     [string]$ActionHeader,
+    [string]$SCTasksHeader,
     [hashtable]$ResultMap
   )
 
@@ -767,18 +1026,7 @@ function Write-BackToExcel {
   if (-not $map.ContainsKey($NameHeader))   { throw "Missing header '$NameHeader'." }
   if (-not $map.ContainsKey($PhoneHeader))  { throw "Missing header '$PhoneHeader'." }
   if (-not $map.ContainsKey($ActionHeader)) { throw "Missing header '$ActionHeader'." }
-  $sctaskFirstCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "SCTask 1"
-  $sctaskColMap = @{ 1 = $sctaskFirstCol }
-  $sctaskColNums = New-Object System.Collections.Generic.List[int]
-  foreach ($k in @($map.Keys)) {
-    if ($k -match '^SCTask\s+(\d+)$') {
-      [void]$sctaskColNums.Add([int]$matches[1])
-      if (-not $sctaskColMap.ContainsKey([int]$matches[1])) {
-        $sctaskColMap[[int]$matches[1]] = [int]$map[$k]
-      }
-    }
-  }
-  if (-not $sctaskColNums.Contains(1)) { [void]$sctaskColNums.Add(1) }
+  $sctasksCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header $SCTasksHeader
 
   # --- Iterate rows and fill values (only if empty/placeholder) ---
   $xlUp = -4162
@@ -815,8 +1063,16 @@ function Write-BackToExcel {
 
     # Fill "Name" (affected_user)
     $nameCell = "" + $ws.Cells.Item($r, $map[$NameHeader]).Text
-    if (Is-EmptyOrPlaceholder $nameCell $ticket) {
-      $ws.Cells.Item($r, $map[$NameHeader]) = $res.affected_user
+    $nameOut = ("" + $res.affected_user).Trim()
+    $legalNameOut = if ($res.PSObject.Properties["legal_name"]) { ("" + $res.legal_name).Trim() } else { "" }
+    if (($ticket -like "RITM*") -and $legalNameOut -and $ForceUpdateNameFromLegal) {
+      $nameOut = $legalNameOut
+    }
+    elseif (($ticket -like "RITM*") -and $legalNameOut -and (Is-InvalidUserDisplay $nameOut)) {
+      $nameOut = $legalNameOut
+    }
+    if ((Is-EmptyOrPlaceholder $nameCell $ticket) -or (($ticket -like "RITM*") -and $legalNameOut -and $ForceUpdateNameFromLegal)) {
+      $ws.Cells.Item($r, $map[$NameHeader]) = $nameOut
     }
 
     # Determine detected PI/machine (if present)
@@ -830,10 +1086,14 @@ function Write-BackToExcel {
     # - Else use configuration_item (original behavior)
     $phoneCell = "" + $ws.Cells.Item($r, $map[$PhoneHeader]).Text
     $phoneOut = ("" + $res.configuration_item).Trim()
-    if (($ticket -like "RITM*") -and $detectedPiOut) {
+    if ((($ticket -like "RITM*") -or ($ticket -like "INC*")) -and $detectedPiOut) {
       $phoneOut = $detectedPiOut
     }
-    if (($ticket -like "RITM*") -and $detectedPiOut -and $ForceUpdateDetectedPI) {
+    if (($ticket -like "RITM*") -and $ForceUpdateDetectedPI) {
+      $ws.Cells.Item($r, $map[$PhoneHeader]) = $detectedPiOut
+      Log "INFO" "$ticket PI force-updated in '$PhoneHeader' => '$detectedPiOut'"
+    }
+    elseif ((($ticket -like "INC*")) -and $detectedPiOut -and $ForceUpdateDetectedPI) {
       $ws.Cells.Item($r, $map[$PhoneHeader]) = $phoneOut
       Log "INFO" "$ticket PI force-updated in '$PhoneHeader' => '$phoneOut'"
     }
@@ -844,15 +1104,11 @@ function Write-BackToExcel {
     # Fill "Action finished?" (status)
     $actionCell = "" + $ws.Cells.Item($r, $map[$ActionHeader]).Text
     if (Is-EmptyOrPlaceholder $actionCell $ticket) {
-      $statusOut = $res.status
-
-      # Localized label normalization (example from German UI)
-      if ($statusOut -eq "Abgebrochen") { $statusOut = "Cancelled" }
-
+      $statusOut = Get-CompletionStatusForExcel -Ticket $ticket -Res $res
       $ws.Cells.Item($r, $map[$ActionHeader]) = $statusOut
     }
 
-    # Fill open SCTASK hyperlinks as "SCTask 1", "SCTask 2", ...
+    # Fill open SCTASK(s) into single "SCTasks" column
     $openTasks = @()
     if ($res.PSObject.Properties["open_task_items"] -and $res.open_task_items) {
       $openTasks = @($res.open_task_items)
@@ -860,44 +1116,40 @@ function Write-BackToExcel {
 
     if ($ticket -like "RITM*") {
       if ($openTasks.Count -gt 0) {
-        for ($idx = 1; $idx -le $openTasks.Count; $idx++) {
-          if (-not $sctaskColMap.ContainsKey($idx)) {
-            $sctaskColMap[$idx] = Get-OrCreateHeaderColumn -ws $ws -map $map -Header ("SCTask " + $idx)
-            if (-not $sctaskColNums.Contains($idx)) { [void]$sctaskColNums.Add($idx) }
+        $openTaskNumbers = New-Object System.Collections.Generic.List[string]
+        $firstTaskSysId = ""
+        foreach ($taskObj in $openTasks) {
+          $taskNumber = if ($taskObj.PSObject.Properties["number"]) { ("" + $taskObj.number).Trim() } else { "" }
+          if (-not $firstTaskSysId -and $taskObj.PSObject.Properties["sys_id"]) {
+            $firstTaskSysId = ("" + $taskObj.sys_id).Trim()
           }
-          $taskObj = $openTasks[$idx - 1]
-          $taskNumber = if ($taskObj.PSObject.Properties["number"]) { "" + $taskObj.number } else { "" }
-          $taskSysId = if ($taskObj.PSObject.Properties["sys_id"]) { "" + $taskObj.sys_id } else { "" }
-          $taskUrl = Build-SCTaskBestUrl -SysId $taskSysId -TaskNumber $taskNumber
-          if ([string]::IsNullOrWhiteSpace($taskUrl)) {
-            $taskUrl = Build-SCTaskFallbackUrl -TaskNumber $taskNumber
-          }
-          Set-ExcelHyperlinkSafe -ws $ws -Row $r -Col $sctaskColMap[$idx] -DisplayText ("SCTask " + $idx) -Url $taskUrl -TicketForLog $ticket
+          if ($taskNumber) { [void]$openTaskNumbers.Add($taskNumber) }
         }
-        foreach ($idx in @($sctaskColNums)) {
-          if ($idx -le $openTasks.Count) { continue }
-          if (-not $sctaskColMap.ContainsKey($idx)) { continue }
-          $cell = $ws.Cells.Item($r, $sctaskColMap[$idx])
-          try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
-          $cell.Value2 = ""
+        $display = if ($openTaskNumbers.Count -gt 0) { $openTaskNumbers -join ", " } else { "Open tasks: $($openTasks.Count)" }
+        $taskUrl = ""
+        if ($openTaskNumbers.Count -eq 1) {
+          $taskUrl = Build-SCTaskBestUrl -SysId $firstTaskSysId -TaskNumber $openTaskNumbers[0]
+        }
+        else {
+          $taskUrl = Build-SCTaskListByNumbersUrl -TaskNumbers @($openTaskNumbers)
+        }
+        if (-not [string]::IsNullOrWhiteSpace($taskUrl)) {
+          Set-ExcelHyperlinkSafe -ws $ws -Row $r -Col $sctasksCol -DisplayText $display -Url $taskUrl -TicketForLog $ticket
+        }
+        else {
+          $ws.Cells.Item($r, $sctasksCol) = $display
         }
       }
       else {
-        foreach ($idx in @($sctaskColNums)) {
-          if (-not $sctaskColMap.ContainsKey($idx)) { continue }
-          $cell = $ws.Cells.Item($r, $sctaskColMap[$idx])
-          try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
-          $cell.Value2 = if ($idx -eq 1) { "No open tasks." } else { "" }
-        }
+        $cell = $ws.Cells.Item($r, $sctasksCol)
+        try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
+        $ws.Cells.Item($r, $sctasksCol) = "No open tasks."
       }
     }
     else {
-      foreach ($idx in @($sctaskColNums)) {
-        if (-not $sctaskColMap.ContainsKey($idx)) { continue }
-        $cell = $ws.Cells.Item($r, $sctaskColMap[$idx])
-        try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
-        $cell.Value2 = ""
-      }
+      $cell = $ws.Cells.Item($r, $sctasksCol)
+      try { if ($cell.Hyperlinks.Count -gt 0) { $cell.Hyperlinks.Delete() } } catch {}
+      $ws.Cells.Item($r, $sctasksCol) = ""
     }
   }
 
@@ -939,6 +1191,9 @@ function Extract-Ticket_JSONv2 {
   $table = Ticket-ToTable $Ticket
   $closedStatesJson = ($ClosedTaskStates | ConvertTo-Json -Compress)
   $enableActivitySearchJs = if ($EnableActivityStreamSearch) { "true" } else { "false" }
+
+  # Make sure the browser context is ready before running heavy JS.
+  [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
 
   # ---------------------------------------------------------------------------
   # JS block executed inside WebView2
@@ -1203,17 +1458,136 @@ function Extract-Ticket_JSONv2 {
       return out.join(' ');
     }
 
+    function getRitmTasksEvidenceText(reqItemSysId, ritmNumber){
+      var out = [];
+      var rowsAll = [];
+
+      try {
+        if (looksSysId(reqItemSysId)) {
+          rowsAll = rowsAll.concat(getRows('/sc_task.do', 'request_item=' + reqItemSysId));
+        }
+        if (s(ritmNumber)) {
+          rowsAll = rowsAll.concat(getRows('/sc_task.do', 'request_item.number=' + ritmNumber));
+        }
+      } catch(et) {
+        activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";task_rows") : "task_rows";
+      }
+
+      var seenTask = {};
+      var rows = [];
+      for (var i0 = 0; i0 < rowsAll.length; i0++) {
+        var k = s(rowsAll[i0].sys_id || rowsAll[i0].number || ("idx_" + i0));
+        if (!seenTask[k]) {
+          seenTask[k] = true;
+          rows.push(rowsAll[i0]);
+        }
+      }
+
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var desc = s(r.short_description || "");
+        if (desc) out.push(desc);
+        var fields = [
+          r.number, r.item, r.description, r.comments, r.work_notes, r.close_notes, r.u_comments
+        ];
+        for (var fi = 0; fi < fields.length; fi++) {
+          var v = s(fields[fi] || "");
+          if (v) out.push(v);
+        }
+
+        if (/prepare\s*device\s*for\s*new\s*user/i.test(desc)) {
+          out.push("TASK_HINT:PREPARE_DEVICE_FOR_NEW_USER");
+        }
+      }
+
+      // Add journal entries from task(s) - capped for performance.
+      try {
+        var maxTaskJournals = 20;
+        for (var j = 0; j < rows.length && j < maxTaskJournals; j++) {
+          var ts = s(rows[j].sys_id || "");
+          if (!looksSysId(ts)) continue;
+          var jAll = [];
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'name=sc_task^element_id=' + ts));
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + ts + '^elementINcomments,work_notes'));
+          for (var k2 = 0; k2 < jAll.length; k2++) {
+            var jv = s(jAll[k2].value || jAll[k2].message || jAll[k2].comments || jAll[k2].work_notes || "");
+            if (jv) out.push(jv);
+          }
+        }
+      } catch(ej) {
+        activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";task_journal") : "task_journal";
+      }
+
+      return out.join(' ');
+    }
+
+    function getIncidentActivitiesText(incSysId, incNumber){
+      var out = [];
+      try {
+        if (looksSysId(incSysId)) {
+          var jAll = [];
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'name=incident^element_id=' + incSysId));
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + incSysId));
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + incSysId + '^elementINcomments,work_notes'));
+          for (var i1 = 0; i1 < jAll.length; i1++) {
+            var v1 = s(jAll[i1].value || jAll[i1].message || jAll[i1].comments || jAll[i1].work_notes || "");
+            if (v1) out.push(v1);
+          }
+        }
+      } catch(ej) { activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";inc_journal") : "inc_journal"; }
+
+      try {
+        if (s(incNumber)) {
+          var iRows = getRows('/incident.do', 'number=' + incNumber);
+          for (var i2 = 0; i2 < iRows.length; i2++) {
+            var v2 = s(iRows[i2].comments || iRows[i2].work_notes || iRows[i2].description || iRows[i2].short_description || "");
+            if (v2) out.push(v2);
+          }
+        }
+      } catch(ei) { activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";inc_rows") : "inc_rows"; }
+      return out.join(' ');
+    }
+
     function extractMachineFromActivityText(activityText){
       var txt = s(activityText);
       if (!txt) return "";
 
-      var m = txt.match(/\b(?:02PI20[A-Z0-9_-]*|ITECBRUN[A-Z0-9_-]*|MUSTBRUN[A-Z0-9_-]*)\b/i);
+      var m = txt.match(/\b(?:02PI20[A-Z0-9_-]*|ITEC(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|MUST(?:BRUN)?[A-Z0-9_-]*\d[A-Z0-9_-]*|EDPSBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*|PRESBRUN[A-Z0-9_-]*\d[A-Z0-9_-]*)\b/i);
       return m ? s(m[0]).toUpperCase() : "";
+    }
+
+    function extractLegalNameFromText(txt){
+      var t = s(txt);
+      if (!t) return "";
+      var m0 = t.match(/LEGAL_NAME:\s*([^\r\n]+)/i);
+      if (m0 && s(m0[1])) return s(m0[1]);
+      var m = t.match(/Legal\s*name[\s:\-]*([A-Za-zÃ€-Ã–Ã˜-Ã¶Ã¸-Ã¿' \-]{3,})/i);
+      var cand = m ? s(m[1]) : "";
+      if (!cand) return "";
+      if (/^explanation$/i.test(cand)) return "";
+      return cand;
+    }
+
+    function extractLegalNameFromRecord(rec){
+      try {
+        if (!rec) return "";
+        var direct = s(rec.legal_name || rec.u_legal_name || rec.u_legalname || "");
+        if (direct) return direct;
+        for (var k in rec) {
+          if (!Object.prototype.hasOwnProperty.call(rec, k)) continue;
+          var nk = s(k).toLowerCase();
+          if (nk.indexOf('legal') >= 0 && nk.indexOf('name') >= 0) {
+            var v = s(rec[k]);
+            if (v) return v;
+          }
+        }
+      } catch(e) {}
+      return "";
     }
 
     // --- Main record fetch ---
     var q1 = 'number=' + '$Ticket';
-    var p1 = '/$table.do?JSONv2&sysparm_limit=1&sysparm_query=' + encodeURIComponent(q1);
+    var p1 = '/$table.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=' + encodeURIComponent(q1);
     var o1 = httpGetJsonV2(p1);
     var r1 = pickRec(o1);
     if (!r1) return JSON.stringify({ ok:false, reason:'not_found', ticket:'$Ticket', table:'$table', query:p1 });
@@ -1240,20 +1614,41 @@ function Extract-Ticket_JSONv2 {
       if (ciName) ciVal = ciName;
     }
 
-    // --- RITM-specific enrichments ---
+    // --- Ticket-specific enrichments ---
     var openTaskCount = 0;
     var openTasks = [];
     var acts = "";
+    var legalName = "";
     if ('$table' === 'sc_req_item') {
       openTasks = getOpenCatalogTasks(s(r1.sys_id || ""), '$Ticket');
       openTaskCount = openTasks.length;
+      legalName = extractLegalNameFromRecord(r1);
 
       // If activities contain a PI machine id, prefer that value for CI output.
       if ($enableActivitySearchJs) {
         acts = getRitmActivitiesText(s(r1.sys_id || ""), '$Ticket');
         var piFromActivity = extractMachineFromActivityText(acts);
+        if (!piFromActivity) {
+          var taskActs = getRitmTasksEvidenceText(s(r1.sys_id || ""), '$Ticket');
+          if (taskActs) {
+            acts = acts ? (acts + ' ' + taskActs) : taskActs;
+            piFromActivity = extractMachineFromActivityText(acts);
+          }
+        }
         if (piFromActivity) {
           ciVal = piFromActivity;
+        }
+        if (!legalName) {
+          legalName = extractLegalNameFromText(acts);
+        }
+      }
+    }
+    else if ('$table' === 'incident') {
+      if ($enableActivitySearchJs) {
+        acts = getIncidentActivitiesText(s(r1.sys_id || ""), '$Ticket');
+        var piFromIncActivity = extractMachineFromActivityText(acts);
+        if (piFromIncActivity) {
+          ciVal = piFromIncActivity;
         }
       }
     }
@@ -1287,6 +1682,7 @@ function Extract-Ticket_JSONv2 {
       status_label:stLabel,
       open_tasks:openTaskCount,
       open_task_items:openTasks,
+      legal_name:legalName,
       activity_text:acts,
       activity_error:activityRetrievalError,
       query:p1
@@ -1299,8 +1695,57 @@ function Extract-Ticket_JSONv2 {
 "@
 
   # Execute JS and parse
-  $o = Parse-WV2Json (ExecJS $wv $js 12000)
+  $o = Parse-WV2Json (ExecJS $wv $js $ExtractJsTimeoutMs)
   if ($o) { return $o }
+
+  # Fallback: minimal extractor to avoid total empty results when complex JS fails.
+  $jsMin = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? "" : (""+x).trim(); }
+    function pickRec(obj){
+      return (obj && obj.records && obj.records[0]) ? obj.records[0] :
+             (obj && obj.result && obj.result[0]) ? obj.result[0] :
+             (Array.isArray(obj) && obj[0]) ? obj[0] : null;
+    }
+    var q = 'number=' + '$Ticket';
+    var p = '/$table.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_query=' + encodeURIComponent(q);
+    var x = new XMLHttpRequest();
+    x.open('GET', p, false);
+    x.withCredentials = true;
+    x.send(null);
+    if (!(x.status>=200 && x.status<300)) {
+      return JSON.stringify({ ok:false, reason:'min_http_'+x.status, ticket:'$Ticket', table:'$table', query:p });
+    }
+    var obj = {};
+    try { obj = JSON.parse(x.responseText || "{}"); } catch(e) { return JSON.stringify({ ok:false, reason:'min_json_parse', ticket:'$Ticket', table:'$table', query:p }); }
+    var r = pickRec(obj);
+    if (!r) { return JSON.stringify({ ok:false, reason:'not_found', ticket:'$Ticket', table:'$table', query:p }); }
+    var user = s(r.requested_for || r.caller_id || "");
+    return JSON.stringify({
+      ok:true,
+      ticket:'$Ticket',
+      table:'$table',
+      sys_id:s(r.sys_id || ""),
+      affected_user:user,
+      configuration_item:s(r.configuration_item || r.cmdb_ci || ""),
+      status:s(r.state || ""),
+      status_value:s(r.state || ""),
+      status_label:"",
+      open_tasks:0,
+      open_task_items:[],
+      legal_name:"",
+      activity_text:"",
+      activity_error:"",
+      query:p
+    });
+  } catch(e) {
+    return JSON.stringify({ ok:false, reason:'min_exception', error:''+e, ticket:'$Ticket', table:'$table' });
+  }
+})();
+"@
+  $oMin = Parse-WV2Json (ExecJS $wv $jsMin 7000)
+  if ($oMin) { return $oMin }
 
   # If no response (timeout/failure), return a PowerShell object with minimal info.
   return [pscustomobject]@{
@@ -1313,6 +1758,7 @@ function Extract-Ticket_JSONv2 {
     configuration_item = ""
     open_tasks         = 0
     open_task_items    = @()
+    legal_name         = ""
     activity_text      = ""
     activity_error     = ""
     href               = "" + $wv.Source
@@ -1335,6 +1781,9 @@ try {
   # 3) Interactive SSO login, then keep WebView2 session
   $session = Connect-ServiceNowSSO -StartUrl $LoginUrl
   $wv = $session.Wv
+  if (-not (Ensure-SnowReady -wv $wv -MaxWaitMs 12000)) {
+    Log "ERROR" "SNOW session not ready after SSO; extraction may fail."
+  }
 
   # 4) Read tickets list from Excel
   $tickets = Read-TicketsFromExcel -ExcelPath $ExcelPath -TicketHeader $TicketHeader -SheetName $SheetName -TicketColumn $TicketColumn
@@ -1342,6 +1791,23 @@ try {
 
   if ($tickets.Count -eq 0) {
     throw "No valid tickets found in Excel (INC/RITM/SCTASK + 6-8 digits)."
+  }
+
+  # Dynamic scope for speed:
+  # - If there is at least one INC, process INC + RITM.
+  # - If there is no INC, process only RITM.
+  $hasInc = @($tickets | Where-Object { $_ -like "INC*" }).Count -gt 0
+  if ($hasInc) {
+    $tickets = @($tickets | Where-Object { ($_ -like "INC*") -or ($_ -like "RITM*") })
+    Log "INFO" "Processing scope: INC + RITM (INC detected). Count=$($tickets.Count)"
+  }
+  else {
+    $tickets = @($tickets | Where-Object { $_ -like "RITM*" })
+    Log "INFO" "Processing scope: RITM only (no INC detected). Count=$($tickets.Count)"
+  }
+
+  if ($tickets.Count -eq 0) {
+    throw "No tickets to process after scope filtering."
   }
 
   # 5) For each ticket: extract + export JSON
@@ -1354,24 +1820,83 @@ try {
 
     # Extract fields via JSONv2 in authenticated session
     $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t
+    if ($r.ok -ne $true) {
+      for ($attempt = 2; $attempt -le $ExtractRetryCount; $attempt++) {
+        $reasonTry = if ($r.PSObject.Properties["reason"]) { "" + $r.reason } else { "" }
+        Log "INFO" "$t retry $attempt/$ExtractRetryCount after failure reason='$reasonTry'"
+        Start-Sleep -Milliseconds $ExtractRetryDelayMs
+        $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t
+        if ($r.ok -eq $true) { break }
+      }
+    }
 
-    if (($r.ok -eq $true) -and ($t -like "RITM*")) {
+    if ($r.ok -eq $true) {
+      $uNow = if ($r.PSObject.Properties["affected_user"]) { ("" + $r.affected_user).Trim() } else { "" }
+      if ($uNow -match '^[0-9a-fA-F]{32}$') {
+        $uResolved = Resolve-UserDisplayNameFromSysId -wv $wv -UserSysId $uNow
+        if (-not [string]::IsNullOrWhiteSpace($uResolved)) {
+          $r | Add-Member -NotePropertyName affected_user -NotePropertyValue $uResolved -Force
+          Log "INFO" "$t user resolved from sys_id => '$uResolved'"
+        }
+      }
+    }
+
+    if (($r.ok -eq $true) -and (($t -like "RITM*") -or ($t -like "INC*"))) {
       try {
         $activityText = if ($r.PSObject.Properties["activity_text"]) { "" + $r.activity_text } else { "" }
         $uiActivityText = ""
         $activityError = if ($r.PSObject.Properties["activity_error"]) { "" + $r.activity_error } else { "" }
-        Log "INFO" "$t activity backend text length: $($activityText.Length)"
+        $legalName = if ($r.PSObject.Properties["legal_name"]) { ("" + $r.legal_name).Trim() } else { "" }
+        if ($VerboseTicketLogging) {
+          Log "INFO" "$t activity backend text length: $($activityText.Length)"
+        }
         if ($activityError) {
           Log "ERROR" "$t activity retrieval issue: $activityError"
         }
         $detectedPi = Get-DetectedPiFromActivityText -ActivityText $activityText
-        if ([string]::IsNullOrWhiteSpace($detectedPi) -and $EnableActivityStreamSearch) {
-          $ritmSysId = if ($r.PSObject.Properties["sys_id"]) { "" + $r.sys_id } else { "" }
-          $uiActivityText = Get-RitmActivityTextFromUiPage -wv $wv -RitmSysId $ritmSysId
-          Log "INFO" "$t activity UI text length: $($uiActivityText.Length)"
+        $currentUserSnapshot = if ($r.PSObject.Properties["affected_user"]) { ("" + $r.affected_user).Trim() } else { "" }
+        $needsLegalNameFallback = (
+          ($t -like "RITM*") -and
+          (-not $legalName) -and
+          (
+            [string]::IsNullOrWhiteSpace($currentUserSnapshot) -or
+            ($currentUserSnapshot -match '^[0-9a-fA-F]{32}$') -or
+            ($currentUserSnapshot -match '(?i)^new\b.*\buser$')
+          )
+        )
+        if (
+          (
+            ([string]::IsNullOrWhiteSpace($detectedPi) -and $EnableActivityStreamSearch) -or
+            $needsLegalNameFallback
+          ) -and
+          $EnableUiFallbackActivitySearch -and
+          (
+            ($activityText.Length -lt $UiFallbackMinBackendChars) -or
+            $needsLegalNameFallback -or
+            ($t -like "RITM*")
+          )
+        ) {
+          $recordSysId = if ($r.PSObject.Properties["sys_id"]) { "" + $r.sys_id } else { "" }
+          $tableName = if ($r.PSObject.Properties["table"]) { "" + $r.table } else { Ticket-ToTable $t }
+          $uiActivityText = Get-RecordActivityTextFromUiPage -wv $wv -RecordSysId $recordSysId -Table $tableName
+          if ($VerboseTicketLogging) {
+            Log "INFO" "$t activity UI text length: $($uiActivityText.Length)"
+          }
           if (-not [string]::IsNullOrWhiteSpace($uiActivityText)) {
-            Log "INFO" "$t activity UI fallback text collected (len=$($uiActivityText.Length))"
+            if ($VerboseTicketLogging) {
+              Log "INFO" "$t activity UI fallback text collected (len=$($uiActivityText.Length))"
+            }
             $detectedPi = Get-DetectedPiFromActivityText -ActivityText $uiActivityText
+            if (-not $legalName) { $legalName = Get-LegalNameFromText -Text $uiActivityText }
+          }
+        }
+        if (-not $legalName) { $legalName = Get-LegalNameFromText -Text $activityText }
+        if (-not $legalName -and ($t -like "RITM*")) {
+          $recordSysId = if ($r.PSObject.Properties["sys_id"]) { "" + $r.sys_id } else { "" }
+          $legalFromForm = Get-LegalNameFromUiForm -wv $wv -RecordSysId $recordSysId -Table "sc_req_item"
+          if (-not [string]::IsNullOrWhiteSpace($legalFromForm)) {
+            $legalName = $legalFromForm
+            Log "INFO" "$t Legal name extracted from form => '$legalName'"
           }
         }
         if ($t -eq $DebugActivityTicket) {
@@ -1388,6 +1913,14 @@ try {
           Log "INFO" "$t PI not found in activity stream"
         }
         $r | Add-Member -NotePropertyName detected_pi_machine -NotePropertyValue $detectedPi -Force
+        if ($legalName) {
+          $r | Add-Member -NotePropertyName legal_name -NotePropertyValue $legalName -Force
+          $currentUser = if ($r.PSObject.Properties["affected_user"]) { ("" + $r.affected_user).Trim() } else { "" }
+          if (Is-InvalidUserDisplay $currentUser) {
+            $r | Add-Member -NotePropertyName affected_user -NotePropertyValue $legalName -Force
+            Log "INFO" "$t Name updated from Legal name => '$legalName'"
+          }
+        }
       }
       catch {
         Log "ERROR" "$t activity parsing failed: $($_.Exception.Message)"
@@ -1398,12 +1931,14 @@ try {
       if ($r.PSObject.Properties["open_task_items"] -and $r.open_task_items) {
         $openTaskItems = @($r.open_task_items)
       }
-      Log "INFO" "$t open SCTASK count: $($openTaskItems.Count)"
-      foreach ($ot in $openTaskItems) {
-        $taskNo = if ($ot.PSObject.Properties["number"]) { "" + $ot.number } else { "" }
-        $taskSys = if ($ot.PSObject.Properties["sys_id"]) { "" + $ot.sys_id } else { "" }
-        $taskUrl = Build-SCTaskBestUrl -SysId $taskSys -TaskNumber $taskNo
-        Log "INFO" "$t open SCTASK number='$taskNo' sys_id='$taskSys' url='$taskUrl'"
+      if ($VerboseTicketLogging) {
+        Log "INFO" "$t open SCTASK count: $($openTaskItems.Count)"
+        foreach ($ot in $openTaskItems) {
+          $taskNo = if ($ot.PSObject.Properties["number"]) { "" + $ot.number } else { "" }
+          $taskSys = if ($ot.PSObject.Properties["sys_id"]) { "" + $ot.sys_id } else { "" }
+          $taskUrl = Build-SCTaskBestUrl -SysId $taskSys -TaskNumber $taskNo
+          Log "INFO" "$t open SCTASK number='$taskNo' sys_id='$taskSys' url='$taskUrl'"
+        }
       }
     }
     elseif ($r.ok -eq $true) {
@@ -1419,9 +1954,11 @@ try {
     Log "INFO" "$t => $status reason=$reason user='$userOut' ci='$ciOut' url='$urlOut'"
 
     # Save per-ticket JSON file
-    $perPath = Join-Path $OutDir ("ticket_" + $t + ".json")
-    $jsonPer = ($r | ConvertTo-Json -Depth 6) -replace '\\u0027', "'"
-    Set-Content -Path $perPath -Value $jsonPer -Encoding UTF8
+    if ($WritePerTicketJson) {
+      $perPath = Join-Path $OutDir ("ticket_" + $t + ".json")
+      $jsonPer = ($r | ConvertTo-Json -Depth 6) -replace '\\u0027', "'"
+      Set-Content -Path $perPath -Value $jsonPer -Encoding UTF8
+    }
 
     # Add to in-memory list for combined export + write-back map
     $results.Add($r) | Out-Null
@@ -1440,27 +1977,31 @@ try {
     foreach ($r in $results) { $map[$r.ticket] = $r }
 
     Write-BackToExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
-      -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -ResultMap $map
+      -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ResultMap $map
   }
 
   # 8) Final success popup
-  [System.Windows.Forms.MessageBox]::Show(
-    "Export complete.`r`nFolder: $OutDir`r`nAll JSON: $AllJson",
-    "SNOW Export",
-    [System.Windows.Forms.MessageBoxButtons]::OK,
-    [System.Windows.Forms.MessageBoxIcon]::Information
-  ) | Out-Null
+  if (-not $NoPopups) {
+    [System.Windows.Forms.MessageBox]::Show(
+      "Export complete.`r`nFolder: $OutDir`r`nAll JSON: $AllJson",
+      "SNOW Export",
+      [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Information
+    ) | Out-Null
+  }
 }
 catch {
   # Any exception: log + show popup
   Log "ERROR" $_.Exception.Message
 
-  [System.Windows.Forms.MessageBox]::Show(
-    $_.Exception.Message,
-    "SNOW Export ERROR",
-    [System.Windows.Forms.MessageBoxButtons]::OK,
-    [System.Windows.Forms.MessageBoxIcon]::Error
-  ) | Out-Null
+  if (-not $NoPopups) {
+    [System.Windows.Forms.MessageBox]::Show(
+      $_.Exception.Message,
+      "SNOW Export ERROR",
+      [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Error
+    ) | Out-Null
+  }
 }
 finally {
   # Cleanup: close the hidden login form gracefully.

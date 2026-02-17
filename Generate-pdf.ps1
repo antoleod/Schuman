@@ -58,12 +58,8 @@ try {
   $ExcelPath = Resolve-ExcelPath -CurrentExcelPath $ExcelPath
 
   if (-not (Test-Path -LiteralPath $AutoExcelScript)) {
-    [System.Windows.Forms.MessageBox]::Show(
-      "auto-excel.ps1 was not found. Please place it next to Generate-pdf.ps1.",
-      "Schuman Automation",
-      [System.Windows.Forms.MessageBoxButtons]::OK,
-      [System.Windows.Forms.MessageBoxIcon]::Error
-    ) | Out-Null
+    Write-Log "auto-excel.ps1 was not found. Please place it next to Generate-pdf.ps1."
+    Write-Host "ERROR: auto-excel.ps1 was not found. Please place it next to Generate-pdf.ps1."
     return
   }
 
@@ -76,7 +72,8 @@ try {
     -TicketColumn 4 `
     -NameHeader "Name" `
     -PhoneHeader "PI" `
-    -ActionHeader "Estado de RITM"
+    -ActionHeader "Estado de RITM" `
+    -NoPopups
 
   if (($global:LASTEXITCODE -ne $null) -and ($global:LASTEXITCODE -ne 0)) {
     throw "auto-excel.ps1 exited with code $global:LASTEXITCODE"
@@ -84,21 +81,10 @@ try {
 }
 catch {
   Write-Log ("Autofill failed: " + $_.Exception.Message)
-  [System.Windows.Forms.MessageBox]::Show(
-    "Autofill failed. PDFs were not generated. Check the log.",
-    "Schuman Automation",
-    [System.Windows.Forms.MessageBoxButtons]::OK,
-    [System.Windows.Forms.MessageBoxIcon]::Error
-  ) | Out-Null
+  Write-Host "ERROR: Autofill failed. PDFs were not generated. Check the log."
   return
 }
-
-[System.Windows.Forms.MessageBox]::Show(
-  "Excel is ready. Choose the file format (DOCX/PDF), then click Generate Documents.",
-  "Schuman Automation",
-  [System.Windows.Forms.MessageBoxButtons]::OK,
-  [System.Windows.Forms.MessageBoxIcon]::Information
-) | Out-Null
+Write-Log "Excel is ready. Choose DOCX/PDF and click Generate Documents."
 
 # ----------------------------
 # Preflight (UI will also show message)
@@ -497,6 +483,14 @@ function Append-Log([string]$line){
     $logBox.SelectionStart = $logBox.TextLength
     $logBox.ScrollToCaret()
   }
+}
+
+function Get-IntPropOrDefault($obj, [string]$name, [int]$defaultValue = 0){
+  if ($null -eq $obj) { return $defaultValue }
+  if ($obj.PSObject -and $obj.PSObject.Properties[$name]) {
+    try { return [int]$obj.$name } catch {}
+  }
+  return $defaultValue
 }
 
 function Ensure-GridRow([int]$rowId, [string]$fileName, [string]$ticket, [string]$user){
@@ -1213,13 +1207,17 @@ $uiTimer.Add_Tick({
         Append-Log "Run initialized. Total rows: $($p.Total)"
       }
       "Counters" {
-        $done = [int]$p.Saved + [int]$p.Skipped + [int]$p.Errors
-        $lblMetrics.Text = "Total: $($p.Total) | Saved: $($p.Saved) | Skipped: $($p.Skipped) | Errors: $($p.Errors)"
-        $script:ProgressTarget = if($p.Total -gt 0){ [double]$done / [double]$p.Total } else { 0 }
-        $script:LastCounters.Total = [int]$p.Total
-        $script:LastCounters.Saved = [int]$p.Saved
-        $script:LastCounters.Skipped = [int]$p.Skipped
-        $script:LastCounters.Errors = [int]$p.Errors
+        $totalC = Get-IntPropOrDefault $p "Total" 0
+        $savedC = Get-IntPropOrDefault $p "Saved" 0
+        $skippedC = Get-IntPropOrDefault $p "Skipped" 0
+        $errorsC = Get-IntPropOrDefault $p "Errors" 0
+        $done = $savedC + $skippedC + $errorsC
+        $lblMetrics.Text = "Total: $totalC | Saved: $savedC | Skipped: $skippedC | Errors: $errorsC"
+        $script:ProgressTarget = if($totalC -gt 0){ [double]$done / [double]$totalC } else { 0 }
+        $script:LastCounters.Total = $totalC
+        $script:LastCounters.Saved = $savedC
+        $script:LastCounters.Skipped = $skippedC
+        $script:LastCounters.Errors = $errorsC
       }
       "RowStart" {
         if($script:ActiveRow -and $script:RowMap.ContainsKey($script:ActiveRow)){
@@ -1280,11 +1278,14 @@ $uiTimer.Add_Tick({
       Append-Log "Run failed: $($script:SyncHash.Error.Message)"
     } else {
       $res = $script:SyncHash.Result
-      $lblStatusText.Text = "Completed. Saved=$($res.Saved) Skipped=$($res.Skipped) Errors=$($res.Errors)"
+      $savedR = Get-IntPropOrDefault $res "Saved" 0
+      $skippedR = Get-IntPropOrDefault $res "Skipped" 0
+      $errorsR = Get-IntPropOrDefault $res "Errors" 0
+      $lblStatusText.Text = "Completed. Saved=$savedR Skipped=$skippedR Errors=$errorsR"
       Set-StatusPill -text "Completed" -state "done"
-      Show-Toast -title "Generation completed" -body "Saved: $($res.Saved), Skipped: $($res.Skipped), Errors: $($res.Errors)"
-      if($res.Errors -eq 0){ Start-Confetti }
-      Append-Log "Run completed: Saved=$($res.Saved) Skipped=$($res.Skipped) Errors=$($res.Errors)"
+      Show-Toast -title "Generation completed" -body "Saved: $savedR, Skipped: $skippedR, Errors: $errorsR"
+      if($errorsR -eq 0){ Start-Confetti }
+      Append-Log "Run completed: Saved=$savedR Skipped=$skippedR Errors=$errorsR"
     }
   }
 })
@@ -1294,15 +1295,21 @@ $uiTimer.Add_Tick({
 # ----------------------------
 $btnStart.Add_Click({
   if(-not (Test-Path -LiteralPath $ExcelPath)){
-    [Windows.Forms.MessageBox]::Show("Excel not found:`r`n$ExcelPath","Error") | Out-Null
+    $lblStatusText.Text = "Excel not found: $ExcelPath"
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "Excel not found: $ExcelPath"
     return
   }
   if(-not (Test-Path -LiteralPath $TemplatePath)){
-    [Windows.Forms.MessageBox]::Show("Template not found:`r`n$TemplatePath","Error") | Out-Null
+    $lblStatusText.Text = "Template not found: $TemplatePath"
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "Template not found: $TemplatePath"
     return
   }
   if(-not $chkSaveDocx.Checked -and -not $chkSavePdf.Checked){
-    [Windows.Forms.MessageBox]::Show("Select at least one output: DOCX or PDF.","Error") | Out-Null
+    $lblStatusText.Text = "Select at least one output: DOCX or PDF."
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "Validation failed: Select at least one output: DOCX or PDF."
     return
   }
 
