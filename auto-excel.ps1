@@ -34,7 +34,6 @@ param(
   [string]$NameHeader = "Name",
   [string]$PhoneHeader = "PI",
   [string]$ActionHeader = "Estado de RITM",
-  [string]$DetectedPIHeader = "Detected PI / Machine",
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
   [string]$DefaultStartDir = $PSScriptRoot
@@ -103,6 +102,7 @@ $MaxRowsAfterFirstTicket = 300
 $ReadProgressEveryRows = 2000
 $DebugActivityTicket = "RITM0427680"
 $DebugActivityMaxChars = 4000
+$ForceUpdateDetectedPI = $true
 
 # NameHeader/PhoneHeader/ActionHeader are provided via param().
 
@@ -725,7 +725,6 @@ function Write-BackToExcel {
     [string]$NameHeader,
     [string]$PhoneHeader,
     [string]$ActionHeader,
-    [string]$DetectedPIHeader,
     [hashtable]$ResultMap
   )
 
@@ -768,7 +767,6 @@ function Write-BackToExcel {
   if (-not $map.ContainsKey($NameHeader))   { throw "Missing header '$NameHeader'." }
   if (-not $map.ContainsKey($PhoneHeader))  { throw "Missing header '$PhoneHeader'." }
   if (-not $map.ContainsKey($ActionHeader)) { throw "Missing header '$ActionHeader'." }
-  $detectedPiCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header $DetectedPIHeader
   $sctaskFirstCol = Get-OrCreateHeaderColumn -ws $ws -map $map -Header "SCTask 1"
   $sctaskColMap = @{ 1 = $sctaskFirstCol }
   $sctaskColNums = New-Object System.Collections.Generic.List[int]
@@ -821,10 +819,26 @@ function Write-BackToExcel {
       $ws.Cells.Item($r, $map[$NameHeader]) = $res.affected_user
     }
 
-    # Fill "New Phone" (configuration_item)
+    # Determine detected PI/machine (if present)
+    $detectedPiOut = ""
+    if ($res.PSObject.Properties["detected_pi_machine"]) {
+      $detectedPiOut = ("" + $res.detected_pi_machine).Trim()
+    }
+
+    # Fill PI column:
+    # - Prefer detected PI for RITM
+    # - Else use configuration_item (original behavior)
     $phoneCell = "" + $ws.Cells.Item($r, $map[$PhoneHeader]).Text
-    if (Is-EmptyOrPlaceholder $phoneCell $ticket) {
-      $ws.Cells.Item($r, $map[$PhoneHeader]) = $res.configuration_item
+    $phoneOut = ("" + $res.configuration_item).Trim()
+    if (($ticket -like "RITM*") -and $detectedPiOut) {
+      $phoneOut = $detectedPiOut
+    }
+    if (($ticket -like "RITM*") -and $detectedPiOut -and $ForceUpdateDetectedPI) {
+      $ws.Cells.Item($r, $map[$PhoneHeader]) = $phoneOut
+      Log "INFO" "$ticket PI force-updated in '$PhoneHeader' => '$phoneOut'"
+    }
+    elseif (Is-EmptyOrPlaceholder $phoneCell $ticket) {
+      $ws.Cells.Item($r, $map[$PhoneHeader]) = $phoneOut
     }
 
     # Fill "Action finished?" (status)
@@ -836,16 +850,6 @@ function Write-BackToExcel {
       if ($statusOut -eq "Abgebrochen") { $statusOut = "Cancelled" }
 
       $ws.Cells.Item($r, $map[$ActionHeader]) = $statusOut
-    }
-
-    # Fill "Detected PI / Machine"
-    $detectedPiOut = ""
-    if ($res.PSObject.Properties["detected_pi_machine"]) {
-      $detectedPiOut = ("" + $res.detected_pi_machine).Trim()
-    }
-    $detectedPiCell = "" + $ws.Cells.Item($r, $detectedPiCol).Text
-    if (Is-EmptyOrPlaceholder $detectedPiCell $ticket -and $detectedPiOut) {
-      $ws.Cells.Item($r, $detectedPiCol) = $detectedPiOut
     }
 
     # Fill open SCTASK hyperlinks as "SCTask 1", "SCTask 2", ...
@@ -1436,7 +1440,7 @@ try {
     foreach ($r in $results) { $map[$r.ticket] = $r }
 
     Write-BackToExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
-      -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -DetectedPIHeader $DetectedPIHeader -ResultMap $map
+      -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -ResultMap $map
   }
 
   # 8) Final success popup
