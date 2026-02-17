@@ -415,3 +415,137 @@
 [2026-02-17 20:10:48] Saved: C:\Users\X1\Documents\Schuman\WORD files\INC0404926_Juan Emilio AYUSO GONZÁLEZ.docx
 [2026-02-17 20:10:48] Excel saved
 [2026-02-17 20:10:48] === RUN END === Total=7 Saved=7 Skipped=0 Errors=0
+[2026-02-17 20:12:55] Running auto-excel.ps1 before PDF generation.
+[2026-02-17 20:13:38] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-17 20:13:50] User clicked Start.
+[2026-02-17 20:13:50] === RUN START ===
+[2026-02-17 20:13:50] Opening Excel
+[2026-02-17 20:13:50] Excel opened
+[2026-02-17 20:13:50] Using sheet: BRU
+[2026-02-17 20:13:50] Excel column status: Col=8 Created=False Score=2
+[2026-02-17 20:13:50] Excel column docx:   Col=9 Created=False Score=2
+[2026-02-17 20:13:50] Excel column pdf:    Col=10 Created=False Score=2
+[2026-02-17 20:13:50] Rows detected: 7
+[2026-02-17 20:13:51] Row 2 start: RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-17 20:13:51] Row 2: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:51] Row 2: Document protected, attempting unprotect
+[2026-02-17 20:13:51] Row 2: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:51] Row 2: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:13:53] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.pdf
+[2026-02-17 20:13:53] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-17 20:13:53] Row 3 start: RITM0493919_Ledio AHMETAJ.docx
+[2026-02-17 20:13:53] Row 3: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:53] Row 3: Document protected, attempting unprotect
+[2026-02-17 20:13:53] Row 3: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:53] Row 3: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:13:54] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.pdf
+[2026-02-17 20:13:54] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.docx
+[2026-02-17 20:13:54] Row 4 start: RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-17 20:13:54] Row 4: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:54] Row 4: Document protected, attempting unprotect
+[2026-02-17 20:13:54] Row 4: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:54] Row 4: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:13:56] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.pdf
+[2026-02-17 20:13:56] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-17 20:13:56] Row 5 start: RITM0427680_Juan DIOSES.docx
+[2026-02-17 20:13:56] Row 5: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:56] Row 5: Document protected, attempting unprotect
+[2026-02-17 20:13:56] Row 5: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:56] Row 5: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:13:57] Row 5: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0427680_Juan DIOSES.pdf
+[2026-02-17 20:13:57] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0427680_Juan DIOSES.docx
+[2026-02-17 20:13:57] Row 6 start: RITM0105308_CEBOLLA NICUESA Mireia.docx
+[2026-02-17 20:13:57] Row 6: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:57] Row 6: Document protected, attempting unprotect
+[2026-02-17 20:13:57] Row 6: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:57] Row 6: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:13:58] Row 6: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0105308_CEBOLLA NICUESA Mireia.pdf
+[2026-02-17 20:13:58] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0105308_CEBOLLA NICUESA Mireia.docx
+[2026-02-17 20:13:58] Row 7 start: RITM0104655_Zeljana VUKOVIĆ.docx
+[2026-02-17 20:13:58] Row 7: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:58] Row 7: Document protected, attempting unprotect
+[2026-02-17 20:13:58] Row 7: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:58] Row 7: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:13:59] Row 7: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0104655_Zeljana VUKOVIĆ.pdf
+[2026-02-17 20:13:59] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0104655_Zeljana VUKOVIĆ.docx
+[2026-02-17 20:13:59] Row 8 start: INC0404926_Juan Emilio AYUSO GONZÁLEZ.docx
+[2026-02-17 20:13:59] Row 8: ProtectionType=-1 (Unknown)
+[2026-02-17 20:13:59] Row 8: Document protected, attempting unprotect
+[2026-02-17 20:13:59] Row 8: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:13:59] Row 8: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:14:00] Row 8: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\INC0404926_Juan Emilio AYUSO GONZÁLEZ.pdf
+[2026-02-17 20:14:00] Saved: C:\Users\X1\Documents\Schuman\WORD files\INC0404926_Juan Emilio AYUSO GONZÁLEZ.docx
+[2026-02-17 20:14:00] Excel saved
+[2026-02-17 20:14:00] === RUN END === Total=7 Saved=7 Skipped=0 Errors=0
+[2026-02-17 20:14:37] User clicked Start.
+[2026-02-17 20:14:37] === RUN START ===
+[2026-02-17 20:14:37] Opening Excel
+[2026-02-17 20:14:38] Excel opened
+[2026-02-17 20:14:38] Using sheet: BRU
+[2026-02-17 20:14:38] Excel column status: Col=8 Created=False Score=2
+[2026-02-17 20:14:38] Excel column docx:   Col=9 Created=False Score=2
+[2026-02-17 20:14:38] Excel column pdf:    Col=10 Created=False Score=2
+[2026-02-17 20:14:38] Rows detected: 7
+[2026-02-17 20:14:39] User clicked Stop.
+[2026-02-17 20:21:47] Running auto-excel.ps1 before PDF generation.
+[2026-02-17 20:22:28] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-17 20:22:54] User clicked Start.
+[2026-02-17 20:22:54] === RUN START ===
+[2026-02-17 20:22:54] Opening Excel
+[2026-02-17 20:22:55] Excel opened
+[2026-02-17 20:22:55] Using sheet: BRU
+[2026-02-17 20:22:55] Excel column status: Col=8 Created=False Score=2
+[2026-02-17 20:22:55] Excel column docx:   Col=9 Created=False Score=2
+[2026-02-17 20:22:55] Excel column pdf:    Col=10 Created=False Score=2
+[2026-02-17 20:22:55] Rows detected: 7
+[2026-02-17 20:22:57] Row 2 start: RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-17 20:22:58] Row 2: ProtectionType=-1 (Unknown)
+[2026-02-17 20:22:58] Row 2: Document protected, attempting unprotect
+[2026-02-17 20:22:58] Row 2: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:22:58] Row 2: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:00] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.pdf
+[2026-02-17 20:23:00] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493918_Sara AHMAD TORRES.docx
+[2026-02-17 20:23:00] Row 3 start: RITM0493919_Ledio AHMETAJ.docx
+[2026-02-17 20:23:00] Row 3: ProtectionType=-1 (Unknown)
+[2026-02-17 20:23:00] Row 3: Document protected, attempting unprotect
+[2026-02-17 20:23:00] Row 3: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:23:00] Row 3: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:01] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.pdf
+[2026-02-17 20:23:01] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493919_Ledio AHMETAJ.docx
+[2026-02-17 20:23:01] Row 4 start: RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-17 20:23:01] Row 4: ProtectionType=-1 (Unknown)
+[2026-02-17 20:23:01] Row 4: Document protected, attempting unprotect
+[2026-02-17 20:23:01] Row 4: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:23:01] Row 4: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:02] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.pdf
+[2026-02-17 20:23:02] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0493920_Antoine Patrick Colin ANDRAULT.docx
+[2026-02-17 20:23:02] Row 5 start: RITM0427680_Juan DIOSES.docx
+[2026-02-17 20:23:03] Row 5: ProtectionType=-1 (Unknown)
+[2026-02-17 20:23:03] Row 5: Document protected, attempting unprotect
+[2026-02-17 20:23:03] Row 5: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:23:03] Row 5: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:04] Row 5: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0427680_Juan DIOSES.pdf
+[2026-02-17 20:23:04] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0427680_Juan DIOSES.docx
+[2026-02-17 20:23:04] Row 6 start: RITM0105308_CEBOLLA NICUESA Mireia.docx
+[2026-02-17 20:23:04] Row 6: ProtectionType=-1 (Unknown)
+[2026-02-17 20:23:04] Row 6: Document protected, attempting unprotect
+[2026-02-17 20:23:04] Row 6: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:23:04] Row 6: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:05] Row 6: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0105308_CEBOLLA NICUESA Mireia.pdf
+[2026-02-17 20:23:05] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0105308_CEBOLLA NICUESA Mireia.docx
+[2026-02-17 20:23:05] Row 7 start: RITM0104655_Zeljana VUKOVIĆ.docx
+[2026-02-17 20:23:05] Row 7: ProtectionType=-1 (Unknown)
+[2026-02-17 20:23:05] Row 7: Document protected, attempting unprotect
+[2026-02-17 20:23:05] Row 7: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:23:05] Row 7: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:06] Row 7: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0104655_Zeljana VUKOVIĆ.pdf
+[2026-02-17 20:23:06] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0104655_Zeljana VUKOVIĆ.docx
+[2026-02-17 20:23:06] Row 8 start: INC0404926_Juan Emilio AYUSO GONZÁLEZ.docx
+[2026-02-17 20:23:06] Row 8: ProtectionType=-1 (Unknown)
+[2026-02-17 20:23:06] Row 8: Document protected, attempting unprotect
+[2026-02-17 20:23:06] Row 8: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-17 20:23:06] Row 8: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-17 20:23:07] Row 8: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\INC0404926_Juan Emilio AYUSO GONZÁLEZ.pdf
+[2026-02-17 20:23:07] Saved: C:\Users\X1\Documents\Schuman\WORD files\INC0404926_Juan Emilio AYUSO GONZÁLEZ.docx
+[2026-02-17 20:23:07] Excel saved
+[2026-02-17 20:23:07] === RUN END === Total=7 Saved=7 Skipped=0 Errors=0

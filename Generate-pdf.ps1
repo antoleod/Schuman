@@ -111,6 +111,7 @@ $Theme = @{
     Sub  = [Drawing.Color]::FromArgb(100,100,100)
     Border = [Drawing.Color]::FromArgb(228,228,232)
     Accent = [Drawing.Color]::FromArgb(0,122,255)
+    Warning = [Drawing.Color]::FromArgb(255,185,0)
     Success = [Drawing.Color]::FromArgb(220,245,231)
     Error = [Drawing.Color]::FromArgb(255,230,230)
     BadgeText = [Drawing.Color]::FromArgb(30,30,30)
@@ -123,6 +124,7 @@ $Theme = @{
     Sub  = [Drawing.Color]::FromArgb(170,170,170)
     Border = [Drawing.Color]::FromArgb(60,60,60)
     Accent = [Drawing.Color]::FromArgb(10,132,255)
+    Warning = [Drawing.Color]::FromArgb(255,179,71)
     Success = [Drawing.Color]::FromArgb(32,60,45)
     Error = [Drawing.Color]::FromArgb(70,36,36)
     BadgeText = [Drawing.Color]::FromArgb(230,230,230)
@@ -456,6 +458,17 @@ function Apply-Theme {
   $grid.AlternatingRowsDefaultCellStyle.BackColor = $t.Card
   $grid.AlternatingRowsDefaultCellStyle.ForeColor = $t.Text
 
+  # Primary/secondary button emphasis for faster scanning.
+  $btnStart.BackColor = $t.Accent
+  $btnStart.ForeColor = $t.BadgeText
+  $btnStart.FlatAppearance.BorderColor = $t.Accent
+  $btnStart.FlatAppearance.BorderSize = 1
+
+  $btnStop.BackColor = $t.Card
+  $btnStop.ForeColor = $t.Warning
+  $btnStop.FlatAppearance.BorderColor = $t.Warning
+  $btnStop.FlatAppearance.BorderSize = 1
+
   Set-StatusPill -text $lblStatusPill.Text -state $script:StatusState
 }
 
@@ -528,6 +541,7 @@ function Set-RowStatus($row, [string]$status, [string]$message, [string]$state){
     "active"  { ">" }
     "success" { "OK" }
     "error"   { "ERROR" }
+    "hold"    { "HOLD" }
     "skipped" { "SKIPPED" }
     default   { "" }
   }
@@ -549,6 +563,11 @@ function Set-RowStatus($row, [string]$status, [string]$message, [string]$state){
       $row.DefaultCellStyle.ForeColor = $t.Text
       $row.Cells["Status"].Style.ForeColor = [Drawing.Color]::FromArgb(220,80,80)
     }
+    "hold" {
+      $row.DefaultCellStyle.BackColor = $t.Card
+      $row.DefaultCellStyle.ForeColor = $t.Text
+      $row.Cells["Status"].Style.ForeColor = $t.Warning
+    }
     "skipped" {
       $row.DefaultCellStyle.BackColor = $t.Border
       $row.DefaultCellStyle.ForeColor = $t.Text
@@ -561,6 +580,29 @@ function Set-RowStatus($row, [string]$status, [string]$message, [string]$state){
     }
   }
 }
+
+# Additional visual status mapping for the Status column text itself.
+$grid.Add_CellFormatting({
+  param($sender, $e)
+  try {
+    if ($e.RowIndex -lt 0) { return }
+    if ($e.ColumnIndex -ne $grid.Columns["Status"].Index) { return }
+    $t = if ($chkDark.Checked) { $Theme.Dark } else { $Theme.Light }
+    $txt = ("" + $grid.Rows[$e.RowIndex].Cells["Status"].Value).ToLowerInvariant()
+    if ($txt -match 'hold') {
+      $e.CellStyle.ForeColor = $t.Warning
+    }
+    elseif ($txt -match 'error') {
+      $e.CellStyle.ForeColor = [Drawing.Color]::FromArgb(220,80,80)
+    }
+    elseif ($txt -match 'ok|done|complete') {
+      $e.CellStyle.ForeColor = $t.Accent
+    }
+    elseif ($txt -match 'pending|processing|running') {
+      $e.CellStyle.ForeColor = $t.Accent
+    }
+  } catch {}
+})
 
 function Show-Toast([string]$title, [string]$body){
   return

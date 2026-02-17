@@ -142,7 +142,7 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 # Log file path.
 $LogPath = Join-Path $OutDir "run.log.txt"
 $HistoryLogPath = Join-Path $PSScriptRoot "auto-excel.history.log"
-$ScriptBuildTag = "auto-excel build 2026-02-17 15:30 prepare-device-backend"
+$ScriptBuildTag = "auto-excel build 2026-02-17 18:30 inc-hold-status-ux"
 
 # Combined JSON file path.
 $AllJson = Join-Path $OutDir "tickets_export.json"
@@ -605,6 +605,15 @@ function Get-CompletionStatusForExcel {
   param([string]$Ticket, $Res)
   if (-not $Res) { return "Pending" }
 
+  if ($Ticket -like "INC*") {
+    $sInc = ""
+    if ($Res.PSObject.Properties["status"]) { $sInc = ("" + $Res.status) }
+    if (-not $sInc -and $Res.PSObject.Properties["status_label"]) { $sInc = ("" + $Res.status_label) }
+    if (-not $sInc -and $Res.PSObject.Properties["status_value"]) { $sInc = ("" + $Res.status_value) }
+    $stInc = $sInc.Trim().ToLowerInvariant()
+    if ($stInc -match 'hold') { return "Hold" }
+  }
+
   if (($Ticket -like "RITM*") -or ($Ticket -like "INC*")) {
     $openTasks = 0
     if ($Res.PSObject.Properties["open_tasks"]) {
@@ -642,9 +651,35 @@ function Build-RitmRecordUrl([string]$SysId) {
   return [string]::Format($RitmRecordUrlTemplate, $SysId.Trim())
 }
 
+function Build-RitmByNumberUrl([string]$RitmNumber) {
+  if ([string]::IsNullOrWhiteSpace($RitmNumber)) { return "" }
+  $query = "number=" + $RitmNumber.Trim().ToUpperInvariant()
+  $safeQuery = [System.Uri]::EscapeDataString($query)
+  return "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_req_item_list.do%3Fsysparm_query%3D$safeQuery"
+}
+
+function Build-RitmBestUrl([string]$SysId, [string]$RitmNumber) {
+  $u = Build-RitmRecordUrl -SysId $SysId
+  if (-not [string]::IsNullOrWhiteSpace($u)) { return $u }
+  return Build-RitmByNumberUrl -RitmNumber $RitmNumber
+}
+
 function Build-IncidentRecordUrl([string]$SysId) {
   if ([string]::IsNullOrWhiteSpace($SysId)) { return "" }
   return [string]::Format($IncidentRecordUrlTemplate, $SysId.Trim())
+}
+
+function Build-IncidentByNumberUrl([string]$IncNumber) {
+  if ([string]::IsNullOrWhiteSpace($IncNumber)) { return "" }
+  $query = "number=" + $IncNumber.Trim().ToUpperInvariant()
+  $safeQuery = [System.Uri]::EscapeDataString($query)
+  return "$InstanceBaseUrl/nav_to.do?uri=%2Fincident_list.do%3Fsysparm_query%3D$safeQuery"
+}
+
+function Build-IncidentBestUrl([string]$SysId, [string]$IncNumber) {
+  $u = Build-IncidentRecordUrl -SysId $SysId
+  if (-not [string]::IsNullOrWhiteSpace($u)) { return $u }
+  return Build-IncidentByNumberUrl -IncNumber $IncNumber
 }
 
 function Build-SCTaskRecordUrl([string]$SysId) {
@@ -714,6 +749,31 @@ function Get-DetectedPiFromActivityText {
       if ($v -and $seen.Add($v)) {
         [void]$vals.Add($v)
       }
+    }
+  }
+
+  # Preference rule:
+  # if short-domain PI (e.g., MUSTBRUN2420165) and long PI (02PI20...) point to same digits,
+  # keep 02PI20... and drop short-domain token.
+  if ($vals.Count -gt 1) {
+    $valsArr = @($vals)
+    $pi02 = @($valsArr | Where-Object { $_ -match '^02PI20' })
+    if ($pi02.Count -gt 0) {
+      $keep = New-Object System.Collections.Generic.List[string]
+      foreach ($v in $valsArr) {
+        $isDomainBrun = $v -match '^(MUST|ITEC|EDPS|PRES)[A-Z_]*BRUN'
+        if (-not $isDomainBrun) { [void]$keep.Add($v); continue }
+        $dDigits = ($v -replace '\D', '')
+        $dropDomain = $false
+        if ($dDigits) {
+          foreach ($p2 in $pi02) {
+            $pDigits = ($p2 -replace '\D', '')
+            if ($pDigits -and $pDigits.Contains($dDigits)) { $dropDomain = $true; break }
+          }
+        }
+        if (-not $dropDomain) { [void]$keep.Add($v) }
+      }
+      $vals = $keep
     }
   }
 
@@ -1464,6 +1524,21 @@ function Write-BackToExcel {
     $res = $ResultMap[$ticket]
     if ($res.ok -ne $true) { continue }
 
+    # Make Number clickable for RITM/INC records.
+    if (($ticket -like "RITM*") -or ($ticket -like "INC*")) {
+      $sysIdOut = if ($res.PSObject.Properties["sys_id"]) { ("" + $res.sys_id).Trim() } else { "" }
+      $ticketUrl = ""
+      if ($ticket -like "RITM*") {
+        $ticketUrl = Build-RitmBestUrl -SysId $sysIdOut -RitmNumber $ticket
+      }
+      elseif ($ticket -like "INC*") {
+        $ticketUrl = Build-IncidentBestUrl -SysId $sysIdOut -IncNumber $ticket
+      }
+      if (-not [string]::IsNullOrWhiteSpace($ticketUrl)) {
+        Set-ExcelHyperlinkSafe -ws $ws -Row $r -Col $ticketCol -DisplayText $ticket -Url $ticketUrl -TicketForLog $ticket
+      }
+    }
+
     # Fill "Name" (affected_user)
     $nameCell = "" + $ws.Cells.Item($r, $map[$NameHeader]).Text
     $nameOut = ("" + $res.affected_user).Trim()
@@ -1506,8 +1581,12 @@ function Write-BackToExcel {
 
     # Fill "Action finished?" (status)
     $actionCell = "" + $ws.Cells.Item($r, $map[$ActionHeader]).Text
-    if (Is-EmptyOrPlaceholder $actionCell $ticket) {
-      $statusOut = Get-CompletionStatusForExcel -Ticket $ticket -Res $res
+    $statusOut = Get-CompletionStatusForExcel -Ticket $ticket -Res $res
+    if ($ticket -like "INC*") {
+      # Always refresh INC status so stale "Complete" values are corrected (e.g. Hold).
+      $ws.Cells.Item($r, $map[$ActionHeader]) = $statusOut
+    }
+    elseif (Is-EmptyOrPlaceholder $actionCell $ticket) {
       $ws.Cells.Item($r, $map[$ActionHeader]) = $statusOut
     }
 
