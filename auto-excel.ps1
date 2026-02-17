@@ -142,6 +142,7 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 # Log file path.
 $LogPath = Join-Path $OutDir "run.log.txt"
 $HistoryLogPath = Join-Path $PSScriptRoot "auto-excel.history.log"
+$ScriptBuildTag = "auto-excel build 2026-02-17 15:30 prepare-device-backend"
 
 # Combined JSON file path.
 $AllJson = Join-Path $OutDir "tickets_export.json"
@@ -181,6 +182,7 @@ function Close-ExcelProcessesIfRequested {
 }
 
 Log "INFO" "Output folder: $OutDir"
+Log "INFO" $ScriptBuildTag
 
 # =============================================================================
 # EXCEL FILE PICKER (UI)
@@ -680,6 +682,14 @@ function Build-SCTaskListByRitmUrl {
   return "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task_list.do%3Fsysparm_query%3D$safeQuery"
 }
 
+function Build-SCTaskRecordByNumberUrl {
+  param([string]$TaskNumber)
+  if ([string]::IsNullOrWhiteSpace($TaskNumber)) { return "" }
+  $query = "number=" + $TaskNumber.Trim().ToUpperInvariant()
+  $safeQuery = [System.Uri]::EscapeDataString($query)
+  return "$InstanceBaseUrl/nav_to.do?uri=%2Fsc_task.do%3Fsysparm_query%3D$safeQuery"
+}
+
 function Get-DetectedPiFromActivityText {
   param([string]$ActivityText)
   if (-not $EnableActivityStreamSearch) { return "" }
@@ -711,6 +721,39 @@ function Get-DetectedPiFromActivityText {
     return $(if ($WriteNotFoundText) { "Not found" } else { "" })
   }
   return ($vals -join ", ")
+}
+
+function Get-DetectedMachineHintFromText {
+  param([string]$Text)
+  if ([string]::IsNullOrWhiteSpace($Text)) { return "" }
+
+  $patterns = @(
+    '(?im)\b(?:machine|device|computer|hostname|serial|asset|tag|pi)\b[^A-Za-z0-9]{0,30}([A-Z0-9][A-Z0-9_-]{5,})',
+    '(?im)\b([A-Z]{3,}BRUN[0-9A-Z_-]{4,})\b',
+    '(?im)\b([A-Z]{2,}[0-9]{6,})\b'
+  )
+
+  foreach ($p in $patterns) {
+    $m = [regex]::Match($Text, $p)
+    if (-not $m.Success -or $m.Groups.Count -lt 2) { continue }
+    $v = ("" + $m.Groups[1].Value).Trim().ToUpperInvariant()
+    if ($v -match '^(STATE|NUMBER|REQUEST|RITM|SCTASK|INC|TASK|USER|ARRIVAL|CLOSED|COMPLETE|FACILITIES|SERVICE|LOGISTICS|SUPPORT|DESK|LOCAL)$') { continue }
+    if ($v -match '^(SCTASK|RITM|INC)\d{5,}$') { continue }
+    if ($v.Length -lt 6) { continue }
+    if ($v -notmatch '\d') { continue }
+    return $v
+  }
+  return ""
+}
+
+function Get-FirstPiToken([string]$PiText) {
+  if ([string]::IsNullOrWhiteSpace($PiText)) { return "" }
+  $parts = @($PiText -split ',')
+  foreach ($p in $parts) {
+    $v = ("" + $p).Trim()
+    if ($v) { return $v }
+  }
+  return ""
 }
 
 function Get-LegalNameFromText {
@@ -1130,6 +1173,126 @@ function Get-SCTaskRecordTextFromUiPage {
   return ""
 }
 
+function Get-SCTaskActivityTextFromUiPage {
+  param(
+    $wv,
+    [string]$TaskNumber
+  )
+
+  if ([string]::IsNullOrWhiteSpace($TaskNumber)) { return "" }
+  $taskUrl = Build-SCTaskRecordByNumberUrl -TaskNumber $TaskNumber
+  if ([string]::IsNullOrWhiteSpace($taskUrl)) { return "" }
+
+  try { $wv.CoreWebView2.Navigate($taskUrl) } catch { return "" }
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($sw.ElapsedMilliseconds -lt 12000) {
+    Start-Sleep -Milliseconds 250
+    $isReady = Parse-WV2Json (ExecJS $wv "document.readyState==='complete'" 2000)
+    if ($isReady -eq $true) { break }
+  }
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function collectActivities(doc){
+      if (!doc) return '';
+      var out = [];
+      var seen = {};
+      var sels = [
+        'h-card-wrapper activities-form',
+        'h-card-wrapper .activities-form',
+        '.activities-form',
+        'activities-form',
+        '.sn-widget-textblock-body',
+        '.sn-widget-textblock-body_formatted',
+        '.sn-card-component_accent-bar',
+        '.sn-card-component_accent-bar_dark',
+        '.activity-stream-text',
+        '.activity-stream',
+        '.journal',
+        '.journal_field',
+        '[data-stream-entry]'
+      ];
+      for (var si = 0; si < sels.length; si++) {
+        var nodes = doc.querySelectorAll(sels[si]);
+        for (var ni = 0; ni < nodes.length; ni++) {
+          var t = s(nodes[ni].innerText || nodes[ni].textContent || '');
+          if (t && !seen[t]) { seen[t] = true; out.push(t); }
+        }
+      }
+      return out.join(' ');
+    }
+    var shell = collectActivities(document);
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+    var ft = collectActivities(fdoc);
+    return JSON.stringify({ok:true, text: ft ? ft : shell});
+  } catch(e){
+    return JSON.stringify({ok:false, text:''});
+  }
+})();
+"@
+  $o = $null
+  for ($attempt = 1; $attempt -le 8; $attempt++) {
+    $o = Parse-WV2Json (ExecJS $wv $js 7000)
+    $txt = if ($o -and $o.PSObject.Properties["text"]) { ("" + $o.text) } else { "" }
+    if (-not [string]::IsNullOrWhiteSpace($txt)) { break }
+    Start-Sleep -Milliseconds 350
+  }
+  if (-not $o) { return "" }
+  if ($o.PSObject.Properties["text"]) { return ("" + $o.text) }
+  return ""
+}
+
+function Get-SCTaskNumbersFromBackendByRitm {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+  if ([string]::IsNullOrWhiteSpace($RitmNumber)) { return @() }
+  $safeRitm = $RitmNumber.Trim().ToUpperInvariant()
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRows(o){
+      if (o && Array.isArray(o.records)) return o.records;
+      if (o && Array.isArray(o.result)) return o.result;
+      return [];
+    }
+    var q = encodeURIComponent('request_item.number=$safeRitm');
+    var p = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_display_value=true&sysparm_query=' + q;
+    var x = new XMLHttpRequest();
+    x.open('GET', p, false);
+    x.withCredentials = true;
+    x.send(null);
+    if (!(x.status>=200 && x.status<300)) return JSON.stringify({ok:false, tasks:[]});
+    var o = JSON.parse(x.responseText || '{}');
+    var rows = pickRows(o);
+    var seen = {};
+    var out = [];
+    for (var i=0; i<rows.length; i++) {
+      var n = s(rows[i].number || '');
+      if (!n) continue;
+      var u = n.toUpperCase();
+      if (!/^SCTASK\d{6,}$/.test(u)) continue;
+      if (seen[u]) continue;
+      seen[u] = true;
+      out.push(u);
+    }
+    return JSON.stringify({ok:true, tasks:out});
+  } catch(e){
+    return JSON.stringify({ok:false, tasks:[]});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 7000)
+  if (-not $o) { return @() }
+  if (-not $o.PSObject.Properties["tasks"]) { return @() }
+  return @($o.tasks)
+}
+
 # =============================================================================
 # EXCEL: WRITE BACK RESULTS (optional)
 # =============================================================================
@@ -1541,6 +1704,10 @@ function Extract-Ticket_JSONv2 {
       } catch(e) {}
     }
 
+    function isNewEpUserName(v){
+      return /new[\s\W_]*ep[\s\W_]*user|new[\s\W_]*user/i.test(s(v));
+    }
+
     function getRitmActivitiesText(reqItemSysId, ritmNumber){
       var out = [];
 
@@ -1706,6 +1873,75 @@ function Extract-Ticket_JSONv2 {
       return out.join(' ');
     }
 
+    function getPrepareDevicePiFromTasks(reqItemSysId, ritmNumber){
+      var rowsAll = [];
+      var selected = null;
+      var selectedText = [];
+      var selectedTaskNumber = "";
+
+      try {
+        if (looksSysId(reqItemSysId)) {
+          rowsAll = rowsAll.concat(getRows('/sc_task.do', 'request_item=' + reqItemSysId));
+        }
+        if (s(ritmNumber)) {
+          rowsAll = rowsAll.concat(getRows('/sc_task.do', 'request_item.number=' + ritmNumber));
+        }
+      } catch(e1) {
+        activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";prepare_task_rows") : "prepare_task_rows";
+      }
+
+      var seen = {};
+      var rows = [];
+      for (var i0 = 0; i0 < rowsAll.length; i0++) {
+        var k = s(rowsAll[i0].sys_id || rowsAll[i0].number || ("idx_" + i0));
+        if (!seen[k]) { seen[k] = true; rows.push(rowsAll[i0]); }
+      }
+
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var blob = [
+          s(r.short_description || ""),
+          s(r.description || ""),
+          s(r.item || ""),
+          s(r.comments || ""),
+          s(r.work_notes || ""),
+          s(r.close_notes || ""),
+          s(r.u_comments || "")
+        ].join(" ");
+        if (/prepare[\s\W_]*device[\s\W_]*for[\s\W_]*new[\s\W_]*user/i.test(blob)) {
+          selected = r;
+          selectedTaskNumber = s(r.number || "");
+          collectAllTextFromRow(r, selectedText);
+          if (blob) selectedText.push(blob);
+          break;
+        }
+      }
+
+      if (!selected) {
+        return { pi:"", task_number:"", text_len:0 };
+      }
+
+      try {
+        var sid = s(selected.sys_id || "");
+        if (looksSysId(sid)) {
+          var jAll = [];
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'name=sc_task^element_id=' + sid));
+          jAll = jAll.concat(getRows('/sys_journal_field.do', 'element_id=' + sid + '^elementINcomments,work_notes'));
+          for (var j = 0; j < jAll.length; j++) {
+            collectAllTextFromRow(jAll[j], selectedText);
+            var jv = s(jAll[j].value || jAll[j].message || jAll[j].comments || jAll[j].work_notes || "");
+            if (jv) selectedText.push(jv);
+          }
+        }
+      } catch(e2) {
+        activityRetrievalError = activityRetrievalError ? (activityRetrievalError + ";prepare_task_journal") : "prepare_task_journal";
+      }
+
+      var txt = selectedText.join(" ");
+      var pi = extractMachineFromActivityText(txt);
+      return { pi:pi, task_number:selectedTaskNumber, text_len:s(txt).length };
+    }
+
     function getIncidentActivitiesText(incSysId, incNumber){
       var out = [];
       try {
@@ -1821,12 +2057,23 @@ function Extract-Ticket_JSONv2 {
       openTasks = getOpenCatalogTasks(s(r1.sys_id || ""), '$Ticket');
       openTaskCount = openTasks.length;
       legalName = extractLegalNameFromRecord(r1);
+      var isNewEpUser = isNewEpUserName(userName) || isNewEpUserName(userDisplay);
 
       // If activities contain a PI machine id, prefer that value for CI output.
       if ($enableActivitySearchJs) {
         acts = getRitmActivitiesText(s(r1.sys_id || ""), '$Ticket');
         var piFromActivity = extractMachineFromActivityText(acts);
         if (piFromActivity) piSource = "ritm_activity";
+
+        if (!piFromActivity) {
+          var prep = getPrepareDevicePiFromTasks(s(r1.sys_id || ""), '$Ticket');
+          if (prep && prep.pi) {
+            piFromActivity = s(prep.pi);
+            taskEvidenceLength = Math.max(taskEvidenceLength, parseInt(prep.text_len || 0, 10) || 0);
+            piSource = prep.task_number ? ('prepare_device_task_backend:' + prep.task_number) : 'prepare_device_task_backend';
+          }
+        }
+
         if (!piFromActivity) {
           var taskActs = getRitmTasksEvidenceText(s(r1.sys_id || ""), '$Ticket');
           if (taskActs) {
@@ -2107,7 +2354,7 @@ try {
             Log "INFO" "$t Legal name extracted from form => '$legalName'"
           }
         }
-        if ([string]::IsNullOrWhiteSpace($detectedPi) -and ($t -like "RITM*")) {
+        if ([string]::IsNullOrWhiteSpace($detectedPi) -and ($t -like "RITM*") -and ($isNewEpUserContext -or ($t -eq $DebugActivityTicket))) {
           $taskUiText = Get-RitmTaskListTextFromUiPage -wv $wv -RitmNumber $t
           $taskUiLen = if ($taskUiText) { $taskUiText.Length } else { 0 }
           if ($taskUiLen -gt 0) {
@@ -2120,6 +2367,12 @@ try {
             else {
               Log "INFO" "$t SCTASK UI list scanned, PI not found (len=$taskUiLen)"
               $taskNums = Get-TaskNumbersFromText -Text $taskUiText
+              if ($taskNums.Count -eq 0) {
+                $taskNums = @(Get-SCTaskNumbersFromBackendByRitm -wv $wv -RitmNumber $t)
+                if ($taskNums.Count -gt 0) {
+                  Log "INFO" "$t task numbers loaded from backend fallback: $($taskNums.Count)"
+                }
+              }
               if ($taskNums.Count -gt 0) {
                 $maxTaskDeepScan = if ($isNewEpUserContext) { 12 } else { 4 }
                 $scanCount = [Math]::Min($taskNums.Count, $maxTaskDeepScan)
@@ -2127,6 +2380,18 @@ try {
                 $matchedPrepareTask = $false
                 for ($ti = 0; $ti -lt $scanCount; $ti++) {
                   $tn = $taskNums[$ti]
+                  $taskActivityText = Get-SCTaskActivityTextFromUiPage -wv $wv -TaskNumber $tn
+                  if (-not [string]::IsNullOrWhiteSpace($taskActivityText)) {
+                    $piFromTaskActivity = Get-DetectedPiFromActivityText -ActivityText $taskActivityText
+                    if (-not [string]::IsNullOrWhiteSpace($piFromTaskActivity)) {
+                      $detectedPi = $piFromTaskActivity
+                      $src = if ($isNewEpUserContext) { "sctask_activity_record:" + $tn } else { "sctask_activity_record:" + $tn }
+                      $r | Add-Member -NotePropertyName pi_source -NotePropertyValue $src -Force
+                      Log "INFO" "$t PI found from SCTASK activity $tn => '$detectedPi' source='$src'"
+                      break
+                    }
+                  }
+
                   $taskRecordText = Get-SCTaskRecordTextFromUiPage -wv $wv -TaskNumber $tn
                   if ([string]::IsNullOrWhiteSpace($taskRecordText)) { continue }
                   if ($isNewEpUserContext) {
@@ -2138,6 +2403,12 @@ try {
                     }
                   }
                   $piFromTaskRecord = Get-DetectedPiFromActivityText -ActivityText $taskRecordText
+                  if ([string]::IsNullOrWhiteSpace($piFromTaskRecord) -and $isNewEpUserContext) {
+                    $piFromTaskRecord = Get-DetectedMachineHintFromText -Text $taskRecordText
+                    if (-not [string]::IsNullOrWhiteSpace($piFromTaskRecord)) {
+                      Log "INFO" "$t machine hint found in prepare-device task $tn => '$piFromTaskRecord'"
+                    }
+                  }
                   if (-not [string]::IsNullOrWhiteSpace($piFromTaskRecord)) {
                     $detectedPi = $piFromTaskRecord
                     $src = if ($isNewEpUserContext) { "sctask_prepare_device_record:" + $tn } else { "sctask_ui_record:" + $tn }
