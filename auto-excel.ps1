@@ -42,11 +42,14 @@ param(
   [int]$MaxTickets = 0,
   [switch]$QuickMode,
   [switch]$SmartMode,
+  [switch]$TurboMode,
   [switch]$SkipActivityScan,
+  [switch]$NoUiFallback,
   [switch]$NoWriteBack,
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
-  [string]$DefaultStartDir = $PSScriptRoot
+  [string]$DefaultStartDir = $PSScriptRoot,
+  [string]$RitmScanDbPath = (Join-Path $PSScriptRoot "ritm-scan-db.json")
 )
 
 # ----------------------------
@@ -124,6 +127,7 @@ $ExtractJsTimeoutMs = 12000
 $ExtractRetryCount = 3
 $ExtractRetryDelayMs = 1200
 $EnableSctaskRowExpansion = $false
+$DisableSysChoiceLookup = $false
 
 if ($FastMode) {
   $EnableUiFallbackActivitySearch = $true
@@ -150,6 +154,16 @@ if ($SmartMode) {
   Log "INFO" "Smart mode enabled: caching user lookups and skipping heavy activity scan for INC tickets."
 }
 
+if ($TurboMode) {
+  if (-not $PSBoundParameters.ContainsKey("ProcessingScope")) { $ProcessingScope = "RitmOnly" }
+  $NoUiFallback = $true
+  $ExtractRetryCount = [Math]::Min($ExtractRetryCount, 2)
+  $ExtractRetryDelayMs = [Math]::Min($ExtractRetryDelayMs, 500)
+  $ExtractJsTimeoutMs = [Math]::Min($ExtractJsTimeoutMs, 9000)
+  $DisableSysChoiceLookup = $true
+  Log "INFO" "Turbo mode enabled: RITM-first filtering, state cache, no UI fallback, reduced retries/timeouts."
+}
+
 if ($SkipActivityScan) {
   $EnableActivityStreamSearch = $false
   $EnableUiFallbackActivitySearch = $false
@@ -158,6 +172,10 @@ if ($SkipActivityScan) {
 if ($NoWriteBack) {
   $WriteBackExcel = $false
   Log "INFO" "Speed mode: Excel write-back disabled (-NoWriteBack)."
+}
+if ($NoUiFallback) {
+  $EnableUiFallbackActivitySearch = $false
+  Log "INFO" "Speed mode: UI fallback disabled (-NoUiFallback)."
 }
 
 # NameHeader/PhoneHeader/ActionHeader are provided via param().
@@ -181,6 +199,8 @@ $DashboardDefaultCheckOutNote = "Laptop has been delivered.`r`nFirst login made 
 
 # Combined JSON file path.
 $AllJson = Join-Path $OutDir "tickets_export.json"
+$script:RitmScanDbLastSuccessfulUtc = ""
+$script:RitmScanRunSuccessful = $false
 
 # =============================================================================
 # LOGGING
@@ -218,6 +238,7 @@ function Close-ExcelProcessesIfRequested {
 
 Log "INFO" "Output folder: $OutDir"
 Log "INFO" $ScriptBuildTag
+Log "INFO" "Incremental scan DB path: $RitmScanDbPath"
 
 # =============================================================================
 # EXCEL FILE PICKER (UI)
@@ -4637,16 +4658,505 @@ function Ticket-ToTable([string]$ticket) {
   return "sc_task"
 }
 
+function Convert-SnowTimestampToUtc {
+  param([string]$Value)
+  $txt = ("" + $Value).Trim()
+  if ([string]::IsNullOrWhiteSpace($txt)) { return $null }
+
+  $dt = [datetime]::MinValue
+  $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+  $formats = @(
+    "yyyy-MM-dd HH:mm:ss",
+    "yyyy-MM-ddTHH:mm:ss",
+    "yyyy-MM-ddTHH:mm:ssZ",
+    "yyyy-MM-ddTHH:mm:ss.fffZ"
+  )
+  if ([datetime]::TryParseExact($txt, $formats, [System.Globalization.CultureInfo]::InvariantCulture, $styles, [ref]$dt)) {
+    return $dt.ToUniversalTime()
+  }
+  if ([datetime]::TryParse($txt, [System.Globalization.CultureInfo]::InvariantCulture, $styles, [ref]$dt)) {
+    return $dt.ToUniversalTime()
+  }
+  return $null
+}
+
+function Convert-ToUtcStampText {
+  param([datetime]$UtcDate)
+  if (-not $UtcDate) { return "" }
+  return $UtcDate.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+}
+
+function Compare-TimestampValues {
+  param(
+    [string]$Left,
+    [string]$Right
+  )
+  $l = ("" + $Left).Trim()
+  $r = ("" + $Right).Trim()
+  if (-not $l -and -not $r) { return 0 }
+  if (-not $l) { return -1 }
+  if (-not $r) { return 1 }
+
+  $ld = Convert-SnowTimestampToUtc -Value $l
+  $rd = Convert-SnowTimestampToUtc -Value $r
+  if ($ld -and $rd) {
+    if ($ld -lt $rd) { return -1 }
+    if ($ld -gt $rd) { return 1 }
+    return 0
+  }
+  return [string]::CompareOrdinal($l, $r)
+}
+
+function Test-IncrementalTaskClosedState {
+  param([string]$State)
+  $s = ("" + $State).Trim().ToLowerInvariant()
+  if (-not $s) { return $false }
+  if ($s -in @("3", "4", "7")) { return $true }
+  if ($s -match 'closed|complete|cancel') { return $true }
+  return $false
+}
+
+function Get-IncrementalTaskOpenCount {
+  param([object[]]$Tasks)
+  $count = 0
+  foreach ($task in @($Tasks)) {
+    $state = if ($task.PSObject.Properties["state"]) { ("" + $task.state).Trim() } else { "" }
+    $activeRaw = if ($task.PSObject.Properties["active"]) { ("" + $task.active).Trim().ToLowerInvariant() } else { "" }
+    $isActive = $activeRaw -in @("true", "1", "yes")
+    if ((-not (Test-IncrementalTaskClosedState -State $state)) -or $isActive) {
+      $count++
+    }
+  }
+  return [int]$count
+}
+
+function Get-IncrementalTasksUpdatedOnMax {
+  param([object[]]$Tasks)
+  $maxRaw = ""
+  foreach ($task in @($Tasks)) {
+    $updated = if ($task.PSObject.Properties["sys_updated_on"]) { ("" + $task.sys_updated_on).Trim() } else { "" }
+    if ([string]::IsNullOrWhiteSpace($updated)) { continue }
+    if ([string]::IsNullOrWhiteSpace($maxRaw)) { $maxRaw = $updated; continue }
+    if ((Compare-TimestampValues -Left $updated -Right $maxRaw) -gt 0) { $maxRaw = $updated }
+  }
+  return $maxRaw
+}
+
+function Load-RitmScanDatabase {
+  param([string]$Path)
+  $map = @{}
+  $script:RitmScanDbLastSuccessfulUtc = ""
+  if (-not (Test-Path -LiteralPath $Path)) { return $map }
+  try {
+    $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+    if ([string]::IsNullOrWhiteSpace($raw)) { return $map }
+    $doc = $raw | ConvertFrom-Json -ErrorAction Stop
+    if ($doc -and $doc.PSObject.Properties["last_successful_scan_utc"]) {
+      $script:RitmScanDbLastSuccessfulUtc = ("" + $doc.last_successful_scan_utc).Trim()
+    }
+
+    $rows = @()
+    if ($doc -is [System.Array]) { $rows = @($doc) }
+    elseif ($doc -and $doc.PSObject.Properties["items"]) { $rows = @($doc.items) }
+
+    foreach ($row in $rows) {
+      $ritm = if ($row -and $row.PSObject.Properties["RITM"]) { ("" + $row.RITM).Trim().ToUpperInvariant() } else { "" }
+      if (-not ($ritm -match '^RITM\d{6,8}$')) { continue }
+      $map[$ritm] = [pscustomobject]@{
+        RITM                = $ritm
+        LastScanUtc         = if ($row.PSObject.Properties["LastScanUtc"]) { ("" + $row.LastScanUtc).Trim() } else { "" }
+        RITM_UpdatedOn      = if ($row.PSObject.Properties["RITM_UpdatedOn"]) { ("" + $row.RITM_UpdatedOn).Trim() } else { "" }
+        Tasks_UpdatedOn_Max = if ($row.PSObject.Properties["Tasks_UpdatedOn_Max"]) { ("" + $row.Tasks_UpdatedOn_Max).Trim() } else { "" }
+        OpenTaskCount       = if ($row.PSObject.Properties["OpenTaskCount"]) { [int]$row.OpenTaskCount } else { 0 }
+        Status              = if ($row.PSObject.Properties["Status"]) { ("" + $row.Status).Trim() } else { "" }
+        SkipReason          = if ($row.PSObject.Properties["SkipReason"]) { ("" + $row.SkipReason).Trim() } else { "" }
+      }
+    }
+  }
+  catch {
+    Log "ERROR" "Failed to load incremental scan DB '$Path': $($_.Exception.Message)"
+  }
+  return $map
+}
+
+function Save-RitmScanDatabase {
+  param(
+    [string]$Path,
+    [hashtable]$Map,
+    [string]$LastSuccessfulScanUtc = ""
+  )
+  try {
+    $items = @()
+    foreach ($k in @($Map.Keys | Sort-Object)) {
+      $items += $Map[$k]
+    }
+    $payload = [pscustomobject]@{
+      version = 1
+      generated_utc = (Convert-ToUtcStampText -UtcDate (Get-Date).ToUniversalTime())
+      last_successful_scan_utc = if ([string]::IsNullOrWhiteSpace($LastSuccessfulScanUtc)) { $script:RitmScanDbLastSuccessfulUtc } else { ("" + $LastSuccessfulScanUtc).Trim() }
+      items = $items
+    }
+    $json = $payload | ConvertTo-Json -Depth 6
+    Set-Content -LiteralPath $Path -Value $json -Encoding UTF8
+    Log "INFO" "Incremental scan DB saved: '$Path' entries=$($items.Count)"
+    return $true
+  }
+  catch {
+    Log "ERROR" "Failed to save incremental scan DB '$Path': $($_.Exception.Message)"
+    return $false
+  }
+}
+
+function Get-RitmIncrementalSnapshot {
+  param(
+    $wv,
+    [string]$RitmNumber
+  )
+  $ritm = ("" + $RitmNumber).Trim().ToUpperInvariant()
+  if (-not ($ritm -match '^RITM\d{6,8}$')) {
+    return [pscustomobject]@{ ok = $false; reason = "invalid_ritm"; ritm = $ritm; ritm_updated_on = ""; ritm_state = ""; tasks = @(); tasks_updated_on_max = ""; open_task_count = 0 }
+  }
+
+  [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRec(obj){
+      return (obj && obj.records && obj.records[0]) ? obj.records[0] :
+             (obj && obj.result && obj.result[0]) ? obj.result[0] : null;
+    }
+    function pickRows(obj){
+      if (obj && Array.isArray(obj.records)) return obj.records;
+      if (obj && Array.isArray(obj.result)) return obj.result;
+      return [];
+    }
+    function get(path){
+      var x = new XMLHttpRequest();
+      x.open('GET', path, false);
+      x.withCredentials = true;
+      x.send(null);
+      if (!(x.status>=200 && x.status<300)) return null;
+      try { return JSON.parse(x.responseText || '{}'); } catch(e){ return null; }
+    }
+
+    var qR = encodeURIComponent('number=$ritm');
+    var pR = '/sc_req_item.do?JSONv2&sysparm_limit=1&sysparm_display_value=true&sysparm_fields=number,sys_updated_on,state&sysparm_query=' + qR;
+    var oR = get(pR);
+    var r = pickRec(oR);
+    if (!r) return JSON.stringify({ok:false, reason:'ritm_not_found', ritm:'$ritm', tasks:[]});
+
+    var qT = encodeURIComponent('request_item.number=$ritm');
+    var pT = '/sc_task.do?JSONv2&sysparm_limit=200&sysparm_display_value=true&sysparm_fields=sys_updated_on,state,active&sysparm_query=' + qT;
+    var oT = get(pT);
+    var rows = pickRows(oT);
+    var tasks = [];
+    for (var i = 0; i < rows.length; i++) {
+      var t = rows[i] || {};
+      tasks.push({
+        sys_updated_on: s(t.sys_updated_on || ''),
+        state: s(t.state || ''),
+        active: s(t.active || '')
+      });
+    }
+    return JSON.stringify({
+      ok:true,
+      ritm:'$ritm',
+      ritm_updated_on:s(r.sys_updated_on || ''),
+      ritm_state:s(r.state || ''),
+      tasks:tasks
+    });
+  } catch(e){
+    return JSON.stringify({ok:false, reason:'snapshot_exception', error:''+e, ritm:'$ritm', tasks:[]});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 9000)
+  if (-not $o) {
+    return [pscustomobject]@{ ok = $false; reason = "snapshot_no_response"; ritm = $ritm; ritm_updated_on = ""; ritm_state = ""; tasks = @(); tasks_updated_on_max = ""; open_task_count = 0 }
+  }
+
+  $tasks = if ($o.PSObject.Properties["tasks"] -and $o.tasks) { @($o.tasks) } else { @() }
+  $tasksMax = Get-IncrementalTasksUpdatedOnMax -Tasks $tasks
+  $openCount = Get-IncrementalTaskOpenCount -Tasks $tasks
+  return [pscustomobject]@{
+    ok                   = ($o.ok -eq $true)
+    reason               = if ($o.PSObject.Properties["reason"]) { ("" + $o.reason).Trim() } else { "" }
+    ritm                 = $ritm
+    ritm_updated_on      = if ($o.PSObject.Properties["ritm_updated_on"]) { ("" + $o.ritm_updated_on).Trim() } else { "" }
+    ritm_state           = if ($o.PSObject.Properties["ritm_state"]) { ("" + $o.ritm_state).Trim() } else { "" }
+    tasks                = $tasks
+    tasks_updated_on_max = $tasksMax
+    open_task_count      = [int]$openCount
+  }
+}
+
+function Get-RitmStatusFromSnapshot {
+  param([object]$Snapshot)
+  if (-not $Snapshot) { return "" }
+  $openCount = 0
+  try { $openCount = [int]$Snapshot.open_task_count } catch { $openCount = 0 }
+  if ($openCount -gt 0) { return "Open:$openCount" }
+  if ($Snapshot.PSObject.Properties["ritm_state"]) { return ("" + $Snapshot.ritm_state).Trim() }
+  return ""
+}
+
+function Get-RitmIncrementalDecision {
+  param(
+    [string]$Ritm,
+    [object]$Snapshot,
+    [object]$Previous
+  )
+  if (-not $Snapshot -or $Snapshot.ok -ne $true) {
+    $reason = if ($Snapshot -and $Snapshot.PSObject.Properties["reason"]) { ("" + $Snapshot.reason).Trim() } else { "snapshot_failed" }
+    return [pscustomobject]@{ process = $true; skip_reason = ""; process_reason = $reason }
+  }
+  if (-not $Previous) {
+    return [pscustomobject]@{ process = $true; skip_reason = ""; process_reason = "first_scan" }
+  }
+
+  $prevRitmUpdated = if ($Previous.PSObject.Properties["RITM_UpdatedOn"]) { ("" + $Previous.RITM_UpdatedOn).Trim() } else { "" }
+  $prevTasksUpdated = if ($Previous.PSObject.Properties["Tasks_UpdatedOn_Max"]) { ("" + $Previous.Tasks_UpdatedOn_Max).Trim() } else { "" }
+  if ([string]::IsNullOrWhiteSpace($prevRitmUpdated)) {
+    return [pscustomobject]@{ process = $true; skip_reason = ""; process_reason = "missing_previous_ritm_updated_on" }
+  }
+  if ([string]::IsNullOrWhiteSpace($prevTasksUpdated)) {
+    return [pscustomobject]@{ process = $true; skip_reason = ""; process_reason = "missing_previous_tasks_updated_on_max" }
+  }
+
+  $ritmCmp = Compare-TimestampValues -Left ("" + $Snapshot.ritm_updated_on) -Right $prevRitmUpdated
+  $taskCmp = Compare-TimestampValues -Left ("" + $Snapshot.tasks_updated_on_max) -Right $prevTasksUpdated
+  if (($ritmCmp -le 0) -and ($taskCmp -le 0)) {
+    $openCount = 0
+    try { $openCount = [int]$Snapshot.open_task_count } catch { $openCount = 0 }
+    $skipReason = if ($openCount -eq 0) { "unchanged_all_tasks_closed" } else { "unchanged" }
+    return [pscustomobject]@{ process = $false; skip_reason = $skipReason; process_reason = "" }
+  }
+  return [pscustomobject]@{ process = $true; skip_reason = ""; process_reason = "changed_timestamps" }
+}
+
+function Update-RitmScanDbEntry {
+  param(
+    [hashtable]$Db,
+    [string]$Ritm,
+    [object]$Snapshot,
+    [string]$Status,
+    [string]$SkipReason
+  )
+  $ritmKey = ("" + $Ritm).Trim().ToUpperInvariant()
+  if (-not ($ritmKey -match '^RITM\d{6,8}$')) { return }
+
+  $openTaskCount = 0
+  try {
+    if ($Snapshot -and $Snapshot.PSObject.Properties["open_task_count"]) { $openTaskCount = [int]$Snapshot.open_task_count }
+  } catch { $openTaskCount = 0 }
+
+  $Db[$ritmKey] = [pscustomobject]@{
+    RITM                = $ritmKey
+    LastScanUtc         = (Convert-ToUtcStampText -UtcDate (Get-Date).ToUniversalTime())
+    RITM_UpdatedOn      = if ($Snapshot -and $Snapshot.PSObject.Properties["ritm_updated_on"]) { ("" + $Snapshot.ritm_updated_on).Trim() } else { "" }
+    Tasks_UpdatedOn_Max = if ($Snapshot -and $Snapshot.PSObject.Properties["tasks_updated_on_max"]) { ("" + $Snapshot.tasks_updated_on_max).Trim() } else { "" }
+    OpenTaskCount       = $openTaskCount
+    Status              = ("" + $Status).Trim()
+    SkipReason          = ("" + $SkipReason).Trim()
+  }
+}
+
+function Convert-UtcStampToSnowQueryDate {
+  param([string]$UtcStamp)
+  $dt = Convert-SnowTimestampToUtc -Value $UtcStamp
+  if (-not $dt) { return "" }
+  return $dt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
+}
+
+function Get-RitmNumbersUpdatedSince {
+  param(
+    $wv,
+    [string]$SinceUtc
+  )
+  $sinceSnow = Convert-UtcStampToSnowQueryDate -UtcStamp $SinceUtc
+  if ([string]::IsNullOrWhiteSpace($sinceSnow)) { return @() }
+  [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRows(o){
+      if (o && Array.isArray(o.records)) return o.records;
+      if (o && Array.isArray(o.result)) return o.result;
+      return [];
+    }
+    function get(path){
+      var x = new XMLHttpRequest();
+      x.open('GET', path, false);
+      x.withCredentials = true;
+      x.send(null);
+      if (!(x.status>=200 && x.status<300)) return null;
+      try { return JSON.parse(x.responseText || '{}'); } catch(e){ return null; }
+    }
+    var out = [];
+    var seen = {};
+    var limit = 200;
+    for (var page = 0; page < 40; page++) {
+      var offset = page * limit;
+      var q = encodeURIComponent('sys_updated_on>=$sinceSnow');
+      var p = '/sc_req_item.do?JSONv2&sysparm_limit=' + limit + '&sysparm_offset=' + offset + '&sysparm_fields=number&sysparm_query=' + q;
+      var o = get(p);
+      var rows = pickRows(o);
+      if (!rows || rows.length === 0) break;
+      for (var i = 0; i < rows.length; i++) {
+        var n = s(rows[i].number || '').toUpperCase();
+        if (!/^RITM\d{6,8}$/.test(n)) continue;
+        if (seen[n]) continue;
+        seen[n] = true;
+        out.push(n);
+      }
+      if (rows.length < limit) break;
+    }
+    return JSON.stringify({ok:true, items:out});
+  } catch(e){
+    return JSON.stringify({ok:false, items:[]});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 12000)
+  if (-not $o -or $o.ok -ne $true -or -not $o.PSObject.Properties["items"]) { return @() }
+  return @($o.items)
+}
+
+function Get-RitmNumbersFromUpdatedTasksSince {
+  param(
+    $wv,
+    [string]$SinceUtc
+  )
+  $sinceSnow = Convert-UtcStampToSnowQueryDate -UtcStamp $SinceUtc
+  if ([string]::IsNullOrWhiteSpace($sinceSnow)) { return @() }
+  [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRows(o){
+      if (o && Array.isArray(o.records)) return o.records;
+      if (o && Array.isArray(o.result)) return o.result;
+      return [];
+    }
+    function get(path){
+      var x = new XMLHttpRequest();
+      x.open('GET', path, false);
+      x.withCredentials = true;
+      x.send(null);
+      if (!(x.status>=200 && x.status<300)) return null;
+      try { return JSON.parse(x.responseText || '{}'); } catch(e){ return null; }
+    }
+    var out = [];
+    var seen = {};
+    var limit = 200;
+    for (var page = 0; page < 40; page++) {
+      var offset = page * limit;
+      var q = encodeURIComponent('sys_updated_on>=$sinceSnow');
+      var p = '/sc_task.do?JSONv2&sysparm_display_value=true&sysparm_limit=' + limit + '&sysparm_offset=' + offset + '&sysparm_fields=request_item,request_item.number&sysparm_query=' + q;
+      var o = get(p);
+      var rows = pickRows(o);
+      if (!rows || rows.length === 0) break;
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i] || {};
+        var cands = [
+          s(r['request_item.number'] || ''),
+          s(r.request_item || '')
+        ];
+        for (var j = 0; j < cands.length; j++) {
+          var n = cands[j].toUpperCase();
+          if (!/^RITM\d{6,8}$/.test(n)) continue;
+          if (seen[n]) continue;
+          seen[n] = true;
+          out.push(n);
+        }
+      }
+      if (rows.length < limit) break;
+    }
+    return JSON.stringify({ok:true, items:out});
+  } catch(e){
+    return JSON.stringify({ok:false, items:[]});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 12000)
+  if (-not $o -or $o.ok -ne $true -or -not $o.PSObject.Properties["items"]) { return @() }
+  return @($o.items)
+}
+
+function Get-StateLabelCacheFromSnow {
+  param($wv)
+  [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function pickRows(o){
+      if (o && Array.isArray(o.records)) return o.records;
+      if (o && Array.isArray(o.result)) return o.result;
+      return [];
+    }
+    var q = encodeURIComponent('nameINsc_req_item,incident,sc_task^element=state');
+    var p = '/sys_choice.do?JSONv2&sysparm_limit=500&sysparm_fields=name,element,value,label&sysparm_query=' + q;
+    var x = new XMLHttpRequest();
+    x.open('GET', p, false);
+    x.withCredentials = true;
+    x.send(null);
+    if (!(x.status>=200 && x.status<300)) return JSON.stringify({ok:false, cache:{}});
+    var o = {};
+    try { o = JSON.parse(x.responseText || '{}'); } catch(e){ return JSON.stringify({ok:false, cache:{}}); }
+    var rows = pickRows(o);
+    var cache = {};
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i] || {};
+      var name = s(r.name || '').toLowerCase();
+      var val = s(r.value || '');
+      var label = s(r.label || '');
+      if (!name || !val || !label) continue;
+      if (!cache[name]) cache[name] = {};
+      if (!cache[name][val]) cache[name][val] = label;
+    }
+    return JSON.stringify({ok:true, cache:cache});
+  } catch(e){
+    return JSON.stringify({ok:false, cache:{}});
+  }
+})();
+"@
+  $o = Parse-WV2Json (ExecJS $wv $js 10000)
+  if (-not $o -or $o.ok -ne $true -or -not $o.PSObject.Properties["cache"]) { return @{} }
+  $out = @{}
+  foreach ($p in $o.cache.PSObject.Properties) {
+    $inner = @{}
+    if ($p.Value -and $p.Value.PSObject -and $p.Value.PSObject.Properties) {
+      foreach ($q in $p.Value.PSObject.Properties) {
+        $inner[("" + $q.Name)] = ("" + $q.Value)
+      }
+    }
+    $out[("" + $p.Name)] = $inner
+  }
+  return $out
+}
+
 # =============================================================================
 # EXTRACTION: JSONv2 via JavaScript inside authenticated WebView2
 # =============================================================================
 function Extract-Ticket_JSONv2 {
-  param($wv, [string]$Ticket)
+  param(
+    $wv,
+    [string]$Ticket,
+    [hashtable]$StateLabelCache = @{}
+  )
 
   # Determine which table we query for this ticket.
   $table = Ticket-ToTable $Ticket
   $closedStatesJson = ($ClosedTaskStates | ConvertTo-Json -Compress)
   $enableActivitySearchJs = if ($EnableActivityStreamSearch) { "true" } else { "false" }
+  $stateLabelCacheJson = if ($StateLabelCache -and $StateLabelCache.Count -gt 0) { $StateLabelCache | ConvertTo-Json -Compress } else { "{}" }
+  $useSysChoiceLookupJs = if ($DisableSysChoiceLookup) { "false" } else { "true" }
 
   # Make sure the browser context is ready before running heavy JS.
   [void](Ensure-SnowReady -wv $wv -MaxWaitMs 6000)
@@ -4718,13 +5228,26 @@ function Extract-Ticket_JSONv2 {
 
     function resolveStateLabel(table, value){
       if (!s(value)) return "";
+      var tn = s(table || '').toLowerCase();
+      if (STATE_LABEL_CACHE[tn] && STATE_LABEL_CACHE[tn][s(value)]) {
+        return s(STATE_LABEL_CACHE[tn][s(value)]);
+      }
+      if (!USE_SYS_CHOICE_LOOKUP) return "";
       var u = '/sys_choice.do?JSONv2&sysparm_limit=1&sysparm_query=' +
               encodeURIComponent('name=' + table + '^element=state^value=' + value);
       var obj = httpGetJsonV2(u);
       var rec = pickRec(obj);
       if (!rec) return "";
-      return s(rec.label || rec.value || "");
+      var lbl = s(rec.label || rec.value || "");
+      if (lbl) {
+        if (!STATE_LABEL_CACHE[tn]) STATE_LABEL_CACHE[tn] = {};
+        STATE_LABEL_CACHE[tn][s(value)] = lbl;
+      }
+      return lbl;
     }
+
+    var STATE_LABEL_CACHE = $stateLabelCacheJson;
+    var USE_SYS_CHOICE_LOOKUP = $useSysChoiceLookupJs;
 
     var CLOSED_TASK_STATES = $closedStatesJson;
 
@@ -4791,7 +5314,11 @@ function Extract-Ticket_JSONv2 {
       var openTasks = [];
       for (var i = 0; i < rows.length; i++) {
         var stVal = s(rows[i].state || "");
-        var stLabel = resolveStateLabel('sc_task', stVal);
+        var stLabel = "";
+        // Fast path: sc_task.state is usually numeric, so avoid sys_choice calls per task.
+        if (!/^\d+$/.test(stVal)) {
+          stLabel = resolveStateLabel('sc_task', stVal);
+        }
         if (isTaskOpen(stVal, stLabel)) {
           openTasks.push({
             number: s(rows[i].number || ""),
@@ -5433,6 +5960,42 @@ try {
   $userDisplayCache = @{}
   $baseEnableActivitySearch = $EnableActivityStreamSearch
   $baseEnableUiFallbackActivitySearch = $EnableUiFallbackActivitySearch
+  $ritmScanDb = Load-RitmScanDatabase -Path $RitmScanDbPath
+  Log "INFO" "Incremental scan DB loaded entries=$($ritmScanDb.Count) last_successful_scan_utc='$script:RitmScanDbLastSuccessfulUtc'"
+  $stateLabelCache = @{}
+  if ($TurboMode) {
+    $stateLabelCache = Get-StateLabelCacheFromSnow -wv $wv
+    Log "INFO" "Turbo: state label cache loaded tables=$($stateLabelCache.Keys.Count)"
+  }
+
+  if ($TurboMode -and -not [string]::IsNullOrWhiteSpace($script:RitmScanDbLastSuccessfulUtc)) {
+    $changed = @{}
+    $ritmChangedDirect = @(Get-RitmNumbersUpdatedSince -wv $wv -SinceUtc $script:RitmScanDbLastSuccessfulUtc)
+    foreach ($x in $ritmChangedDirect) { $changed[(("" + $x).Trim().ToUpperInvariant())] = $true }
+    $ritmChangedFromTasks = @(Get-RitmNumbersFromUpdatedTasksSince -wv $wv -SinceUtc $script:RitmScanDbLastSuccessfulUtc)
+    foreach ($x in $ritmChangedFromTasks) { $changed[(("" + $x).Trim().ToUpperInvariant())] = $true }
+
+    $filtered = New-Object System.Collections.Generic.List[string]
+    $prefilterSkipped = 0
+    foreach ($tk in $tickets) {
+      if ($tk -notlike "RITM*") {
+        $filtered.Add($tk) | Out-Null
+        continue
+      }
+      if ($changed.ContainsKey($tk)) {
+        $filtered.Add($tk) | Out-Null
+        continue
+      }
+      if (-not $ritmScanDb.ContainsKey($tk)) {
+        $filtered.Add($tk) | Out-Null
+        continue
+      }
+      $prefilterSkipped++
+      Log "INFO" "Turbo prefilter skip ritm='$tk' reason='not_updated_since_last_successful_scan'"
+    }
+    $tickets = @($filtered.ToArray())
+    Log "INFO" "Turbo prefilter applied since='$script:RitmScanDbLastSuccessfulUtc' direct_changes=$($ritmChangedDirect.Count) task_changes=$($ritmChangedFromTasks.Count) skipped=$prefilterSkipped remaining=$($tickets.Count)"
+  }
 
   foreach ($t in $tickets) {
     $i++
@@ -5449,14 +6012,59 @@ try {
       $EnableUiFallbackActivitySearch = $baseEnableUiFallbackActivitySearch
     }
 
+    $incrementalSnapshot = $null
+    $incrementalDecision = $null
+    if ($t -like "RITM*") {
+      $previousScan = if ($ritmScanDb.ContainsKey($t)) { $ritmScanDb[$t] } else { $null }
+      $incrementalSnapshot = Get-RitmIncrementalSnapshot -wv $wv -RitmNumber $t
+      $incrementalDecision = Get-RitmIncrementalDecision -Ritm $t -Snapshot $incrementalSnapshot -Previous $previousScan
+      $decisionAction = if ($incrementalDecision.process -eq $true) { "PROCESS" } else { "SKIP" }
+      $decisionWhy = if ($incrementalDecision.process -eq $true) { ("" + $incrementalDecision.process_reason).Trim() } else { ("" + $incrementalDecision.skip_reason).Trim() }
+      Log "INFO" "RITM decision ritm='$t' action='$decisionAction' reason='$decisionWhy' ritm_updated_on='$($incrementalSnapshot.ritm_updated_on)' tasks_updated_max='$($incrementalSnapshot.tasks_updated_on_max)' open_tasks=$($incrementalSnapshot.open_task_count)"
+
+      if ($incrementalDecision.process -ne $true) {
+        $statusFromSnapshot = Get-RitmStatusFromSnapshot -Snapshot $incrementalSnapshot
+        $r = [pscustomobject]@{
+          ok                   = $true
+          ticket               = $t
+          table                = "sc_req_item"
+          sys_id               = ""
+          affected_user        = ""
+          configuration_item   = ""
+          status               = $statusFromSnapshot
+          status_value         = ""
+          status_label         = ""
+          open_tasks           = [int]$incrementalSnapshot.open_task_count
+          open_task_items      = @()
+          legal_name           = ""
+          task_evidence_length = 0
+          pi_source            = ""
+          activity_text        = ""
+          activity_error       = ""
+          reason               = ("" + $incrementalDecision.skip_reason).Trim()
+          query                = "incremental_skip"
+        }
+
+        Update-RitmScanDbEntry -Db $ritmScanDb -Ritm $t -Snapshot $incrementalSnapshot -Status $statusFromSnapshot -SkipReason ("" + $incrementalDecision.skip_reason)
+
+        if ($WritePerTicketJson) {
+          $perPath = Join-Path $OutDir ("ticket_" + $t + ".json")
+          $jsonPer = ($r | ConvertTo-Json -Depth 6) -replace '\\u0027', "'"
+          Set-Content -Path $perPath -Value $jsonPer -Encoding UTF8
+        }
+        $results.Add($r) | Out-Null
+        continue
+      }
+    }
+
     # Extract fields via JSONv2 in authenticated session
-    $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t
+    $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t -StateLabelCache $stateLabelCache
     if ($r.ok -ne $true) {
       for ($attempt = 2; $attempt -le $ExtractRetryCount; $attempt++) {
         $reasonTry = if ($r.PSObject.Properties["reason"]) { "" + $r.reason } else { "" }
         Log "INFO" "$t retry $attempt/$ExtractRetryCount after failure reason='$reasonTry'"
         Start-Sleep -Milliseconds $ExtractRetryDelayMs
-        $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t
+        $r = Extract-Ticket_JSONv2 -wv $wv -Ticket $t -StateLabelCache $stateLabelCache
         if ($r.ok -eq $true) { break }
       }
     }
@@ -5705,6 +6313,16 @@ try {
       $r | Add-Member -NotePropertyName detected_pi_machine -NotePropertyValue "" -Force
     }
 
+    if ($t -like "RITM*") {
+      $statusForDb = if ($r -and $r.PSObject.Properties["status"]) { ("" + $r.status).Trim() } else { "" }
+      $skipReasonForDb = ""
+      if ($r -and $r.PSObject.Properties["reason"]) {
+        $reasonNow = ("" + $r.reason).Trim()
+        if ($reasonNow -match '^unchanged') { $skipReasonForDb = $reasonNow }
+      }
+      Update-RitmScanDbEntry -Db $ritmScanDb -Ritm $t -Snapshot $incrementalSnapshot -Status $statusForDb -SkipReason $skipReasonForDb
+    }
+
     # Log quick summary line
     $status = if ($r.ok -eq $true) { "OK" } else { "FAIL" }
     $reason = if ($r -and $r.PSObject.Properties["reason"]) { "" + $r.reason } else { "" }
@@ -5742,6 +6360,10 @@ try {
       -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ResultMap $map
   }
 
+  $script:RitmScanRunSuccessful = $true
+  $script:RitmScanDbLastSuccessfulUtc = Convert-ToUtcStampText -UtcDate (Get-Date).ToUniversalTime()
+  [void](Save-RitmScanDatabase -Path $RitmScanDbPath -Map $ritmScanDb -LastSuccessfulScanUtc $script:RitmScanDbLastSuccessfulUtc)
+
   # 8) Final success popup
   if (-not $NoPopups) {
     [System.Windows.Forms.MessageBox]::Show(
@@ -5755,6 +6377,9 @@ try {
 catch {
   # Any exception: log + show popup
   Log "ERROR" $_.Exception.Message
+  try {
+    if ($ritmScanDb) { [void](Save-RitmScanDatabase -Path $RitmScanDbPath -Map $ritmScanDb -LastSuccessfulScanUtc $script:RitmScanDbLastSuccessfulUtc) }
+  } catch {}
 
   if (-not $NoPopups) {
     [System.Windows.Forms.MessageBox]::Show(

@@ -17,8 +17,8 @@ param(
   [string]$DashboardScript = (Join-Path $PSScriptRoot "dashboard-checkin-checkout.ps1"),
   [ValidateSet("Date","RITM")]
   [string]$PdfOutputStructure = "Date",
-  [ValidateSet("None","Full","Smart","Quick")]
-  [string]$AutoExcelMode = "Smart",
+  [ValidateSet("None","Full","Smart","Quick","Turbo")]
+  [string]$AutoExcelMode = "Turbo",
   [ValidateSet("Auto","RitmOnly","IncAndRitm","All")]
   [string]$AutoExcelScope = "RitmOnly",
   [int]$AutoExcelMaxTickets = 0,
@@ -76,7 +76,7 @@ function Invoke-AutoExcelWithLoading {
     [string]$ScriptPath,
     [string]$ExcelPath,
     [string]$SheetName,
-    [ValidateSet("Full","Smart","Quick")]
+    [ValidateSet("Full","Smart","Quick","Turbo")]
     [string]$Mode = "Smart",
     [ValidateSet("Auto","RitmOnly","IncAndRitm","All")]
     [string]$Scope = "RitmOnly",
@@ -174,6 +174,7 @@ function Invoke-AutoExcelWithLoading {
     switch ($Mode) {
       "Quick" { $modeArgs += "-QuickMode" }
       "Smart" { $modeArgs += "-SmartMode" }
+      "Turbo" { $modeArgs += "-TurboMode" }
       default { }
     }
     if (-not [string]::IsNullOrWhiteSpace($Scope)) {
@@ -1212,6 +1213,14 @@ $script:WorkerLogic = {
       default { "Unknown" }
     }
   }
+  function Get-CellTextFromRangeValue($RangeValue, [int]$RowIndex){
+    if ($null -eq $RangeValue) { return "" }
+    if ($RangeValue -is [System.Array]) {
+      try { return ("" + $RangeValue[$RowIndex, 1]).Trim() } catch { return "" }
+    }
+    if ($RowIndex -eq 1) { return ("" + $RangeValue).Trim() }
+    return ""
+  }
 
   $excel=$null; $wb=$null; $sheet=$null; $word=$null; $doc=$null; $templateDoc=$null
   $excelCalc = $null
@@ -1280,6 +1289,17 @@ $script:WorkerLogic = {
     $total = [Math]::Max(0, $lastRow - 1)
     WriteLog $Config.LogPath ("Rows detected: " + $total)
 
+    $nameVals = $null
+    $ticketVals = $null
+    $piVals = $null
+    $equipVals = $null
+    if ($lastRow -ge 2) {
+      if ($nameCol) { $nameVals = $sheet.Range($sheet.Cells.Item(2, $nameCol), $sheet.Cells.Item($lastRow, $nameCol)).Value2 }
+      if ($ticketCol) { $ticketVals = $sheet.Range($sheet.Cells.Item(2, $ticketCol), $sheet.Cells.Item($lastRow, $ticketCol)).Value2 }
+      if ($piCol) { $piVals = $sheet.Range($sheet.Cells.Item(2, $piCol), $sheet.Cells.Item($lastRow, $piCol)).Value2 }
+      if ($equipCol) { $equipVals = $sheet.Range($sheet.Cells.Item(2, $equipCol), $sheet.Cells.Item($lastRow, $equipCol)).Value2 }
+    }
+
     $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Init"; Total=$total })
     $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=0; Skipped=0; Errors=0 })
 
@@ -1323,17 +1343,18 @@ $script:WorkerLogic = {
 
     for($r=2;$r -le $lastRow;$r++){
       if($SyncHash.Cancel){ break }
+      $ri = $r - 1
 
-      $name   = if($nameCol){ [string]$sheet.Cells.Item($r,$nameCol).Text } else { "" }
-      $ticket = if($ticketCol){ [string]$sheet.Cells.Item($r,$ticketCol).Text } else { "" }
-      $pi     = if($piCol){ [string]$sheet.Cells.Item($r,$piCol).Text } else { "" }
+      $name   = if($nameCol){ Get-CellTextFromRangeValue -RangeValue $nameVals -RowIndex $ri } else { "" }
+      $ticket = if($ticketCol){ Get-CellTextFromRangeValue -RangeValue $ticketVals -RowIndex $ri } else { "" }
+      $pi     = if($piCol){ Get-CellTextFromRangeValue -RangeValue $piVals -RowIndex $ri } else { "" }
 
       if([string]::IsNullOrWhiteSpace($name) -and [string]::IsNullOrWhiteSpace($ticket) -and [string]::IsNullOrWhiteSpace($pi)){
         continue
       }
       $equipment = "Laptop"
       if($equipCol){
-        $tmp = [string]$sheet.Cells.Item($r,$equipCol).Text
+        $tmp = Get-CellTextFromRangeValue -RangeValue $equipVals -RowIndex $ri
         if(-not [string]::IsNullOrWhiteSpace($tmp)){ $equipment = $tmp.Trim() }
       }
 
@@ -1492,7 +1513,7 @@ $script:WorkerLogic = {
           WriteLog $Config.LogPath ("Row ${r}: Done in ${ms} ms")
         }
         } catch {}
-        WriteLog $Config.LogPath "Saved: $filePath"
+        if(-not $fast){ WriteLog $Config.LogPath "Saved: $filePath" }
         $rowDoneMsg = "Saved"
         if($Config.ExportPdf -and $pdfCol){
           try {

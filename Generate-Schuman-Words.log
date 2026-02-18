@@ -818,3 +818,7 @@
    at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)
    at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
    at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+[2026-02-18 08:56:42] Running auto-excel.ps1 before PDF generation. Mode=Smart Scope=RitmOnly MaxTickets=0 Timeout=20m
+[2026-02-18 08:56:43] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-18 08:57:44] Running auto-excel.ps1 before PDF generation. Mode=Smart Scope=RitmOnly MaxTickets=0 Timeout=20m
+[2026-02-18 08:57:45] Excel is ready. Choose DOCX/PDF and click Generate Documents.
