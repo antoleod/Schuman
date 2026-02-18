@@ -308,6 +308,197 @@ function Resolve-ServiceNowCiDisplay {
   return $name
 }
 
+function Test-InvalidUserDisplay {
+  param([string]$Name)
+
+  $n = ("" + $Name).Trim()
+  if (-not $n) { return $true }
+  if ($n -match '^[0-9a-fA-F]{32}$') { return $true }
+  if ($n -match '(?i)\bnew\b.*\bep\b.*\buser\b') { return $true }
+  if ($n -match '(?i)^new\b.*\buser\b') { return $true }
+  if ($n -match '(?i)^unknown$|^n/?a$|^null$') { return $true }
+  return $false
+}
+
+function Get-LegalNameFromText {
+  param([string]$Text)
+
+  $t = ("" + $Text)
+  if ([string]::IsNullOrWhiteSpace($t)) { return '' }
+
+  $patterns = @(
+    '(?im)\bLEGAL_NAME\s*:\s*([^\r\n]+)',
+    "(?im)\bLegal\s*name[\s:\-]*([A-Za-z''\- ]{3,})",
+    '(?is)\bLegal\s*name\b[\s\S]{0,200}?\bvalue\s*=\s*["'']([^"'']{3,})["'']',
+    '(?im)\bLegal\s*name\b[\r\n\t ]+([A-Z][A-Za-z''\- ]{3,})'
+  )
+
+  foreach ($pat in $patterns) {
+    $m = [System.Text.RegularExpressions.Regex]::Match($t, $pat)
+    if (-not $m.Success) { continue }
+    $v = ("" + $m.Groups[1].Value).Trim()
+    if (-not $v) { continue }
+    if ($v -match '(?i)^explanation$') { continue }
+    if (Test-InvalidUserDisplay -Name $v) { continue }
+    return $v
+  }
+
+  return ''
+}
+
+function Get-LegalNameFromUiForm {
+  param(
+    [Parameter(Mandatory = $true)]$Session,
+    [Parameter(Mandatory = $true)][string]$RecordSysId,
+    [string]$Table = 'sc_req_item'
+  )
+
+  $sid = ("" + $RecordSysId).Trim()
+  if (-not $sid) { return '' }
+  $tbl = ("" + $Table).Trim()
+  if (-not $tbl) { $tbl = 'sc_req_item' }
+
+  $recordUrl = "{0}/nav_to.do?uri=%2F{1}.do%3Fsys_id%3D{2}" -f $Session.BaseUrl, $tbl, $sid
+  try { $Session.WebView.CoreWebView2.Navigate($recordUrl) } catch { return '' }
+
+  $readySw = [System.Diagnostics.Stopwatch]::StartNew()
+  while ($readySw.ElapsedMilliseconds -lt 12000) {
+    $isReady = Invoke-WebViewScriptJson -WebView $Session.WebView -Script "document.readyState==='complete'" -TimeoutMs 2000
+    if ($isReady -eq $true) { break }
+    Start-Sleep -Milliseconds 250
+  }
+
+  $js = @"
+(function(){
+  try {
+    function s(x){ return (x===null||x===undefined) ? '' : (''+x).trim(); }
+    function valid(v){
+      var t = s(v);
+      if (!t) return '';
+      if (/^explanation$/i.test(t)) return '';
+      if (/^new\s+.*\s+user$/i.test(t)) return '';
+      return t;
+    }
+    function extractFromDoc(doc){
+      if (!doc) return '';
+
+      var exact = doc.querySelector('input[placeholder="Joe Willy Smith"],textarea[placeholder="Joe Willy Smith"]');
+      var ev = valid(exact && (exact.value || (exact.getAttribute && exact.getAttribute('value')) || ''));
+      if (ev) return ev;
+
+      var labels = doc.querySelectorAll('label, span, div');
+      for (var i=0; i<labels.length; i++) {
+        var lt = s(labels[i].innerText || labels[i].textContent || '');
+        if (!/legal\s*name/i.test(lt)) continue;
+        var lid = s(labels[i].id || '');
+        var fr = s(labels[i].getAttribute && labels[i].getAttribute('for'));
+        var cands = [];
+        if (lid) cands = cands.concat([].slice.call(doc.querySelectorAll('[aria-labelledby="'+lid+'"], [aria-describedby="'+lid+'"]')));
+        if (fr) cands = cands.concat([].slice.call(doc.querySelectorAll('#'+fr)));
+        for (var j=0; j<cands.length; j++) {
+          var v = valid(cands[j].value || (cands[j].getAttribute && cands[j].getAttribute('value')) || cands[j].innerText || '');
+          if (v) return v;
+        }
+      }
+
+      var vars = doc.querySelectorAll('input[id^="ni."],textarea[id^="ni."]');
+      for (var vi=0; vi<vars.length; vi++) {
+        var ph = s(vars[vi].getAttribute && vars[vi].getAttribute('placeholder'));
+        if (!/Joe Willy Smith/i.test(ph)) continue;
+        var vv = valid(vars[vi].value || (vars[vi].getAttribute && vars[vi].getAttribute('value')) || '');
+        if (vv) return vv;
+      }
+      return '';
+    }
+
+    var out = extractFromDoc(document);
+    if (out) return JSON.stringify({ok:true, legal_name:out});
+    var frame = document.querySelector('iframe#gsft_main') || document.querySelector('iframe[name=gsft_main]');
+    var fdoc = (frame && frame.contentDocument) ? frame.contentDocument : null;
+    out = extractFromDoc(fdoc);
+    return JSON.stringify({ok:true, legal_name:out});
+  } catch(e){
+    return JSON.stringify({ok:false, legal_name:''});
+  }
+})();
+"@
+
+  for ($attempt = 1; $attempt -le 6; $attempt++) {
+    $o = Invoke-WebViewScriptJson -WebView $Session.WebView -Script $js -TimeoutMs 8000
+    if ($o -and $o.ok -eq $true -and $o.PSObject.Properties['legal_name']) {
+      $ln = ("" + $o.legal_name).Trim()
+      if ($ln -and -not (Test-InvalidUserDisplay -Name $ln)) { return $ln }
+    }
+    Start-Sleep -Milliseconds 300
+  }
+
+  return ''
+}
+
+function Get-RitmCatalogFallbackUser {
+  param(
+    [Parameter(Mandatory = $true)]$Session,
+    [Parameter(Mandatory = $true)][string]$RitmSysId
+  )
+
+  $sid = ("" + $RitmSysId).Trim()
+  if (-not $sid) { return '' }
+
+  $mtomRows = @(Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sc_item_option_mtom' -Query ("request_item={0}" -f $sid) -Fields @('sc_item_option') -Limit 150)
+  if ($mtomRows.Count -eq 0) { return '' }
+
+  $bestLegal = ''
+  $bestRequestedFor = ''
+  $bestRequestedBy = ''
+
+  foreach ($m in $mtomRows) {
+    $optId = (Get-ObjectStringValue -Object $m -PropertyName 'sc_item_option')
+    if (-not $optId) { continue }
+
+    $optRows = @(Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sc_item_option' -Query ("sys_id={0}" -f $optId) -Fields @('value','item_option_new') -Limit 1)
+    if ($optRows.Count -eq 0) { continue }
+
+    $valueRaw = (Get-ObjectStringValue -Object $optRows[0] -PropertyName 'value')
+    if (-not $valueRaw) { continue }
+
+    $questionText = ''
+    $ionId = (Get-ObjectStringValue -Object $optRows[0] -PropertyName 'item_option_new')
+    if ($ionId) {
+      $ionRows = @(Invoke-ServiceNowJsonv2Query -Session $Session -Table 'item_option_new' -Query ("sys_id={0}" -f $ionId) -Fields @('question_text','name') -Limit 1)
+      if ($ionRows.Count -gt 0) {
+        $questionText = (Get-ObjectStringValue -Object $ionRows[0] -PropertyName 'question_text')
+        if (-not $questionText) { $questionText = (Get-ObjectStringValue -Object $ionRows[0] -PropertyName 'name') }
+      }
+    }
+    $q = ("" + $questionText).Trim().ToLowerInvariant()
+
+    $resolved = $valueRaw
+    if ($valueRaw -match '^[0-9a-fA-F]{32}$') {
+      $resolved = Resolve-ServiceNowUserDisplay -Session $Session -UserValue $valueRaw
+    }
+    $resolved = ("" + $resolved).Trim()
+    if (-not $resolved -or (Test-InvalidUserDisplay -Name $resolved)) { continue }
+
+    if ($q -match 'legal\s*name') {
+      $bestLegal = $resolved
+      continue
+    }
+    if ($q -match '^requested\s*for$') {
+      $bestRequestedFor = $resolved
+      continue
+    }
+    if ($q -match '^requested\s*by$') {
+      $bestRequestedBy = $resolved
+      continue
+    }
+  }
+
+  if ($bestLegal) { return $bestLegal }
+  if ($bestRequestedFor) { return $bestRequestedFor }
+  if ($bestRequestedBy) { return $bestRequestedBy }
+  return ''
+}
+
 function Get-ServiceNowOpenTasksByRitm {
   param(
     [Parameter(Mandatory = $true)]$Session,
@@ -342,7 +533,8 @@ function Get-ServiceNowOpenTasksByRitm {
 function Get-ServiceNowTicket {
   param(
     [Parameter(Mandatory = $true)]$Session,
-    [Parameter(Mandatory = $true)][string]$Ticket
+    [Parameter(Mandatory = $true)][string]$Ticket,
+    [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')][string]$PiSearchMode = 'Auto'
   )
 
   $ticketId = ("" + $Ticket).Trim().ToUpperInvariant()
@@ -354,22 +546,29 @@ function Get-ServiceNowTicket {
   switch ($ticketType) {
     'RITM' {
       $table = 'sc_req_item'
-      $fields = @('number','sys_id','state','state_value','requested_for','configuration_item','short_description','comments','work_notes')
+      $fields = @('number','sys_id','state','state_value','requested_for','configuration_item','short_description','legal_name','u_legal_name','u_legalname','request')
       $userField = 'requested_for'
       $ciField = 'configuration_item'
     }
     'INC' {
       $table = 'incident'
-      $fields = @('number','sys_id','state','state_value','caller_id','cmdb_ci','short_description','comments','work_notes')
+      $fields = @('number','sys_id','state','state_value','caller_id','cmdb_ci','short_description')
       $userField = 'caller_id'
       $ciField = 'cmdb_ci'
     }
     'SCTASK' {
       $table = 'sc_task'
-      $fields = @('number','sys_id','state','state_value','assigned_to','cmdb_ci','short_description','comments','work_notes')
+      $fields = @('number','sys_id','state','state_value','assigned_to','cmdb_ci','short_description')
       $userField = 'assigned_to'
       $ciField = 'cmdb_ci'
     }
+  }
+
+  $mode = ("" + $PiSearchMode).Trim()
+  if (-not $mode) { $mode = 'Auto' }
+  $needComments = $mode -in @('Auto','CommentsOnly','CommentsAndCI')
+  if ($needComments) {
+    $fields = @($fields + @('comments', 'work_notes') | Select-Object -Unique)
   }
 
   $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table $table -Query ("number={0}" -f $ticketId) -Fields $fields -Limit 1
@@ -387,12 +586,64 @@ function Get-ServiceNowTicket {
   $user = Resolve-ServiceNowUserDisplay -Session $Session -UserValue (Get-ObjectStringValue -Object $r -PropertyName $userField)
   $ci = Resolve-ServiceNowCiDisplay -Session $Session -CiValue (Get-ObjectStringValue -Object $r -PropertyName $ciField)
 
-  $activityText = ((Get-ObjectStringValue -Object $r -PropertyName 'comments') + ' ' + (Get-ObjectStringValue -Object $r -PropertyName 'work_notes')).Trim()
-  $piDetected = Get-DetectedPiFromText -Text $activityText
+  $activityText = if ($needComments) {
+    ((Get-ObjectStringValue -Object $r -PropertyName 'comments') + ' ' + (Get-ObjectStringValue -Object $r -PropertyName 'work_notes')).Trim()
+  } else { '' }
+  $piDetected = ''
+  $ciPiCandidate = ("" + $ci).Trim()
+  $ciPiLooksValid = $ciPiCandidate -and ($ciPiCandidate -match '(?i)[A-Z0-9_-]{6,}')
+  switch ($mode) {
+    'ConfigurationItemOnly' {
+      if ($ciPiLooksValid) { $piDetected = $ciPiCandidate }
+    }
+    'CommentsOnly' {
+      $piDetected = Get-DetectedPiFromText -Text $activityText
+    }
+    'CommentsAndCI' {
+      $piDetected = Get-DetectedPiFromText -Text $activityText
+      if (-not $piDetected -and $ciPiLooksValid) { $piDetected = $ciPiCandidate }
+    }
+    default {
+      $piDetected = Get-DetectedPiFromText -Text $activityText
+      if (-not $piDetected -and $ciPiLooksValid) { $piDetected = $ciPiCandidate }
+    }
+  }
+  $legalName = ''
 
   $openTasks = @()
   if ($ticketType -eq 'RITM') {
     $openTasks = Get-ServiceNowOpenTasksByRitm -Session $Session -RitmSysId $sysId
+
+    $legalCandidates = @(
+      (Get-ObjectStringValue -Object $r -PropertyName 'legal_name'),
+      (Get-ObjectStringValue -Object $r -PropertyName 'u_legal_name'),
+      (Get-ObjectStringValue -Object $r -PropertyName 'u_legalname')
+    )
+    foreach ($cand in $legalCandidates) {
+      $v = ("" + $cand).Trim()
+      if ($v -and -not (Test-InvalidUserDisplay -Name $v)) { $legalName = $v; break }
+    }
+    if (-not $legalName) {
+      $textHints = @(
+        (Get-ObjectStringValue -Object $r -PropertyName 'short_description'),
+        (Get-ObjectStringValue -Object $r -PropertyName 'description'),
+        $activityText
+      ) -join ' '
+      $legalName = Get-LegalNameFromText -Text $textHints
+    }
+
+    $needsLegalFallback = (Test-InvalidUserDisplay -Name $user)
+    if ($needsLegalFallback -and -not $legalName -and $sysId) {
+      $catalogUser = Get-RitmCatalogFallbackUser -Session $Session -RitmSysId $sysId
+      if ($catalogUser) { $legalName = $catalogUser }
+    }
+    if (-not $legalName -and $needsLegalFallback -and $sysId) {
+      $legalFromForm = Get-LegalNameFromUiForm -Session $Session -RecordSysId $sysId -Table 'sc_req_item'
+      if ($legalFromForm) { $legalName = $legalFromForm }
+    }
+    if ($legalName -and $needsLegalFallback) {
+      $user = $legalName
+    }
   }
 
   $openTaskList = @($openTasks)
@@ -413,6 +664,7 @@ function Get-ServiceNowTicket {
     open_task_items = @($openTaskList)
     open_task_numbers = @($openTaskList | ForEach-Object { $_.number })
     completion_status = $completion
+    legal_name = $legalName
     record_url = if ($sysId) { "{0}/nav_to.do?uri=%2F{1}.do%3Fsys_id%3D{2}" -f $Session.BaseUrl, $table, $sysId } else { '' }
   }
 }

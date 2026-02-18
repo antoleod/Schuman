@@ -13,6 +13,7 @@ function Invoke-TicketExportWorkflow {
     [string]$ActionHeader,
     [string]$SCTasksHeader,
     [ValidateSet('Auto','RitmOnly','IncAndRitm','All')][string]$ProcessingScope = 'Auto',
+    [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')][string]$PiSearchMode = 'Auto',
     [int]$MaxTickets = 0,
     [switch]$NoWriteBack
   )
@@ -50,7 +51,7 @@ function Invoke-TicketExportWorkflow {
       $swTicket = Start-PerfStopwatch
       Write-RunLog -RunContext $RunContext -Level INFO -Message ("[{0}/{1}] Extracting {2}" -f $i, $filtered.Count, $ticket)
 
-      $res = Get-ServiceNowTicket -Session $session -Ticket $ticket
+      $res = Get-ServiceNowTicket -Session $session -Ticket $ticket -PiSearchMode $PiSearchMode
       if ($res.ok -eq $false) {
         Write-RunLog -RunContext $RunContext -Level WARN -Message ("{0} extraction failed: {1}" -f $ticket, $res.reason)
       } else {

@@ -14,6 +14,8 @@ param(
   [string]$SCTasksHeader = 'SCTasks',
   [ValidateSet('Auto','RitmOnly','IncAndRitm','All')]
   [string]$ProcessingScope = 'Auto',
+  [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')]
+  [string]$PiSearchMode = 'Auto',
   [int]$MaxTickets = 0,
   [switch]$NoWriteBack,
 
@@ -44,7 +46,7 @@ try {
     'Export' {
       $res = Invoke-TicketExportWorkflow -Config $config -RunContext $runContext -ExcelPath $resolvedExcel -SheetName $SheetName `
         -TicketHeader $TicketHeader -TicketColumn $TicketColumn -NameHeader $NameHeader -PhoneHeader $PhoneHeader `
-        -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ProcessingScope $ProcessingScope -MaxTickets $MaxTickets -NoWriteBack:$NoWriteBack
+        -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ProcessingScope $ProcessingScope -PiSearchMode $PiSearchMode -MaxTickets $MaxTickets -NoWriteBack:$NoWriteBack
 
       Write-RunLog -RunContext $runContext -Level INFO -Message "Export completed. JSON: $($res.CombinedJsonPath)"
       if (-not $NoPopups) {

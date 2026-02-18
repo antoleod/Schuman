@@ -98,6 +98,14 @@ function New-DashboardUI {
   $chkOpenOnly.ForeColor = $cMuted
   $chkOpenOnly.BackColor = $cBg
 
+  $chkUltraFast = New-Object System.Windows.Forms.CheckBox
+  $chkUltraFast.Text = 'Ultra fast mode'
+  $chkUltraFast.Location = New-Object System.Drawing.Point(940, 16)
+  $chkUltraFast.Size = New-Object System.Drawing.Size(160, 22)
+  $chkUltraFast.ForeColor = $cMuted
+  $chkUltraFast.BackColor = $cBg
+  $chkUltraFast.Checked = $true
+
   $lblHint = New-Object System.Windows.Forms.Label
   $lblHint.Text = 'Live filter enabled. Start typing to load matching users and tasks.'
   $lblHint.Location = New-Object System.Drawing.Point(16, 68)
@@ -198,7 +206,7 @@ function New-DashboardUI {
   $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 170)
 
   $form.Controls.AddRange(@(
-      $lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpenSnow, $chkOpenOnly, $lblHint,
+      $lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpenSnow, $chkUltraFast, $chkOpenOnly, $lblHint,
       $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $lblStatus
     ))
 
@@ -210,10 +218,23 @@ function New-DashboardUI {
     Session = $null
     Rows = @()
     AllRows = @()
+    AllRowsUniverse = @()
     LastSearch = ''
+    QueryCache = @{}
+    ExcelStamp = 0L
     UserDirectory = @()
+    UltraFast = $true
     DefaultCheckIn = $defaultCheckIn
     DefaultCheckOut = $defaultCheckOut
+    Controls = @{
+      Search = $txtSearch
+      Grid = $grid
+      OpenOnly = $chkOpenOnly
+      UltraFast = $chkUltraFast
+      Comment = $txtComment
+      Status = $lblStatus
+      SearchTimer = $null
+    }
   }
   $form.Tag = $state
 
@@ -285,8 +306,53 @@ function New-DashboardUI {
     return @($rows)
   }
 
-  $updateSearchUserSuggestions = {
-    $q = ("" + $txtSearch.Text).Trim()
+  $getExcelStamp = {
+    try {
+      return [int64](Get-Item -LiteralPath $state.ExcelPath).LastWriteTimeUtc.Ticks
+    }
+    catch {
+      return 0L
+    }
+  }
+
+  $fetchRows = {
+    param(
+      [string]$QueryText = '',
+      [switch]$ForceReload
+    )
+
+    $stamp = & $getExcelStamp
+    if ($ForceReload -or ($stamp -ne [int64]$state.ExcelStamp)) {
+      $state.QueryCache = @{}
+      $state.ExcelStamp = [int64]$stamp
+    }
+
+    $key = ("" + $QueryText).Trim().ToLowerInvariant()
+
+    if ($state.UltraFast) {
+      if ($ForceReload -or $state.AllRowsUniverse.Count -eq 0) {
+        $state.AllRowsUniverse = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText '')
+        foreach ($r in $state.AllRowsUniverse) {
+          $blob = "{0} {1} {2} {3} {4} {5}" -f ("" + $r.RequestedFor), ("" + $r.RITM), ("" + $r.SCTASK), ("" + $r.DashboardStatus), ("" + $r.PresentTime), ("" + $r.ClosedTime)
+          $r | Add-Member -NotePropertyName __search -NotePropertyValue $blob.ToLowerInvariant() -Force
+        }
+      }
+
+      if (-not $key) { return @($state.AllRowsUniverse) }
+      if ($state.QueryCache.ContainsKey($key)) { return @($state.QueryCache[$key]) }
+      $rowsFast = @($state.AllRowsUniverse | Where-Object { ("" + $_.__search).Contains($key) })
+      $state.QueryCache[$key] = @($rowsFast)
+      return @($rowsFast)
+    }
+
+    if ($state.QueryCache.ContainsKey($key)) { return @($state.QueryCache[$key]) }
+    $rows = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText $QueryText)
+    $state.QueryCache[$key] = @($rows)
+    return @($rows)
+  }
+
+  $updateSearchUserSuggestions = ({
+    $q = ("" + $state.Controls.Search.Text).Trim()
     $allUsers = @($state.UserDirectory)
     if ($allUsers.Count -eq 0) { return }
 
@@ -298,18 +364,18 @@ function New-DashboardUI {
       $matches = @($allUsers | Where-Object { ("" + $_).IndexOf($q, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 } | Select-Object -First 200)
     }
 
-    $caret = $txtSearch.SelectionStart
-    $txtSearch.BeginUpdate()
+    $caret = $state.Controls.Search.SelectionStart
+    $state.Controls.Search.BeginUpdate()
     try {
-      $txtSearch.Items.Clear()
-      foreach ($u in $matches) { [void]$txtSearch.Items.Add($u) }
+      $state.Controls.Search.Items.Clear()
+      foreach ($u in $matches) { [void]$state.Controls.Search.Items.Add($u) }
     }
     finally {
-      $txtSearch.EndUpdate()
+      $state.Controls.Search.EndUpdate()
     }
-    $txtSearch.SelectionStart = [Math]::Min($caret, $txtSearch.Text.Length)
-    $txtSearch.SelectionLength = 0
-  }
+    $state.Controls.Search.SelectionStart = [Math]::Min($caret, $state.Controls.Search.Text.Length)
+    $state.Controls.Search.SelectionLength = 0
+  }).GetNewClosure()
 
   $ensureSession = {
     if ($state.Session) { return $true }
@@ -334,22 +400,11 @@ function New-DashboardUI {
     try { Start-Process $url | Out-Null } catch {}
   }
 
-  $performSearch = {
+  $performSearch = ({
     param([switch]$ReloadFromExcel)
     try {
-      $q = ("" + $txtSearch.Text).Trim()
-      if ([string]::IsNullOrWhiteSpace($q)) {
-        $state.Rows = @()
-        $state.AllRows = @()
-        & $bindRowsToGrid @()
-        & $updateActionButtons
-        $lblStatus.Text = 'Type First/Last name to search.'
-        return
-      }
-
-      if ($ReloadFromExcel -or (-not $state.AllRows) -or ($state.AllRows.Count -eq 0) -or ($state.LastSearch -ne $q)) {
-        $state.AllRows = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText $q)
-      }
+      $q = ("" + $state.Controls.Search.Text).Trim()
+      $state.AllRows = @(& $fetchRows -QueryText $q -ForceReload:$ReloadFromExcel)
 
       $rows = & $getVisibleRows
       $state.Rows = @($rows)
@@ -358,13 +413,18 @@ function New-DashboardUI {
       & $updateActionButtons
 
       $filterNote = if ($chkOpenOnly.Checked) { ' (solo abiertos)' } else { '' }
-      $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+      if ([string]::IsNullOrWhiteSpace($q)) {
+        $lblStatus.Text = "Preloaded: $($rows.Count) rows$filterNote"
+      }
+      else {
+        $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+      }
     }
     catch {
       $err = $_.Exception.Message
       [System.Windows.Forms.MessageBox]::Show("Search failed: $err", 'Dashboard Error') | Out-Null
     }
-  }
+  }).GetNewClosure()
 
   $applyAction = {
     param([string]$action)
@@ -377,10 +437,10 @@ function New-DashboardUI {
     if (-not (& $ensureSession)) { return }
 
     $ritm = ("" + $row.RITM).Trim().ToUpperInvariant()
-    $note = ("" + $txtComment.Text).Trim()
+    $note = ("" + $state.Controls.Comment.Text).Trim()
     if ([string]::IsNullOrWhiteSpace($note)) {
       $note = if ($action -eq 'checkin') { $state.DefaultCheckIn } else { $state.DefaultCheckOut }
-      $txtComment.Text = $note
+      $state.Controls.Comment.Text = $note
     }
 
     $tasks = @(Get-ServiceNowTasksForRitm -Session $state.Session -RitmNumber $ritm)
@@ -445,32 +505,34 @@ function New-DashboardUI {
 
   $searchTimer = New-Object System.Windows.Forms.Timer
   $searchTimer.Interval = 260
-  $searchTimer.Add_Tick({
-    $searchTimer.Stop()
+  $state.Controls.SearchTimer = $searchTimer
+  $searchTimer.Add_Tick(({
+    if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
     & $performSearch
-  })
+  }).GetNewClosure())
 
-  $scheduleSearch = {
-    $searchTimer.Stop()
-    $searchTimer.Start()
-  }
+  $scheduleSearch = ({
+    if (-not $state.Controls.SearchTimer) { return }
+    $state.Controls.SearchTimer.Stop()
+    $state.Controls.SearchTimer.Start()
+  }).GetNewClosure()
 
-  $txtSearch.Add_KeyDown({
+  $txtSearch.Add_KeyDown(({
     param($sender, $e)
     if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
       $e.SuppressKeyPress = $true
-      $searchTimer.Stop()
+      if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
       & $performSearch
     }
-  })
-  $txtSearch.Add_TextUpdate({
+  }).GetNewClosure())
+  $txtSearch.Add_TextUpdate(({
     & $updateSearchUserSuggestions
     & $scheduleSearch
-  })
-  $txtSearch.Add_DropDown({ & $updateSearchUserSuggestions })
-  $txtSearch.Add_SelectedIndexChanged({ & $scheduleSearch })
+  }).GetNewClosure())
+  $txtSearch.Add_DropDown(({ & $updateSearchUserSuggestions }.GetNewClosure()))
+  $txtSearch.Add_SelectedIndexChanged(({ & $scheduleSearch }.GetNewClosure()))
 
-  $chkOpenOnly.Add_CheckedChanged({
+  $chkOpenOnly.Add_CheckedChanged(({
     if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
       $state.Rows = @()
       & $bindRowsToGrid @()
@@ -484,56 +546,56 @@ function New-DashboardUI {
     & $updateActionButtons
     $filterNote = if ($chkOpenOnly.Checked) { ' (solo abiertos)' } else { '' }
     $lblStatus.Text = "Results: $($rows.Count) for '$($state.LastSearch)'$filterNote"
-  })
+  }).GetNewClosure())
 
-  $grid.Add_SelectionChanged({ & $updateActionButtons })
-  $grid.Add_CellDoubleClick({ & $applyAction 'checkin' })
-
-  $btnRefresh.Add_Click({
-    if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
-      $lblStatus.Text = 'No previous search.'
-      return
-    }
-    $txtSearch.Text = $state.LastSearch
+  $chkUltraFast.Add_CheckedChanged(({
+    $state.UltraFast = [bool]$chkUltraFast.Checked
+    $state.QueryCache = @{}
+    $state.AllRowsUniverse = @()
     & $performSearch -ReloadFromExcel
-  })
+  }).GetNewClosure())
 
-  $btnClear.Add_Click({
-    $txtSearch.Text = ''
-    $state.Rows = @()
-    $state.AllRows = @()
-    $state.LastSearch = ''
-    & $bindRowsToGrid @()
-    & $updateActionButtons
-    $lblStatus.Text = 'Cleared. Type First/Last name to search.'
-  })
+  $grid.Add_SelectionChanged(({ & $updateActionButtons }.GetNewClosure()))
+  $grid.Add_CellDoubleClick(({ & $applyAction 'checkin' }.GetNewClosure()))
 
-  $btnUseCheckInNote.Add_Click({ $txtComment.Text = $state.DefaultCheckIn })
-  $btnUseCheckOutNote.Add_Click({ $txtComment.Text = $state.DefaultCheckOut })
-  $btnOpenSnow.Add_Click({
+  $btnRefresh.Add_Click(({
+    $state.Controls.Search.Text = $state.LastSearch
+    & $performSearch -ReloadFromExcel
+  }).GetNewClosure())
+
+  $btnClear.Add_Click(({
+    $state.Controls.Search.Text = ''
+    & $performSearch
+  }).GetNewClosure())
+
+  $btnUseCheckInNote.Add_Click(({ $state.Controls.Comment.Text = $state.DefaultCheckIn }.GetNewClosure()))
+  $btnUseCheckOutNote.Add_Click(({ $state.Controls.Comment.Text = $state.DefaultCheckOut }.GetNewClosure()))
+  $btnOpenSnow.Add_Click(({
     $row = & $getSelectedRow
     if (-not $row) {
       [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
       return
     }
     & $openRowInServiceNow $row
-  })
-  $btnRecalc.Add_Click({ & $recalculateRow })
-  $btnCheckIn.Add_Click({ & $applyAction 'checkin' })
-  $btnCheckOut.Add_Click({ & $applyAction 'checkout' })
+  }).GetNewClosure())
+  $btnRecalc.Add_Click(({ & $recalculateRow }.GetNewClosure()))
+  $btnCheckIn.Add_Click(({ & $applyAction 'checkin' }.GetNewClosure()))
+  $btnCheckOut.Add_Click(({ & $applyAction 'checkout' }.GetNewClosure()))
 
-  $form.add_FormClosed({
+  $form.add_FormClosed(({
     param($sender, $eventArgs)
-    try { $searchTimer.Stop(); $searchTimer.Dispose() } catch {}
+    try { if ($sender.Tag.Controls.SearchTimer) { $sender.Tag.Controls.SearchTimer.Stop(); $sender.Tag.Controls.SearchTimer.Dispose() } } catch {}
     try { if ($sender.Tag.Session) { Close-ServiceNowSession -Session $sender.Tag.Session } } catch {}
-  })
+  }).GetNewClosure())
 
   try {
-    $allRows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText '')
+    $allRows = @(& $fetchRows -QueryText '' -ForceReload)
     $state.UserDirectory = @($allRows | ForEach-Object { ("" + $_.RequestedFor).Trim() } | Where-Object { $_ } | Sort-Object -Unique)
     & $updateSearchUserSuggestions
-    & $bindRowsToGrid @()
-    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count). Search by First/Last name."
+    $state.AllRows = @($allRows)
+    $state.Rows = @(& $getVisibleRows)
+    & $bindRowsToGrid $state.Rows
+    $lblStatus.Text = "Ready. Users loaded: $($state.UserDirectory.Count). Preloaded rows: $($state.Rows.Count)."
   }
   catch {
     $lblStatus.Text = 'Ready.'

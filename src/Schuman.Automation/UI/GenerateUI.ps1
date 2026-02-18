@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 function New-GeneratePdfUI {
   param(
     [string]$ExcelPath = '',
+    [string]$SheetName = 'BRU',
     [string]$TemplatePath = '',
     [string]$OutputPath = '',
     [scriptblock]$OnOpenDashboard = $null,
@@ -481,8 +482,48 @@ function New-GeneratePdfUI {
 
   $chkDark.Add_CheckedChanged({ & $applyTheme })
 
+  $preloadGrid = {
+    if ([string]::IsNullOrWhiteSpace($ExcelPath)) { return }
+    if (-not (Test-Path -LiteralPath $ExcelPath)) { return }
+    if (-not (Get-Command -Name Search-DashboardRows -ErrorAction SilentlyContinue)) { return }
+
+    try {
+      $rows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText '')
+      $grid.Rows.Clear()
+
+      foreach ($r in $rows) {
+        $ticket = ("" + $r.RITM).Trim()
+        if (-not $ticket) { continue }
+        $status = ("" + $r.DashboardStatus).Trim()
+        if (-not $status) { $status = 'Ready' }
+        $msg = if ($status -eq 'Ready') { 'Preloaded from Excel' } else { 'Preloaded from Excel status' }
+
+        $null = $grid.Rows.Add(@(
+            ("" + $r.Row),
+            $ticket,
+            ("" + $r.RequestedFor),
+            '',
+            $status,
+            $msg,
+            '0%'
+          ))
+      }
+
+      $total = $grid.Rows.Count
+      $lblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
+      if ($total -gt 0) {
+        $lblStatusText.Text = "Ready. Preloaded $total rows from Excel."
+        & $appendLog "Preloaded $total rows from Excel."
+      }
+    }
+    catch {
+      & $appendLog ("Preload failed: " + $_.Exception.Message)
+    }
+  }
+
   & $applyTheme
   & $setStatusPill 'Idle' 'idle'
   & $updateOutputButton
+  & $preloadGrid
   return $form
 }

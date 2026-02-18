@@ -18,6 +18,18 @@ function Get-SafeCount {
   }
   return 1
 }
+
+function Test-InvalidUserCellValue {
+  param([string]$Value)
+
+  $v = ("" + $Value).Trim()
+  if (-not $v) { return $true }
+  if ($v -match '^[0-9a-fA-F]{32}$') { return $true }
+  if ($v -match '(?i)\bnew\b.*\bep\b.*\buser\b') { return $true }
+  if ($v -match '(?i)^new\b.*\buser\b') { return $true }
+  if ($v -match '(?i)^unknown$|^n/?a$|^null$') { return $true }
+  return $false
+}
 function Invoke-WithExcelWorkbook {
   param(
     [Parameter(Mandatory = $true)][string]$ExcelPath,
@@ -185,7 +197,21 @@ function Write-TicketResultsToExcel {
       $ticketCol = Resolve-HeaderColumn -HeaderMap $map -Names @($TicketHeader) -Fallback $TicketColumn
       if (-not $ticketCol) { throw "Ticket column not found. Header '$TicketHeader' does not exist." }
 
-      $nameCol = Get-OrCreateHeaderColumn -Worksheet $ws -HeaderMap $map -Header $NameHeader
+      $namePrimaryCol = Resolve-HeaderColumn -HeaderMap $map -Names @($NameHeader, 'Requested for', 'Name', 'User')
+      if (-not $namePrimaryCol) {
+        $namePrimaryCol = Get-OrCreateHeaderColumn -Worksheet $ws -HeaderMap $map -Header $NameHeader
+      }
+      $nameCols = New-Object System.Collections.Generic.List[int]
+      foreach ($candidate in @(
+          $namePrimaryCol,
+          (Resolve-HeaderColumn -HeaderMap $map -Names @('Requested for')),
+          (Resolve-HeaderColumn -HeaderMap $map -Names @('Name')),
+          (Resolve-HeaderColumn -HeaderMap $map -Names @('User'))
+        )) {
+        if ($candidate -and -not $nameCols.Contains([int]$candidate)) {
+          [void]$nameCols.Add([int]$candidate)
+        }
+      }
       $phoneCol = Get-OrCreateHeaderColumn -Worksheet $ws -HeaderMap $map -Header $PhoneHeader
       $actionCol = Get-OrCreateHeaderColumn -Worksheet $ws -HeaderMap $map -Header $ActionHeader
       $tasksCol = Get-OrCreateHeaderColumn -Worksheet $ws -HeaderMap $map -Header $SCTasksHeader
@@ -203,10 +229,19 @@ function Write-TicketResultsToExcel {
 
         $res = $ResultByTicket[$ticket]
         $affectedUser = if ($res.PSObject.Properties['affected_user']) { ("" + $res.affected_user).Trim() } else { '' }
+        $legalName = if ($res.PSObject.Properties['legal_name']) { ("" + $res.legal_name).Trim() } else { '' }
+        if (($ticket -like 'RITM*') -and $legalName) {
+          if (Test-InvalidUserCellValue -Value $affectedUser) {
+            $affectedUser = $legalName
+          }
+        }
         if ($affectedUser) {
-          $current = ("" + $ws.Cells.Item($r, $nameCol).Text).Trim()
-          if ([string]::IsNullOrWhiteSpace($current) -or $current -eq $ticket) {
-            $ws.Cells.Item($r, $nameCol) = $affectedUser
+          foreach ($nameCol in $nameCols) {
+            $current = ("" + $ws.Cells.Item($r, $nameCol).Text).Trim()
+            $replaceCurrent = [string]::IsNullOrWhiteSpace($current) -or ($current -eq $ticket) -or (Test-InvalidUserCellValue -Value $current)
+            if ($replaceCurrent) {
+              $ws.Cells.Item($r, $nameCol) = $affectedUser
+            }
           }
         }
 
