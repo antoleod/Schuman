@@ -1,5 +1,16 @@
 ﻿Set-StrictMode -Version Latest
 
+function Get-ObjectStringValue {
+  param(
+    [Parameter(Mandatory = $true)]$Object,
+    [Parameter(Mandatory = $true)][string]$PropertyName
+  )
+
+  if ($null -eq $Object) { return '' }
+  $prop = $Object.PSObject.Properties[$PropertyName]
+  if ($null -eq $prop) { return '' }
+  return ("" + $prop.Value).Trim()
+}
 function Initialize-WebView2Runtime {
   $arch = if ($env:PROCESSOR_ARCHITECTURE -match '64') { 'x64' } else { 'x86' }
   $base = Join-Path $env:LOCALAPPDATA 'Microsoft\TeamsMeetingAdd-in'
@@ -182,7 +193,8 @@ function Invoke-ServiceNowJsonv2Query {
 
   $tableName = $Table.Trim()
   $queryText = $Query.Trim()
-  $fieldText = if ($Fields.Count -gt 0) { $Fields -join ',' } else { '' }
+  $fieldList = @($Fields)
+  $fieldText = if ($fieldList.Count -gt 0) { $fieldList -join ',' } else { '' }
 
   $js = @"
 (function(){
@@ -246,7 +258,8 @@ function Resolve-ServiceNowStateLabel {
   }
 
   $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sys_choice' -Query ("name={0}^element=state^value={1}" -f $Table, $sv) -Fields @('label','value') -Limit 1
-  $label = if ($rows.Count -gt 0) { ("" + $rows[0].label).Trim() } else { ("" + $FallbackLabel).Trim() }
+  $rowList = @($rows)
+  $label = if ($rowList.Count -gt 0) { ("" + $rowList[0].label).Trim() } else { ("" + $FallbackLabel).Trim() }
   if (-not $label) { $label = $sv }
 
   $Session.StateCache[$cacheKey] = $label
@@ -266,7 +279,8 @@ function Resolve-ServiceNowUserDisplay {
   if ($Session.UserCache.ContainsKey($u)) { return $Session.UserCache[$u] }
 
   $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sys_user' -Query ("sys_id={0}" -f $u) -Fields @('name') -Limit 1
-  $name = if ($rows.Count -gt 0) { ("" + $rows[0].name).Trim() } else { '' }
+  $rowList = @($rows)
+  $name = if ($rowList.Count -gt 0) { ("" + $rowList[0].name).Trim() } else { '' }
   if (-not $name) { $name = $u }
 
   $Session.UserCache[$u] = $name
@@ -286,7 +300,8 @@ function Resolve-ServiceNowCiDisplay {
   if ($Session.CiCache.ContainsKey($v)) { return $Session.CiCache[$v] }
 
   $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table 'cmdb_ci' -Query ("sys_id={0}" -f $v) -Fields @('name') -Limit 1
-  $name = if ($rows.Count -gt 0) { ("" + $rows[0].name).Trim() } else { '' }
+  $rowList = @($rows)
+  $name = if ($rowList.Count -gt 0) { ("" + $rowList[0].name).Trim() } else { '' }
   if (-not $name) { $name = $v }
 
   $Session.CiCache[$v] = $name
@@ -302,24 +317,26 @@ function Get-ServiceNowOpenTasksByRitm {
   if ([string]::IsNullOrWhiteSpace($RitmSysId)) { return @() }
 
   $fields = @('number','sys_id','state','state_value','short_description')
-  $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sc_task' -Query ("request_item={0}" -f $RitmSysId) -Fields $fields -Limit 200
+  $rows = @(Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sc_task' -Query ("request_item={0}" -f $RitmSysId) -Fields $fields -Limit 200)
   $out = New-Object System.Collections.Generic.List[object]
 
   foreach ($row in $rows) {
-    $state = ("" + $row.state).Trim()
-    $stateValue = ("" + $row.state_value).Trim()
-    if (-not (Test-ClosedState -StateLabel $state -StateValue $stateValue)) {
+    $state = Get-ObjectStringValue -Object $row -PropertyName 'state'
+    $stateValue = Get-ObjectStringValue -Object $row -PropertyName 'state_value'
+    if (-not $stateValue) { $stateValue = $state }
+    $stateLabel = Resolve-ServiceNowStateLabel -Session $Session -Table 'sc_task' -StateValue $stateValue -FallbackLabel $state
+    if (-not (Test-ClosedState -StateLabel $stateLabel -StateValue $stateValue)) {
       $out.Add([pscustomobject]@{
-        number = ("" + $row.number).Trim().ToUpperInvariant()
-        sys_id = ("" + $row.sys_id).Trim()
-        state_label = $state
+        number = (Get-ObjectStringValue -Object $row -PropertyName 'number').ToUpperInvariant()
+        sys_id = Get-ObjectStringValue -Object $row -PropertyName 'sys_id'
+        state_label = $stateLabel
         state_value = $stateValue
-        short_description = ("" + $row.short_description).Trim()
+        short_description = Get-ObjectStringValue -Object $row -PropertyName 'short_description'
       }) | Out-Null
     }
   }
 
-  return @($out)
+  return @($out.ToArray())
 }
 
 function Get-ServiceNowTicket {
@@ -356,18 +373,21 @@ function Get-ServiceNowTicket {
   }
 
   $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table $table -Query ("number={0}" -f $ticketId) -Fields $fields -Limit 1
-  if ($rows.Count -eq 0) {
+  $rowList = @($rows)
+  if ($rowList.Count -eq 0) {
     return [pscustomobject]@{ ticket = $ticketId; ok = $false; reason = 'not_found'; table = $table }
   }
 
-  $r = $rows[0]
-  $sysId = ("" + $r.sys_id).Trim()
-  $stateValue = ("" + $r.state_value).Trim()
-  $stateLabel = Resolve-ServiceNowStateLabel -Session $Session -Table $table -StateValue $stateValue -FallbackLabel ("" + $r.state)
-  $user = Resolve-ServiceNowUserDisplay -Session $Session -UserValue ("" + $r.$userField)
-  $ci = Resolve-ServiceNowCiDisplay -Session $Session -CiValue ("" + $r.$ciField)
+  $r = $rowList[0]
+  $sysId = Get-ObjectStringValue -Object $r -PropertyName 'sys_id'
+  $stateValue = Get-ObjectStringValue -Object $r -PropertyName 'state_value'
+  $stateFallback = Get-ObjectStringValue -Object $r -PropertyName 'state'
+  if (-not $stateValue) { $stateValue = $stateFallback }
+  $stateLabel = Resolve-ServiceNowStateLabel -Session $Session -Table $table -StateValue $stateValue -FallbackLabel $stateFallback
+  $user = Resolve-ServiceNowUserDisplay -Session $Session -UserValue (Get-ObjectStringValue -Object $r -PropertyName $userField)
+  $ci = Resolve-ServiceNowCiDisplay -Session $Session -CiValue (Get-ObjectStringValue -Object $r -PropertyName $ciField)
 
-  $activityText = (("" + $r.comments) + ' ' + ("" + $r.work_notes)).Trim()
+  $activityText = ((Get-ObjectStringValue -Object $r -PropertyName 'comments') + ' ' + (Get-ObjectStringValue -Object $r -PropertyName 'work_notes')).Trim()
   $piDetected = Get-DetectedPiFromText -Text $activityText
 
   $openTasks = @()
@@ -375,7 +395,8 @@ function Get-ServiceNowTicket {
     $openTasks = Get-ServiceNowOpenTasksByRitm -Session $Session -RitmSysId $sysId
   }
 
-  $completion = Get-CompletionStatus -Ticket $ticketId -StateLabel $stateLabel -StateValue $stateValue -OpenTasks $openTasks.Count
+  $openTaskList = @($openTasks)
+  $completion = Get-CompletionStatus -Ticket $ticketId -StateLabel $stateLabel -StateValue $stateValue -OpenTasks $openTaskList.Count
 
   return [pscustomobject]@{
     ticket = $ticketId
@@ -386,11 +407,11 @@ function Get-ServiceNowTicket {
     status_value = $stateValue
     affected_user = $user
     configuration_item = $ci
-    short_description = ("" + $r.short_description).Trim()
+    short_description = Get-ObjectStringValue -Object $r -PropertyName 'short_description'
     detected_pi_machine = $piDetected
-    open_tasks = $openTasks.Count
-    open_task_items = @($openTasks)
-    open_task_numbers = @($openTasks | ForEach-Object { $_.number })
+    open_tasks = $openTaskList.Count
+    open_task_items = @($openTaskList)
+    open_task_numbers = @($openTaskList | ForEach-Object { $_.number })
     completion_status = $completion
     record_url = if ($sysId) { "{0}/nav_to.do?uri=%2F{1}.do%3Fsys_id%3D{2}" -f $Session.BaseUrl, $table, $sysId } else { '' }
   }
@@ -486,16 +507,19 @@ function Get-ServiceNowTasksForRitm {
   $ritm = ("" + $RitmNumber).Trim().ToUpperInvariant()
   if (-not $ritm) { return @() }
 
-  $rows = Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sc_task' -Query ("request_item.number={0}" -f $ritm) -Fields @('number','sys_id','state','state_value') -Limit 200
+  $rows = @(Invoke-ServiceNowJsonv2Query -Session $Session -Table 'sc_task' -Query ("request_item.number={0}" -f $ritm) -Fields @('number','sys_id','state','state_value') -Limit 200)
   $out = New-Object System.Collections.Generic.List[object]
   foreach ($r in $rows) {
     $out.Add([pscustomobject]@{
-      number = ("" + $r.number).Trim().ToUpperInvariant()
-      sys_id = ("" + $r.sys_id).Trim()
-      state = ("" + $r.state).Trim()
-      state_value = ("" + $r.state_value).Trim()
+      number = (Get-ObjectStringValue -Object $r -PropertyName 'number').ToUpperInvariant()
+      sys_id = Get-ObjectStringValue -Object $r -PropertyName 'sys_id'
+      state = Get-ObjectStringValue -Object $r -PropertyName 'state'
+      state_value = Get-ObjectStringValue -Object $r -PropertyName 'state_value'
     }) | Out-Null
   }
 
-  return @($out)
+  return @($out.ToArray())
 }
+
+
+

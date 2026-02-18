@@ -1,35 +1,938 @@
-﻿2026-02-18 16:34:44 [ERROR] Argument types do not match
-2026-02-18 16:36:14 [ERROR] Argument types do not match
-2026-02-18 16:38:55 [INFO] Dashboard search query='' => 79 row(s)
-2026-02-18 16:39:06 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
-2026-02-18 16:49:54 [INFO] Dashboard search query='' => 79 row(s)
-2026-02-18 16:52:19 [INFO] Dashboard search query='' => 79 row(s)
-2026-02-18 16:54:08 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 16:54:10 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 16:54:11 [INFO] ServiceNow SSO confirmed.
-2026-02-18 16:54:11 [INFO] [1/22] Extracting RITM0496748
-2026-02-18 16:54:14 [ERROR] The property 'Count' cannot be found on this object. Verify that the property exists.
-2026-02-18 17:01:00 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:01:01 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 17:01:02 [INFO] ServiceNow SSO confirmed.
-2026-02-18 17:01:02 [INFO] [1/22] Extracting RITM0496748
-2026-02-18 17:01:04 [ERROR] The property 'Count' cannot be found on this object. Verify that the property exists.
-2026-02-18 17:03:28 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:03:29 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 17:03:29 [ERROR] Cannot change thread mode after it is set. (Exception from HRESULT: 0x80010106 (RPC_E_CHANGED_MODE))
-2026-02-18 17:04:03 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:04:04 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 17:04:04 [ERROR] Cannot change thread mode after it is set. (Exception from HRESULT: 0x80010106 (RPC_E_CHANGED_MODE))
-2026-02-18 17:04:07 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:04:08 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 17:04:08 [ERROR] Cannot change thread mode after it is set. (Exception from HRESULT: 0x80010106 (RPC_E_CHANGED_MODE))
-2026-02-18 17:05:01 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:05:02 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 17:05:03 [INFO] ServiceNow SSO confirmed.
-2026-02-18 17:05:03 [INFO] [1/22] Extracting RITM0496748
-2026-02-18 17:05:05 [ERROR] The property 'Count' cannot be found on this object. Verify that the property exists.
-2026-02-18 17:05:32 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:05:34 [INFO] Tickets queued: total=72, filtered=22, scope=Auto
-2026-02-18 17:05:35 [INFO] ServiceNow SSO confirmed.
-2026-02-18 17:05:35 [INFO] [1/22] Extracting RITM0496748
-2026-02-18 17:05:37 [ERROR] The property 'Count' cannot be found on this object. Verify that the property exists.
+﻿2026-02-18 17:53:34 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 17:53:37 [INFO] Tickets queued: total=72, filtered=72, scope=IncAndRitm
+2026-02-18 17:53:39 [INFO] ServiceNow SSO confirmed.
+2026-02-18 17:53:39 [INFO] [1/72] Extracting RITM0496748
+2026-02-18 17:53:40 [INFO] RITM0496748 status='1' open_tasks=1
+2026-02-18 17:53:40 [INFO] PERF ticket_RITM0496748 took 938ms
+2026-02-18 17:53:40 [INFO] [2/72] Extracting RITM0405052
+2026-02-18 17:53:42 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-18 17:53:42 [INFO] PERF ticket_RITM0405052 took 1205ms
+2026-02-18 17:53:42 [INFO] [3/72] Extracting RITM0493120
+2026-02-18 17:53:43 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-18 17:53:43 [INFO] PERF ticket_RITM0493120 took 1032ms
+2026-02-18 17:53:43 [INFO] [4/72] Extracting INC0404030
+2026-02-18 17:53:43 [INFO] INC0404030 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:43 [INFO] PERF ticket_INC0404030 took 662ms
+2026-02-18 17:53:43 [INFO] [5/72] Extracting INC0405320
+2026-02-18 17:53:44 [INFO] INC0405320 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:44 [INFO] PERF ticket_INC0405320 took 549ms
+2026-02-18 17:53:44 [INFO] [6/72] Extracting INC0404913
+2026-02-18 17:53:44 [INFO] INC0404913 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:44 [INFO] PERF ticket_INC0404913 took 472ms
+2026-02-18 17:53:44 [INFO] [7/72] Extracting INC0404662
+2026-02-18 17:53:45 [INFO] INC0404662 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:45 [INFO] PERF ticket_INC0404662 took 364ms
+2026-02-18 17:53:45 [INFO] [8/72] Extracting INC0403929
+2026-02-18 17:53:45 [INFO] INC0403929 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:45 [INFO] PERF ticket_INC0403929 took 563ms
+2026-02-18 17:53:45 [INFO] [9/72] Extracting INC0404073
+2026-02-18 17:53:46 [INFO] INC0404073 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:46 [INFO] PERF ticket_INC0404073 took 511ms
+2026-02-18 17:53:46 [INFO] [10/72] Extracting INC0398334
+2026-02-18 17:53:46 [INFO] INC0398334 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:46 [INFO] PERF ticket_INC0398334 took 488ms
+2026-02-18 17:53:46 [INFO] [11/72] Extracting INC0400192
+2026-02-18 17:53:47 [INFO] INC0400192 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:47 [INFO] PERF ticket_INC0400192 took 340ms
+2026-02-18 17:53:47 [INFO] [12/72] Extracting INC0399952
+2026-02-18 17:53:47 [INFO] INC0399952 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:47 [INFO] PERF ticket_INC0399952 took 396ms
+2026-02-18 17:53:47 [INFO] [13/72] Extracting INC0399909
+2026-02-18 17:53:48 [INFO] INC0399909 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:48 [INFO] [14/72] Extracting INC0399906
+2026-02-18 17:53:48 [INFO] INC0399906 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:48 [INFO] PERF ticket_INC0399906 took 344ms
+2026-02-18 17:53:48 [INFO] [15/72] Extracting INC0398797
+2026-02-18 17:53:49 [INFO] INC0398797 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:49 [INFO] [16/72] Extracting INC0399068
+2026-02-18 17:53:49 [INFO] INC0399068 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:49 [INFO] PERF ticket_INC0399068 took 484ms
+2026-02-18 17:53:49 [INFO] [17/72] Extracting INC0398566
+2026-02-18 17:53:50 [INFO] INC0398566 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:50 [INFO] [18/72] Extracting INC0397938
+2026-02-18 17:53:50 [INFO] INC0397938 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:50 [INFO] PERF ticket_INC0397938 took 326ms
+2026-02-18 17:53:50 [INFO] [19/72] Extracting INC0396829
+2026-02-18 17:53:51 [INFO] INC0396829 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:51 [INFO] PERF ticket_INC0396829 took 508ms
+2026-02-18 17:53:51 [INFO] [20/72] Extracting INC0390677
+2026-02-18 17:53:51 [INFO] INC0390677 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:51 [INFO] PERF ticket_INC0390677 took 334ms
+2026-02-18 17:53:51 [INFO] [21/72] Extracting INC0384484
+2026-02-18 17:53:51 [INFO] INC0384484 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:51 [INFO] PERF ticket_INC0384484 took 471ms
+2026-02-18 17:53:51 [INFO] [22/72] Extracting INC0396867
+2026-02-18 17:53:52 [INFO] INC0396867 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:52 [INFO] PERF ticket_INC0396867 took 511ms
+2026-02-18 17:53:52 [INFO] [23/72] Extracting INC0393533
+2026-02-18 17:53:53 [INFO] INC0393533 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:53 [INFO] PERF ticket_INC0393533 took 531ms
+2026-02-18 17:53:53 [INFO] [24/72] Extracting INC0393530
+2026-02-18 17:53:53 [INFO] INC0393530 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:53 [INFO] PERF ticket_INC0393530 took 492ms
+2026-02-18 17:53:53 [INFO] [25/72] Extracting INC0393057
+2026-02-18 17:53:54 [INFO] INC0393057 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:54 [INFO] PERF ticket_INC0393057 took 465ms
+2026-02-18 17:53:54 [INFO] [26/72] Extracting INC0392998
+2026-02-18 17:53:54 [INFO] INC0392998 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:54 [INFO] PERF ticket_INC0392998 took 504ms
+2026-02-18 17:53:54 [INFO] [27/72] Extracting INC0386947
+2026-02-18 17:53:55 [INFO] INC0386947 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:55 [INFO] PERF ticket_INC0386947 took 474ms
+2026-02-18 17:53:55 [INFO] [28/72] Extracting INC0381429
+2026-02-18 17:53:55 [INFO] INC0381429 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:55 [INFO] PERF ticket_INC0381429 took 518ms
+2026-02-18 17:53:55 [INFO] [29/72] Extracting INC0381995
+2026-02-18 17:53:56 [INFO] INC0381995 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:56 [INFO] PERF ticket_INC0381995 took 583ms
+2026-02-18 17:53:56 [INFO] [30/72] Extracting INC0377661
+2026-02-18 17:53:56 [INFO] INC0377661 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:56 [INFO] PERF ticket_INC0377661 took 364ms
+2026-02-18 17:53:56 [INFO] [31/72] Extracting INC0376136
+2026-02-18 17:53:57 [INFO] INC0376136 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:57 [INFO] PERF ticket_INC0376136 took 350ms
+2026-02-18 17:53:58 [INFO] INC0377128 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:58 [INFO] PERF ticket_INC0377128 took 854ms
+2026-02-18 17:53:58 [INFO] [33/72] Extracting INC0376121
+2026-02-18 17:53:58 [INFO] INC0376121 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:58 [INFO] PERF ticket_INC0376121 took 542ms
+2026-02-18 17:53:58 [INFO] [34/72] Extracting INC0375309
+2026-02-18 17:53:59 [INFO] INC0375309 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:59 [INFO] PERF ticket_INC0375309 took 469ms
+2026-02-18 17:53:59 [INFO] [35/72] Extracting INC0372528
+2026-02-18 17:53:59 [INFO] INC0372528 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:53:59 [INFO] PERF ticket_INC0372528 took 482ms
+2026-02-18 17:53:59 [INFO] [36/72] Extracting INC0373224
+2026-02-18 17:54:00 [INFO] PERF ticket_INC0373224 took 464ms
+2026-02-18 17:54:00 [INFO] [37/72] Extracting INC0374026
+2026-02-18 17:54:00 [INFO] INC0374026 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:00 [INFO] PERF ticket_INC0374026 took 504ms
+2026-02-18 17:54:00 [INFO] [38/72] Extracting INC0370735
+2026-02-18 17:54:01 [INFO] INC0370735 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:01 [INFO] PERF ticket_INC0370735 took 511ms
+2026-02-18 17:54:01 [INFO] [39/72] Extracting INC0365085
+2026-02-18 17:54:01 [INFO] INC0365085 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:01 [INFO] PERF ticket_INC0365085 took 503ms
+2026-02-18 17:54:01 [INFO] [40/72] Extracting INC0368029
+2026-02-18 17:54:02 [INFO] INC0368029 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:02 [INFO] PERF ticket_INC0368029 took 513ms
+2026-02-18 17:54:02 [INFO] [41/72] Extracting INC0370558
+2026-02-18 17:54:02 [INFO] INC0370558 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:02 [INFO] PERF ticket_INC0370558 took 493ms
+2026-02-18 17:54:03 [INFO] [42/72] Extracting INC0372344
+2026-02-18 17:54:03 [INFO] INC0372344 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:03 [INFO] PERF ticket_INC0372344 took 324ms
+2026-02-18 17:54:03 [INFO] [43/72] Extracting INC0353533
+2026-02-18 17:54:03 [INFO] INC0353533 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:03 [INFO] PERF ticket_INC0353533 took 505ms
+2026-02-18 17:54:03 [INFO] [44/72] Extracting INC0367376
+2026-02-18 17:54:04 [INFO] INC0367376 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:04 [INFO] PERF ticket_INC0367376 took 470ms
+2026-02-18 17:54:04 [INFO] [45/72] Extracting INC0350488
+2026-02-18 17:54:04 [INFO] INC0350488 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:04 [INFO] PERF ticket_INC0350488 took 464ms
+2026-02-18 17:54:04 [INFO] [46/72] Extracting INC0346775
+2026-02-18 17:54:05 [INFO] INC0346775 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:05 [INFO] PERF ticket_INC0346775 took 467ms
+2026-02-18 17:54:05 [INFO] [47/72] Extracting INC0370773
+2026-02-18 17:54:05 [INFO] INC0370773 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:05 [INFO] PERF ticket_INC0370773 took 517ms
+2026-02-18 17:54:05 [INFO] [48/72] Extracting INC0370852
+2026-02-18 17:54:06 [INFO] INC0370852 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:06 [INFO] PERF ticket_INC0370852 took 500ms
+2026-02-18 17:54:06 [INFO] [49/72] Extracting INC0370721
+2026-02-18 17:54:06 [INFO] INC0370721 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:07 [INFO] PERF ticket_INC0370721 took 505ms
+2026-02-18 17:54:07 [INFO] [50/72] Extracting INC0357741
+2026-02-18 17:54:07 [INFO] INC0357741 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:07 [INFO] PERF ticket_INC0357741 took 394ms
+2026-02-18 17:54:07 [INFO] [51/72] Extracting INC0240792
+2026-02-18 17:54:08 [INFO] INC0240792 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:08 [INFO] PERF ticket_INC0240792 took 711ms
+2026-02-18 17:54:08 [INFO] [52/72] Extracting INC0357389
+2026-02-18 17:54:08 [INFO] INC0357389 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:08 [INFO] PERF ticket_INC0357389 took 476ms
+2026-02-18 17:54:08 [INFO] [53/72] Extracting INC0354452
+2026-02-18 17:54:09 [INFO] INC0354452 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:54:09 [INFO] PERF ticket_INC0354452 took 354ms
+2026-02-18 17:54:09 [INFO] [54/72] Extracting RITM0395760
+2026-02-18 17:54:09 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-18 17:54:09 [INFO] PERF ticket_RITM0395760 took 646ms
+2026-02-18 17:54:09 [INFO] [55/72] Extracting RITM0400363
+2026-02-18 17:54:10 [INFO] RITM0400363 status='3' open_tasks=0
+2026-02-18 17:54:10 [INFO] PERF ticket_RITM0400363 took 553ms
+2026-02-18 17:54:10 [INFO] [56/72] Extracting RITM0400334
+2026-02-18 17:54:10 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-18 17:54:10 [INFO] PERF ticket_RITM0400334 took 504ms
+2026-02-18 17:54:10 [INFO] [57/72] Extracting RITM0429435
+2026-02-18 17:54:11 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-18 17:54:11 [INFO] PERF ticket_RITM0429435 took 352ms
+2026-02-18 17:54:11 [INFO] [58/72] Extracting RITM0430321
+2026-02-18 17:54:11 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-18 17:54:11 [INFO] PERF ticket_RITM0430321 took 343ms
+2026-02-18 17:54:11 [INFO] [59/72] Extracting RITM0430778
+2026-02-18 17:54:12 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-18 17:54:12 [INFO] PERF ticket_RITM0430778 took 498ms
+2026-02-18 17:54:12 [INFO] [60/72] Extracting RITM0400091
+2026-02-18 17:54:12 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-18 17:54:12 [INFO] PERF ticket_RITM0400091 took 507ms
+2026-02-18 17:54:12 [INFO] [61/72] Extracting RITM0400088
+2026-02-18 17:54:13 [INFO] RITM0400088 status='3' open_tasks=0
+2026-02-18 17:54:13 [INFO] PERF ticket_RITM0400088 took 793ms
+2026-02-18 17:54:13 [INFO] [62/72] Extracting RITM0420978
+2026-02-18 17:54:14 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-18 17:54:14 [INFO] PERF ticket_RITM0420978 took 508ms
+2026-02-18 17:54:14 [INFO] [63/72] Extracting RITM0405042
+2026-02-18 17:54:14 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-18 17:54:14 [INFO] PERF ticket_RITM0405042 took 479ms
+2026-02-18 17:54:14 [INFO] [64/72] Extracting RITM0433027
+2026-02-18 17:54:15 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-18 17:54:15 [INFO] PERF ticket_RITM0433027 took 466ms
+2026-02-18 17:54:15 [INFO] [65/72] Extracting RITM0433109
+2026-02-18 17:54:15 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-18 17:54:15 [INFO] PERF ticket_RITM0433109 took 530ms
+2026-02-18 17:54:15 [INFO] [66/72] Extracting RITM0433132
+2026-02-18 17:54:16 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-18 17:54:16 [INFO] PERF ticket_RITM0433132 took 495ms
+2026-02-18 17:54:16 [INFO] [67/72] Extracting RITM0433154
+2026-02-18 17:54:16 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-18 17:54:16 [INFO] PERF ticket_RITM0433154 took 349ms
+2026-02-18 17:54:16 [INFO] [68/72] Extracting RITM0433331
+2026-02-18 17:54:17 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-18 17:54:17 [INFO] PERF ticket_RITM0433331 took 490ms
+2026-02-18 17:54:17 [INFO] [69/72] Extracting RITM0420972
+2026-02-18 17:54:17 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-18 17:54:17 [INFO] PERF ticket_RITM0420972 took 501ms
+2026-02-18 17:54:17 [INFO] [70/72] Extracting RITM0434588
+2026-02-18 17:54:18 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-18 17:54:18 [INFO] [71/72] Extracting RITM0434592
+2026-02-18 17:54:19 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-18 17:54:19 [INFO] PERF ticket_RITM0434592 took 788ms
+2026-02-18 17:54:19 [INFO] [72/72] Extracting RITM0434593
+2026-02-18 17:54:19 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-18 17:54:19 [INFO] PERF ticket_RITM0434593 took 381ms
+2026-02-18 17:54:19 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_175334\tickets_export.json
+2026-02-18 17:54:19 [INFO] Writing extracted data back to Excel.
+2026-02-18 17:54:27 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_175334\tickets_export.json
+2026-02-18 17:56:36 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 17:56:39 [INFO] Tickets queued: total=72, filtered=72, scope=IncAndRitm
+2026-02-18 17:56:40 [INFO] ServiceNow SSO confirmed.
+2026-02-18 17:56:40 [INFO] [1/72] Extracting RITM0496748
+2026-02-18 17:56:43 [INFO] RITM0496748 status='1' open_tasks=1
+2026-02-18 17:56:43 [INFO] PERF ticket_RITM0496748 took 2760ms
+2026-02-18 17:56:43 [INFO] [2/72] Extracting RITM0405052
+2026-02-18 17:56:44 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-18 17:56:44 [INFO] PERF ticket_RITM0405052 took 696ms
+2026-02-18 17:56:44 [INFO] [3/72] Extracting RITM0493120
+2026-02-18 17:56:44 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-18 17:56:44 [INFO] PERF ticket_RITM0493120 took 463ms
+2026-02-18 17:56:44 [INFO] [4/72] Extracting INC0404030
+2026-02-18 17:56:45 [INFO] INC0404030 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:45 [INFO] PERF ticket_INC0404030 took 1317ms
+2026-02-18 17:56:45 [INFO] [5/72] Extracting INC0405320
+2026-02-18 17:56:47 [INFO] INC0405320 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:47 [INFO] PERF ticket_INC0405320 took 1252ms
+2026-02-18 17:56:47 [INFO] [6/72] Extracting INC0404913
+2026-02-18 17:56:47 [INFO] INC0404913 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:47 [INFO] PERF ticket_INC0404913 took 508ms
+2026-02-18 17:56:47 [INFO] [7/72] Extracting INC0404662
+2026-02-18 17:56:48 [INFO] INC0404662 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:48 [INFO] PERF ticket_INC0404662 took 366ms
+2026-02-18 17:56:48 [INFO] [8/72] Extracting INC0403929
+2026-02-18 17:56:48 [INFO] INC0403929 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:48 [INFO] PERF ticket_INC0403929 took 507ms
+2026-02-18 17:56:48 [INFO] [9/72] Extracting INC0404073
+2026-02-18 17:56:49 [INFO] INC0404073 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:49 [INFO] PERF ticket_INC0404073 took 525ms
+2026-02-18 17:56:49 [INFO] [10/72] Extracting INC0398334
+2026-02-18 17:56:49 [INFO] INC0398334 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:49 [INFO] PERF ticket_INC0398334 took 470ms
+2026-02-18 17:56:49 [INFO] [11/72] Extracting INC0400192
+2026-02-18 17:56:50 [INFO] INC0400192 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:50 [INFO] PERF ticket_INC0400192 took 352ms
+2026-02-18 17:56:50 [INFO] [12/72] Extracting INC0399952
+2026-02-18 17:56:50 [INFO] INC0399952 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:50 [INFO] PERF ticket_INC0399952 took 348ms
+2026-02-18 17:56:50 [INFO] [13/72] Extracting INC0399909
+2026-02-18 17:56:50 [INFO] INC0399909 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:50 [INFO] PERF ticket_INC0399909 took 363ms
+2026-02-18 17:56:50 [INFO] [14/72] Extracting INC0399906
+2026-02-18 17:56:51 [INFO] INC0399906 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:51 [INFO] PERF ticket_INC0399906 took 309ms
+2026-02-18 17:56:51 [INFO] [15/72] Extracting INC0398797
+2026-02-18 17:56:51 [INFO] INC0398797 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:51 [INFO] PERF ticket_INC0398797 took 474ms
+2026-02-18 17:56:51 [INFO] [16/72] Extracting INC0399068
+2026-02-18 17:56:52 [INFO] INC0399068 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:52 [INFO] PERF ticket_INC0399068 took 488ms
+2026-02-18 17:56:52 [INFO] [17/72] Extracting INC0398566
+2026-02-18 17:56:52 [INFO] INC0398566 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:52 [INFO] PERF ticket_INC0398566 took 482ms
+2026-02-18 17:56:52 [INFO] [18/72] Extracting INC0397938
+2026-02-18 17:56:53 [INFO] INC0397938 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:53 [INFO] PERF ticket_INC0397938 took 327ms
+2026-02-18 17:56:53 [INFO] [19/72] Extracting INC0396829
+2026-02-18 17:56:53 [INFO] INC0396829 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:53 [INFO] PERF ticket_INC0396829 took 500ms
+2026-02-18 17:56:53 [INFO] [20/72] Extracting INC0390677
+2026-02-18 17:56:54 [INFO] INC0390677 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:54 [INFO] PERF ticket_INC0390677 took 387ms
+2026-02-18 17:56:54 [INFO] [21/72] Extracting INC0384484
+2026-02-18 17:56:54 [INFO] INC0384484 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:54 [INFO] PERF ticket_INC0384484 took 530ms
+2026-02-18 17:56:54 [INFO] [22/72] Extracting INC0396867
+2026-02-18 17:56:55 [INFO] INC0396867 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:55 [INFO] PERF ticket_INC0396867 took 490ms
+2026-02-18 17:56:55 [INFO] [23/72] Extracting INC0393533
+2026-02-18 17:56:55 [INFO] INC0393533 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:55 [INFO] PERF ticket_INC0393533 took 487ms
+2026-02-18 17:56:55 [INFO] [24/72] Extracting INC0393530
+2026-02-18 17:56:56 [INFO] INC0393530 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:56 [INFO] PERF ticket_INC0393530 took 509ms
+2026-02-18 17:56:56 [INFO] [25/72] Extracting INC0393057
+2026-02-18 17:56:56 [INFO] INC0393057 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:56 [INFO] PERF ticket_INC0393057 took 526ms
+2026-02-18 17:56:56 [INFO] [26/72] Extracting INC0392998
+2026-02-18 17:56:57 [INFO] INC0392998 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:57 [INFO] PERF ticket_INC0392998 took 489ms
+2026-02-18 17:56:57 [INFO] [27/72] Extracting INC0386947
+2026-02-18 17:56:57 [INFO] INC0386947 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:57 [INFO] PERF ticket_INC0386947 took 504ms
+2026-02-18 17:56:58 [INFO] [28/72] Extracting INC0381429
+2026-02-18 17:56:58 [INFO] INC0381429 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:58 [INFO] PERF ticket_INC0381429 took 487ms
+2026-02-18 17:56:58 [INFO] [29/72] Extracting INC0381995
+2026-02-18 17:56:59 [INFO] INC0381995 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:59 [INFO] PERF ticket_INC0381995 took 516ms
+2026-02-18 17:56:59 [INFO] [30/72] Extracting INC0377661
+2026-02-18 17:56:59 [INFO] INC0377661 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:59 [INFO] PERF ticket_INC0377661 took 354ms
+2026-02-18 17:56:59 [INFO] [31/72] Extracting INC0376136
+2026-02-18 17:56:59 [INFO] INC0376136 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:56:59 [INFO] PERF ticket_INC0376136 took 340ms
+2026-02-18 17:56:59 [INFO] [32/72] Extracting INC0377128
+2026-02-18 17:57:00 [INFO] INC0377128 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:00 [INFO] PERF ticket_INC0377128 took 546ms
+2026-02-18 17:57:00 [INFO] [33/72] Extracting INC0376121
+2026-02-18 17:57:00 [INFO] INC0376121 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:00 [INFO] PERF ticket_INC0376121 took 497ms
+2026-02-18 17:57:00 [INFO] [34/72] Extracting INC0375309
+2026-02-18 17:57:01 [INFO] INC0375309 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:01 [INFO] PERF ticket_INC0375309 took 498ms
+2026-02-18 17:57:01 [INFO] INC0372528 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:01 [INFO] PERF ticket_INC0372528 took 452ms
+2026-02-18 17:57:01 [INFO] [36/72] Extracting INC0373224
+2026-02-18 17:57:02 [INFO] INC0373224 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:02 [INFO] PERF ticket_INC0373224 took 495ms
+2026-02-18 17:57:02 [INFO] [37/72] Extracting INC0374026
+2026-02-18 17:57:02 [INFO] INC0374026 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:02 [INFO] PERF ticket_INC0374026 took 468ms
+2026-02-18 17:57:03 [INFO] [38/72] Extracting INC0370735
+2026-02-18 17:57:03 [INFO] INC0370735 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:03 [INFO] [39/72] Extracting INC0365085
+2026-02-18 17:57:04 [INFO] INC0365085 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:04 [INFO] PERF ticket_INC0365085 took 514ms
+2026-02-18 17:57:04 [INFO] [40/72] Extracting INC0368029
+2026-02-18 17:57:04 [INFO] INC0368029 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:04 [INFO] PERF ticket_INC0368029 took 456ms
+2026-02-18 17:57:04 [INFO] [41/72] Extracting INC0370558
+2026-02-18 17:57:05 [INFO] INC0370558 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:05 [INFO] PERF ticket_INC0370558 took 479ms
+2026-02-18 17:57:05 [INFO] [42/72] Extracting INC0372344
+2026-02-18 17:57:05 [INFO] INC0372344 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:05 [INFO] PERF ticket_INC0372344 took 363ms
+2026-02-18 17:57:05 [INFO] [43/72] Extracting INC0353533
+2026-02-18 17:57:06 [INFO] INC0353533 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:06 [INFO] PERF ticket_INC0353533 took 520ms
+2026-02-18 17:57:06 [INFO] [44/72] Extracting INC0367376
+2026-02-18 17:57:06 [INFO] PERF ticket_INC0367376 took 525ms
+2026-02-18 17:57:06 [INFO] [45/72] Extracting INC0350488
+2026-02-18 17:57:07 [INFO] INC0350488 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:07 [INFO] PERF ticket_INC0350488 took 501ms
+2026-02-18 17:57:07 [INFO] [46/72] Extracting INC0346775
+2026-02-18 17:57:07 [INFO] INC0346775 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:07 [INFO] PERF ticket_INC0346775 took 505ms
+2026-02-18 17:57:07 [INFO] [47/72] Extracting INC0370773
+2026-02-18 17:57:08 [INFO] INC0370773 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:08 [INFO] PERF ticket_INC0370773 took 487ms
+2026-02-18 17:57:08 [INFO] [48/72] Extracting INC0370852
+2026-02-18 17:57:08 [INFO] INC0370852 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:08 [INFO] PERF ticket_INC0370852 took 482ms
+2026-02-18 17:57:08 [INFO] [49/72] Extracting INC0370721
+2026-02-18 17:57:09 [INFO] INC0370721 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:09 [INFO] PERF ticket_INC0370721 took 481ms
+2026-02-18 17:57:09 [INFO] [50/72] Extracting INC0357741
+2026-02-18 17:57:09 [INFO] INC0357741 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:09 [INFO] PERF ticket_INC0357741 took 393ms
+2026-02-18 17:57:09 [INFO] [51/72] Extracting INC0240792
+2026-02-18 17:57:10 [INFO] INC0240792 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:10 [INFO] PERF ticket_INC0240792 took 691ms
+2026-02-18 17:57:10 [INFO] [52/72] Extracting INC0357389
+2026-02-18 17:57:11 [INFO] INC0357389 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:57:11 [INFO] PERF ticket_INC0357389 took 612ms
+2026-02-18 17:57:11 [INFO] [53/72] Extracting INC0354452
+2026-02-18 17:57:11 [INFO] PERF ticket_INC0354452 took 421ms
+2026-02-18 17:57:11 [INFO] [54/72] Extracting RITM0395760
+2026-02-18 17:57:12 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-18 17:57:12 [INFO] PERF ticket_RITM0395760 took 745ms
+2026-02-18 17:57:12 [INFO] [55/72] Extracting RITM0400363
+2026-02-18 17:57:12 [INFO] RITM0400363 status='3' open_tasks=0
+2026-02-18 17:57:12 [INFO] PERF ticket_RITM0400363 took 496ms
+2026-02-18 17:57:12 [INFO] [56/72] Extracting RITM0400334
+2026-02-18 17:57:13 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-18 17:57:13 [INFO] PERF ticket_RITM0400334 took 544ms
+2026-02-18 17:57:13 [INFO] [57/72] Extracting RITM0429435
+2026-02-18 17:57:13 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-18 17:57:13 [INFO] PERF ticket_RITM0429435 took 386ms
+2026-02-18 17:57:13 [INFO] [58/72] Extracting RITM0430321
+2026-02-18 17:57:14 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-18 17:57:14 [INFO] PERF ticket_RITM0430321 took 327ms
+2026-02-18 17:57:14 [INFO] [59/72] Extracting RITM0430778
+2026-02-18 17:57:14 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-18 17:57:14 [INFO] PERF ticket_RITM0430778 took 515ms
+2026-02-18 17:57:14 [INFO] [60/72] Extracting RITM0400091
+2026-02-18 17:57:15 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-18 17:57:15 [INFO] PERF ticket_RITM0400091 took 477ms
+2026-02-18 17:57:15 [INFO] [61/72] Extracting RITM0400088
+2026-02-18 17:57:15 [INFO] RITM0400088 status='3' open_tasks=0
+2026-02-18 17:57:15 [INFO] PERF ticket_RITM0400088 took 535ms
+2026-02-18 17:57:15 [INFO] [62/72] Extracting RITM0420978
+2026-02-18 17:57:16 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-18 17:57:16 [INFO] PERF ticket_RITM0420978 took 528ms
+2026-02-18 17:57:16 [INFO] [63/72] Extracting RITM0405042
+2026-02-18 17:57:17 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-18 17:57:17 [INFO] PERF ticket_RITM0405042 took 503ms
+2026-02-18 17:57:17 [INFO] [64/72] Extracting RITM0433027
+2026-02-18 17:57:17 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-18 17:57:17 [INFO] PERF ticket_RITM0433027 took 546ms
+2026-02-18 17:57:17 [INFO] [65/72] Extracting RITM0433109
+2026-02-18 17:57:18 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-18 17:57:18 [INFO] PERF ticket_RITM0433109 took 545ms
+2026-02-18 17:57:18 [INFO] [66/72] Extracting RITM0433132
+2026-02-18 17:57:18 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-18 17:57:18 [INFO] [67/72] Extracting RITM0433154
+2026-02-18 17:57:19 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-18 17:57:19 [INFO] PERF ticket_RITM0433154 took 372ms
+2026-02-18 17:57:19 [INFO] [68/72] Extracting RITM0433331
+2026-02-18 17:57:19 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-18 17:57:19 [INFO] PERF ticket_RITM0433331 took 594ms
+2026-02-18 17:57:19 [INFO] [69/72] Extracting RITM0420972
+2026-02-18 17:57:20 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-18 17:57:20 [INFO] PERF ticket_RITM0420972 took 604ms
+2026-02-18 17:57:20 [INFO] [70/72] Extracting RITM0434588
+2026-02-18 17:57:21 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-18 17:57:21 [INFO] PERF ticket_RITM0434588 took 670ms
+2026-02-18 17:57:21 [INFO] [71/72] Extracting RITM0434592
+2026-02-18 17:57:21 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-18 17:57:21 [INFO] PERF ticket_RITM0434592 took 821ms
+2026-02-18 17:57:22 [INFO] [72/72] Extracting RITM0434593
+2026-02-18 17:57:22 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-18 17:57:22 [INFO] PERF ticket_RITM0434593 took 344ms
+2026-02-18 17:57:22 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_175636\tickets_export.json
+2026-02-18 17:57:22 [INFO] Writing extracted data back to Excel.
+2026-02-18 17:57:48 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 17:57:57 [INFO] ServiceNow SSO confirmed.
+2026-02-18 17:57:58 [INFO] [1/72] Extracting RITM0496748
+2026-02-18 17:57:59 [INFO] PERF ticket_RITM0496748 took 1068ms
+2026-02-18 17:57:59 [INFO] [2/72] Extracting RITM0405052
+2026-02-18 17:58:00 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-18 17:58:00 [INFO] PERF ticket_RITM0405052 took 1347ms
+2026-02-18 17:58:00 [INFO] [3/72] Extracting RITM0493120
+2026-02-18 17:58:01 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-18 17:58:01 [INFO] PERF ticket_RITM0493120 took 810ms
+2026-02-18 17:58:01 [INFO] [4/72] Extracting INC0404030
+2026-02-18 17:58:02 [INFO] INC0404030 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:02 [INFO] PERF ticket_INC0404030 took 735ms
+2026-02-18 17:58:02 [INFO] [5/72] Extracting INC0405320
+2026-02-18 17:58:02 [INFO] INC0405320 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:02 [INFO] PERF ticket_INC0405320 took 460ms
+2026-02-18 17:58:02 [INFO] [6/72] Extracting INC0404913
+2026-02-18 17:58:03 [INFO] INC0404913 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:03 [INFO] PERF ticket_INC0404913 took 521ms
+2026-02-18 17:58:03 [INFO] [7/72] Extracting INC0404662
+2026-02-18 17:58:03 [INFO] INC0404662 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:03 [INFO] PERF ticket_INC0404662 took 337ms
+2026-02-18 17:58:03 [INFO] [8/72] Extracting INC0403929
+2026-02-18 17:58:04 [INFO] INC0403929 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:04 [INFO] PERF ticket_INC0403929 took 478ms
+2026-02-18 17:58:04 [INFO] [9/72] Extracting INC0404073
+2026-02-18 17:58:04 [INFO] INC0404073 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:04 [INFO] PERF ticket_INC0404073 took 502ms
+2026-02-18 17:58:04 [INFO] [10/72] Extracting INC0398334
+2026-02-18 17:58:05 [INFO] PERF ticket_INC0398334 took 545ms
+2026-02-18 17:58:05 [INFO] [11/72] Extracting INC0400192
+2026-02-18 17:58:05 [INFO] INC0400192 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:05 [INFO] PERF ticket_INC0400192 took 338ms
+2026-02-18 17:58:05 [INFO] [12/72] Extracting INC0399952
+2026-02-18 17:58:06 [INFO] INC0399952 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:06 [INFO] PERF ticket_INC0399952 took 342ms
+2026-02-18 17:58:06 [INFO] [13/72] Extracting INC0399909
+2026-02-18 17:58:06 [INFO] INC0399909 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:06 [INFO] PERF ticket_INC0399909 took 341ms
+2026-02-18 17:58:06 [INFO] [14/72] Extracting INC0399906
+2026-02-18 17:58:06 [INFO] INC0399906 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:06 [INFO] PERF ticket_INC0399906 took 335ms
+2026-02-18 17:58:06 [INFO] [15/72] Extracting INC0398797
+2026-02-18 17:58:07 [INFO] PERF ticket_INC0398797 took 500ms
+2026-02-18 17:58:07 [INFO] [16/72] Extracting INC0399068
+2026-02-18 17:58:07 [INFO] INC0399068 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:07 [INFO] PERF ticket_INC0399068 took 518ms
+2026-02-18 17:58:07 [INFO] [17/72] Extracting INC0398566
+2026-02-18 17:58:08 [INFO] INC0398566 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:08 [INFO] PERF ticket_INC0398566 took 479ms
+2026-02-18 17:58:08 [INFO] [18/72] Extracting INC0397938
+2026-02-18 17:58:08 [INFO] INC0397938 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:08 [INFO] PERF ticket_INC0397938 took 311ms
+2026-02-18 17:58:08 [INFO] [19/72] Extracting INC0396829
+2026-02-18 17:58:09 [INFO] INC0396829 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:09 [INFO] PERF ticket_INC0396829 took 452ms
+2026-02-18 17:58:09 [INFO] [20/72] Extracting INC0390677
+2026-02-18 17:58:09 [INFO] INC0390677 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:09 [INFO] PERF ticket_INC0390677 took 356ms
+2026-02-18 17:58:09 [INFO] [21/72] Extracting INC0384484
+2026-02-18 17:58:10 [INFO] INC0384484 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:10 [INFO] PERF ticket_INC0384484 took 459ms
+2026-02-18 17:58:10 [INFO] [22/72] Extracting INC0396867
+2026-02-18 17:58:10 [INFO] INC0396867 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:10 [INFO] PERF ticket_INC0396867 took 460ms
+2026-02-18 17:58:10 [INFO] [23/72] Extracting INC0393533
+2026-02-18 17:58:11 [INFO] INC0393533 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:11 [INFO] PERF ticket_INC0393533 took 508ms
+2026-02-18 17:58:11 [INFO] [24/72] Extracting INC0393530
+2026-02-18 17:58:11 [INFO] INC0393530 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:11 [INFO] PERF ticket_INC0393530 took 515ms
+2026-02-18 17:58:11 [INFO] [25/72] Extracting INC0393057
+2026-02-18 17:58:12 [INFO] INC0393057 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:12 [INFO] PERF ticket_INC0393057 took 535ms
+2026-02-18 17:58:12 [INFO] [26/72] Extracting INC0392998
+2026-02-18 17:58:12 [INFO] INC0392998 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:12 [INFO] PERF ticket_INC0392998 took 511ms
+2026-02-18 17:58:12 [INFO] [27/72] Extracting INC0386947
+2026-02-18 17:58:13 [INFO] INC0386947 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:13 [INFO] [28/72] Extracting INC0381429
+2026-02-18 17:58:13 [INFO] INC0381429 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:13 [INFO] PERF ticket_INC0381429 took 470ms
+2026-02-18 17:58:14 [INFO] [29/72] Extracting INC0381995
+2026-02-18 17:58:14 [INFO] PERF ticket_INC0381995 took 477ms
+2026-02-18 17:58:14 [INFO] [30/72] Extracting INC0377661
+2026-02-18 17:58:14 [INFO] INC0377661 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:14 [INFO] PERF ticket_INC0377661 took 351ms
+2026-02-18 17:58:14 [INFO] [31/72] Extracting INC0376136
+2026-02-18 17:58:15 [INFO] INC0376136 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:15 [INFO] PERF ticket_INC0376136 took 347ms
+2026-02-18 17:58:15 [INFO] [32/72] Extracting INC0377128
+2026-02-18 17:58:15 [INFO] INC0377128 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:15 [INFO] PERF ticket_INC0377128 took 487ms
+2026-02-18 17:58:15 [INFO] [33/72] Extracting INC0376121
+2026-02-18 17:58:16 [INFO] INC0376121 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:16 [INFO] PERF ticket_INC0376121 took 468ms
+2026-02-18 17:58:16 [INFO] [34/72] Extracting INC0375309
+2026-02-18 17:58:16 [INFO] INC0375309 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:16 [INFO] PERF ticket_INC0375309 took 473ms
+2026-02-18 17:58:16 [INFO] [35/72] Extracting INC0372528
+2026-02-18 17:58:17 [INFO] INC0372528 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:17 [INFO] PERF ticket_INC0372528 took 552ms
+2026-02-18 17:58:17 [INFO] [36/72] Extracting INC0373224
+2026-02-18 17:58:17 [INFO] INC0373224 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:17 [INFO] PERF ticket_INC0373224 took 524ms
+2026-02-18 17:58:17 [INFO] [37/72] Extracting INC0374026
+2026-02-18 17:58:18 [INFO] INC0374026 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:18 [INFO] PERF ticket_INC0374026 took 452ms
+2026-02-18 17:58:18 [INFO] [38/72] Extracting INC0370735
+2026-02-18 17:58:18 [INFO] INC0370735 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:18 [INFO] PERF ticket_INC0370735 took 465ms
+2026-02-18 17:58:18 [INFO] [39/72] Extracting INC0365085
+2026-02-18 17:58:19 [INFO] INC0365085 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:19 [INFO] [40/72] Extracting INC0368029
+2026-02-18 17:58:19 [INFO] INC0368029 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:19 [INFO] PERF ticket_INC0368029 took 457ms
+2026-02-18 17:58:20 [INFO] [41/72] Extracting INC0370558
+2026-02-18 17:58:20 [INFO] INC0370558 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:20 [INFO] [42/72] Extracting INC0372344
+2026-02-18 17:58:20 [INFO] INC0372344 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:20 [INFO] PERF ticket_INC0372344 took 333ms
+2026-02-18 17:58:20 [INFO] [43/72] Extracting INC0353533
+2026-02-18 17:58:21 [INFO] INC0353533 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:21 [INFO] PERF ticket_INC0353533 took 518ms
+2026-02-18 17:58:21 [INFO] [44/72] Extracting INC0367376
+2026-02-18 17:58:22 [INFO] INC0367376 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:22 [INFO] PERF ticket_INC0367376 took 555ms
+2026-02-18 17:58:22 [INFO] [45/72] Extracting INC0350488
+2026-02-18 17:58:22 [INFO] INC0350488 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:22 [INFO] PERF ticket_INC0350488 took 514ms
+2026-02-18 17:58:22 [INFO] [46/72] Extracting INC0346775
+2026-02-18 17:58:23 [INFO] INC0346775 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:23 [INFO] PERF ticket_INC0346775 took 558ms
+2026-02-18 17:58:23 [INFO] [47/72] Extracting INC0370773
+2026-02-18 17:58:23 [INFO] INC0370773 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:23 [INFO] PERF ticket_INC0370773 took 714ms
+2026-02-18 17:58:24 [INFO] [48/72] Extracting INC0370852
+2026-02-18 17:58:24 [INFO] INC0370852 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:24 [INFO] [49/72] Extracting INC0370721
+2026-02-18 17:58:25 [INFO] INC0370721 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:25 [INFO] PERF ticket_INC0370721 took 530ms
+2026-02-18 17:58:25 [INFO] [50/72] Extracting INC0357741
+2026-02-18 17:58:25 [INFO] INC0357741 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:25 [INFO] PERF ticket_INC0357741 took 368ms
+2026-02-18 17:58:26 [INFO] INC0240792 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:26 [INFO] PERF ticket_INC0240792 took 566ms
+2026-02-18 17:58:26 [INFO] [52/72] Extracting INC0357389
+2026-02-18 17:58:26 [INFO] INC0357389 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:26 [INFO] PERF ticket_INC0357389 took 467ms
+2026-02-18 17:58:26 [INFO] [53/72] Extracting INC0354452
+2026-02-18 17:58:27 [INFO] INC0354452 status='Abgeschlossen' open_tasks=0
+2026-02-18 17:58:27 [INFO] PERF ticket_INC0354452 took 396ms
+2026-02-18 17:58:27 [INFO] [54/72] Extracting RITM0395760
+2026-02-18 17:58:27 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-18 17:58:27 [INFO] PERF ticket_RITM0395760 took 637ms
+2026-02-18 17:58:27 [INFO] [55/72] Extracting RITM0400363
+2026-02-18 17:58:28 [INFO] RITM0400363 status='3' open_tasks=0
+2026-02-18 17:58:28 [INFO] PERF ticket_RITM0400363 took 525ms
+2026-02-18 17:58:28 [INFO] [56/72] Extracting RITM0400334
+2026-02-18 17:58:28 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-18 17:58:28 [INFO] PERF ticket_RITM0400334 took 520ms
+2026-02-18 17:58:28 [INFO] [57/72] Extracting RITM0429435
+2026-02-18 17:58:29 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-18 17:58:29 [INFO] PERF ticket_RITM0429435 took 358ms
+2026-02-18 17:58:29 [INFO] [58/72] Extracting RITM0430321
+2026-02-18 17:58:29 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-18 17:58:29 [INFO] PERF ticket_RITM0430321 took 350ms
+2026-02-18 17:58:29 [INFO] [59/72] Extracting RITM0430778
+2026-02-18 17:58:30 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-18 17:58:30 [INFO] PERF ticket_RITM0430778 took 518ms
+2026-02-18 17:58:30 [INFO] [60/72] Extracting RITM0400091
+2026-02-18 17:58:30 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-18 17:58:31 [INFO] PERF ticket_RITM0400091 took 783ms
+2026-02-18 17:58:31 [INFO] [61/72] Extracting RITM0400088
+2026-02-18 17:58:31 [INFO] RITM0400088 status='3' open_tasks=0
+2026-02-18 17:58:31 [INFO] PERF ticket_RITM0400088 took 518ms
+2026-02-18 17:58:31 [INFO] [62/72] Extracting RITM0420978
+2026-02-18 17:58:32 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-18 17:58:32 [INFO] PERF ticket_RITM0420978 took 537ms
+2026-02-18 17:58:32 [INFO] [63/72] Extracting RITM0405042
+2026-02-18 17:58:32 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-18 17:58:32 [INFO] PERF ticket_RITM0405042 took 439ms
+2026-02-18 17:58:32 [INFO] [64/72] Extracting RITM0433027
+2026-02-18 17:58:33 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-18 17:58:33 [INFO] PERF ticket_RITM0433027 took 479ms
+2026-02-18 17:58:33 [INFO] [65/72] Extracting RITM0433109
+2026-02-18 17:58:33 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-18 17:58:33 [INFO] [66/72] Extracting RITM0433132
+2026-02-18 17:58:34 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-18 17:58:34 [INFO] PERF ticket_RITM0433132 took 491ms
+2026-02-18 17:58:34 [INFO] [67/72] Extracting RITM0433154
+2026-02-18 17:58:34 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-18 17:58:34 [INFO] PERF ticket_RITM0433154 took 321ms
+2026-02-18 17:58:34 [INFO] [68/72] Extracting RITM0433331
+2026-02-18 17:58:34 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-18 17:58:34 [INFO] PERF ticket_RITM0433331 took 440ms
+2026-02-18 17:58:35 [INFO] [69/72] Extracting RITM0420972
+2026-02-18 17:58:35 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-18 17:58:35 [INFO] PERF ticket_RITM0420972 took 482ms
+2026-02-18 17:58:35 [INFO] [70/72] Extracting RITM0434588
+2026-02-18 17:58:36 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-18 17:58:36 [INFO] PERF ticket_RITM0434588 took 636ms
+2026-02-18 17:58:36 [INFO] [71/72] Extracting RITM0434592
+2026-02-18 17:58:36 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-18 17:58:36 [INFO] PERF ticket_RITM0434592 took 739ms
+2026-02-18 17:58:37 [INFO] [72/72] Extracting RITM0434593
+2026-02-18 17:58:37 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-18 17:58:37 [INFO] PERF ticket_RITM0434593 took 341ms
+2026-02-18 17:58:37 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_175747\tickets_export.json
+2026-02-18 17:58:37 [INFO] Writing extracted data back to Excel.
+2026-02-18 17:58:43 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_175747\tickets_export.json
+2026-02-18 18:17:25 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 18:17:28 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
+2026-02-18 18:17:30 [INFO] ServiceNow SSO confirmed.
+2026-02-18 18:17:30 [INFO] [1/22] Extracting RITM0496748
+2026-02-18 18:17:32 [INFO] RITM0496748 status='1' open_tasks=1
+2026-02-18 18:17:32 [INFO] PERF ticket_RITM0496748 took 2471ms
+2026-02-18 18:17:32 [INFO] [2/22] Extracting RITM0405052
+2026-02-18 18:17:33 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-18 18:17:33 [INFO] PERF ticket_RITM0405052 took 808ms
+2026-02-18 18:17:33 [INFO] [3/22] Extracting RITM0493120
+2026-02-18 18:17:34 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-18 18:17:34 [INFO] PERF ticket_RITM0493120 took 1143ms
+2026-02-18 18:17:34 [INFO] [4/22] Extracting RITM0395760
+2026-02-18 18:17:35 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-18 18:17:35 [INFO] PERF ticket_RITM0395760 took 1167ms
+2026-02-18 18:17:35 [INFO] [5/22] Extracting RITM0400363
+2026-02-18 18:17:36 [INFO] RITM0400363 status='3' open_tasks=0
+2026-02-18 18:17:36 [INFO] PERF ticket_RITM0400363 took 1043ms
+2026-02-18 18:17:36 [INFO] [6/22] Extracting RITM0400334
+2026-02-18 18:17:37 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-18 18:17:37 [INFO] PERF ticket_RITM0400334 took 533ms
+2026-02-18 18:17:37 [INFO] [7/22] Extracting RITM0429435
+2026-02-18 18:17:37 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-18 18:17:37 [INFO] PERF ticket_RITM0429435 took 351ms
+2026-02-18 18:17:37 [INFO] [8/22] Extracting RITM0430321
+2026-02-18 18:17:38 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-18 18:17:38 [INFO] PERF ticket_RITM0430321 took 387ms
+2026-02-18 18:17:38 [INFO] [9/22] Extracting RITM0430778
+2026-02-18 18:17:38 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-18 18:17:38 [INFO] PERF ticket_RITM0430778 took 466ms
+2026-02-18 18:17:38 [INFO] [10/22] Extracting RITM0400091
+2026-02-18 18:17:39 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-18 18:17:39 [INFO] PERF ticket_RITM0400091 took 485ms
+2026-02-18 18:17:39 [INFO] [11/22] Extracting RITM0400088
+2026-02-18 18:17:39 [INFO] RITM0400088 status='3' open_tasks=0
+2026-02-18 18:17:39 [INFO] PERF ticket_RITM0400088 took 472ms
+2026-02-18 18:17:39 [INFO] [12/22] Extracting RITM0420978
+2026-02-18 18:17:40 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-18 18:17:40 [INFO] PERF ticket_RITM0420978 took 495ms
+2026-02-18 18:17:40 [INFO] [13/22] Extracting RITM0405042
+2026-02-18 18:17:40 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-18 18:17:40 [INFO] PERF ticket_RITM0405042 took 494ms
+2026-02-18 18:17:40 [INFO] [14/22] Extracting RITM0433027
+2026-02-18 18:17:41 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-18 18:17:41 [INFO] PERF ticket_RITM0433027 took 484ms
+2026-02-18 18:17:41 [INFO] [15/22] Extracting RITM0433109
+2026-02-18 18:17:41 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-18 18:17:41 [INFO] PERF ticket_RITM0433109 took 451ms
+2026-02-18 18:17:41 [INFO] [16/22] Extracting RITM0433132
+2026-02-18 18:17:42 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-18 18:17:42 [INFO] PERF ticket_RITM0433132 took 450ms
+2026-02-18 18:17:42 [INFO] [17/22] Extracting RITM0433154
+2026-02-18 18:17:42 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-18 18:17:42 [INFO] PERF ticket_RITM0433154 took 343ms
+2026-02-18 18:17:43 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-18 18:17:43 [INFO] PERF ticket_RITM0433331 took 410ms
+2026-02-18 18:17:43 [INFO] [19/22] Extracting RITM0420972
+2026-02-18 18:17:43 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-18 18:17:43 [INFO] PERF ticket_RITM0420972 took 471ms
+2026-02-18 18:17:43 [INFO] [20/22] Extracting RITM0434588
+2026-02-18 18:17:44 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-18 18:17:44 [INFO] PERF ticket_RITM0434588 took 578ms
+2026-02-18 18:17:44 [INFO] [21/22] Extracting RITM0434592
+2026-02-18 18:17:45 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-18 18:17:45 [INFO] PERF ticket_RITM0434592 took 887ms
+2026-02-18 18:17:45 [INFO] [22/22] Extracting RITM0434593
+2026-02-18 18:17:45 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-18 18:17:45 [INFO] PERF ticket_RITM0434593 took 323ms
+2026-02-18 18:17:45 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_181725\tickets_export.json
+2026-02-18 18:17:45 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_181725\tickets_export.json
+2026-02-18 18:20:57 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 18:21:06 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
+2026-02-18 18:21:09 [INFO] ServiceNow SSO confirmed.
+2026-02-18 18:21:09 [INFO] [1/22] Extracting RITM0496748
+2026-02-18 18:21:10 [INFO] RITM0496748 status='1' open_tasks=1
+2026-02-18 18:21:10 [INFO] PERF ticket_RITM0496748 took 1143ms
+2026-02-18 18:21:10 [INFO] [2/22] Extracting RITM0405052
+2026-02-18 18:21:12 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-18 18:21:12 [INFO] PERF ticket_RITM0405052 took 1542ms
+2026-02-18 18:21:12 [INFO] [3/22] Extracting RITM0493120
+2026-02-18 18:21:13 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-18 18:21:13 [INFO] PERF ticket_RITM0493120 took 1055ms
+2026-02-18 18:21:13 [INFO] [4/22] Extracting RITM0395760
+2026-02-18 18:21:14 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-18 18:21:14 [INFO] PERF ticket_RITM0395760 took 753ms
+2026-02-18 18:21:14 [INFO] [5/22] Extracting RITM0400363
+2026-02-18 18:21:14 [INFO] RITM0400363 status='3' open_tasks=0
+2026-02-18 18:21:14 [INFO] PERF ticket_RITM0400363 took 440ms
+2026-02-18 18:21:14 [INFO] [6/22] Extracting RITM0400334
+2026-02-18 18:21:15 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-18 18:21:15 [INFO] PERF ticket_RITM0400334 took 519ms
+2026-02-18 18:21:15 [INFO] [7/22] Extracting RITM0429435
+2026-02-18 18:21:15 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-18 18:21:15 [INFO] PERF ticket_RITM0429435 took 356ms
+2026-02-18 18:21:15 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-18 18:21:15 [INFO] PERF ticket_RITM0430321 took 361ms
+2026-02-18 18:21:15 [INFO] [9/22] Extracting RITM0430778
+2026-02-18 18:21:16 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-18 18:21:16 [INFO] PERF ticket_RITM0430778 took 515ms
+2026-02-18 18:21:16 [INFO] [10/22] Extracting RITM0400091
+2026-02-18 18:21:16 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-18 18:21:17 [INFO] PERF ticket_RITM0400091 took 526ms
+2026-02-18 18:21:17 [INFO] [11/22] Extracting RITM0400088
+2026-02-18 18:21:17 [INFO] RITM0400088 status='3' open_tasks=0
+2026-02-18 18:21:17 [INFO] [12/22] Extracting RITM0420978
+2026-02-18 18:21:18 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-18 18:21:18 [INFO] PERF ticket_RITM0420978 took 816ms
+2026-02-18 18:21:18 [INFO] [13/22] Extracting RITM0405042
+2026-02-18 18:21:18 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-18 18:21:18 [INFO] PERF ticket_RITM0405042 took 512ms
+2026-02-18 18:21:18 [INFO] [14/22] Extracting RITM0433027
+2026-02-18 18:21:19 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-18 18:21:19 [INFO] PERF ticket_RITM0433027 took 542ms
+2026-02-18 18:21:20 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-18 18:21:20 [INFO] PERF ticket_RITM0433109 took 647ms
+2026-02-18 18:21:20 [INFO] [16/22] Extracting RITM0433132
+2026-02-18 18:21:20 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-18 18:21:20 [INFO] PERF ticket_RITM0433132 took 516ms
+2026-02-18 18:21:20 [INFO] [17/22] Extracting RITM0433154
+2026-02-18 18:21:21 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-18 18:21:21 [INFO] PERF ticket_RITM0433154 took 349ms
+2026-02-18 18:21:21 [INFO] [18/22] Extracting RITM0433331
+2026-02-18 18:21:21 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-18 18:21:21 [INFO] PERF ticket_RITM0433331 took 505ms
+2026-02-18 18:21:21 [INFO] [19/22] Extracting RITM0420972
+2026-02-18 18:21:22 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-18 18:21:22 [INFO] PERF ticket_RITM0420972 took 538ms
+2026-02-18 18:21:22 [INFO] [20/22] Extracting RITM0434588
+2026-02-18 18:21:22 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-18 18:21:22 [INFO] PERF ticket_RITM0434588 took 629ms
+2026-02-18 18:21:23 [INFO] [21/22] Extracting RITM0434592
+2026-02-18 18:21:23 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-18 18:21:23 [INFO] PERF ticket_RITM0434592 took 840ms
+2026-02-18 18:21:23 [INFO] [22/22] Extracting RITM0434593
+2026-02-18 18:21:24 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-18 18:21:24 [INFO] PERF ticket_RITM0434593 took 401ms
+2026-02-18 18:21:24 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_182057\tickets_export.json
+2026-02-18 18:21:24 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_182057\tickets_export.json
+2026-02-18 21:06:23 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 21:06:25 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
+2026-02-18 21:06:26 [INFO] ServiceNow SSO confirmed.
+2026-02-18 21:06:26 [INFO] [1/22] Extracting RITM0496748
+2026-02-18 21:06:28 [INFO] RITM0496748 status='1' open_tasks=1
+2026-02-18 21:06:28 [INFO] PERF ticket_RITM0496748 took 2126ms
+2026-02-18 21:06:28 [INFO] [2/22] Extracting RITM0405052
+2026-02-18 21:06:29 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-18 21:06:29 [INFO] PERF ticket_RITM0405052 took 638ms
+2026-02-18 21:06:29 [INFO] [3/22] Extracting RITM0493120
+2026-02-18 21:06:30 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-18 21:06:30 [INFO] PERF ticket_RITM0493120 took 1047ms
+2026-02-18 21:06:30 [INFO] [4/22] Extracting RITM0395760
+2026-02-18 21:06:31 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-18 21:06:31 [INFO] PERF ticket_RITM0395760 took 1327ms
+2026-02-18 21:06:31 [INFO] [5/22] Extracting RITM0400363
+2026-02-18 21:06:32 [INFO] RITM0400363 status='3' open_tasks=0
+2026-02-18 21:06:32 [INFO] PERF ticket_RITM0400363 took 543ms
+2026-02-18 21:06:32 [INFO] [6/22] Extracting RITM0400334
+2026-02-18 21:06:32 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-18 21:06:32 [INFO] PERF ticket_RITM0400334 took 471ms
+2026-02-18 21:06:33 [INFO] [7/22] Extracting RITM0429435
+2026-02-18 21:06:33 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-18 21:06:33 [INFO] PERF ticket_RITM0429435 took 332ms
+2026-02-18 21:06:33 [INFO] [8/22] Extracting RITM0430321
+2026-02-18 21:06:33 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-18 21:06:33 [INFO] PERF ticket_RITM0430321 took 327ms
+2026-02-18 21:06:33 [INFO] [9/22] Extracting RITM0430778
+2026-02-18 21:06:34 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-18 21:06:34 [INFO] PERF ticket_RITM0430778 took 506ms
+2026-02-18 21:06:34 [INFO] [10/22] Extracting RITM0400091
+2026-02-18 21:06:34 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-18 21:06:34 [INFO] PERF ticket_RITM0400091 took 491ms
+2026-02-18 21:06:34 [INFO] [11/22] Extracting RITM0400088
+2026-02-18 21:06:35 [INFO] RITM0400088 status='3' open_tasks=0
+2026-02-18 21:06:35 [INFO] PERF ticket_RITM0400088 took 520ms
+2026-02-18 21:06:35 [INFO] [12/22] Extracting RITM0420978
+2026-02-18 21:06:35 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-18 21:06:35 [INFO] PERF ticket_RITM0420978 took 448ms
+2026-02-18 21:06:35 [INFO] [13/22] Extracting RITM0405042
+2026-02-18 21:06:36 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-18 21:06:36 [INFO] PERF ticket_RITM0405042 took 475ms
+2026-02-18 21:06:36 [INFO] [14/22] Extracting RITM0433027
+2026-02-18 21:06:36 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-18 21:06:36 [INFO] PERF ticket_RITM0433027 took 468ms
+2026-02-18 21:06:36 [INFO] [15/22] Extracting RITM0433109
+2026-02-18 21:06:37 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-18 21:06:37 [INFO] PERF ticket_RITM0433109 took 456ms
+2026-02-18 21:06:37 [INFO] [16/22] Extracting RITM0433132
+2026-02-18 21:06:37 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-18 21:06:37 [INFO] PERF ticket_RITM0433132 took 486ms
+2026-02-18 21:06:37 [INFO] [17/22] Extracting RITM0433154
+2026-02-18 21:06:38 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-18 21:06:38 [INFO] PERF ticket_RITM0433154 took 340ms
+2026-02-18 21:06:38 [INFO] [18/22] Extracting RITM0433331
+2026-02-18 21:06:38 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-18 21:06:38 [INFO] PERF ticket_RITM0433331 took 468ms
+2026-02-18 21:06:38 [INFO] [19/22] Extracting RITM0420972
+2026-02-18 21:06:39 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-18 21:06:39 [INFO] PERF ticket_RITM0420972 took 468ms
+2026-02-18 21:06:39 [INFO] [20/22] Extracting RITM0434588
+2026-02-18 21:06:39 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-18 21:06:39 [INFO] PERF ticket_RITM0434588 took 571ms
+2026-02-18 21:06:39 [INFO] [21/22] Extracting RITM0434592
+2026-02-18 21:06:40 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-18 21:06:40 [INFO] PERF ticket_RITM0434592 took 852ms
+2026-02-18 21:06:40 [INFO] [22/22] Extracting RITM0434593
+2026-02-18 21:06:41 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-18 21:06:41 [INFO] PERF ticket_RITM0434593 took 359ms
+2026-02-18 21:06:41 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_210622\tickets_export.json
+2026-02-18 21:06:41 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_210622\tickets_export.json
+2026-02-18 21:08:29 [INFO] Dashboard search query='' => 79 row(s)
+2026-02-18 21:36:13 [INFO] Generating documents from '.\Reception_ITequipment.docx'
+2026-02-18 21:36:45 [INFO] Dashboard search query='a' => 68 row(s)
+2026-02-18 21:36:50 [ERROR] The term 'if' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+2026-02-18 21:37:23 [INFO] Generating documents from '.\Reception_ITequipment.docx'
+2026-02-18 21:37:45 [ERROR] Sorry, we couldn't find your file. Was it moved, renamed, or deleted? ("C:\...\RITM0496748_Juan Carlos DIOS...")
+2026-02-18 21:38:07 [INFO] Generating documents from '.\Reception_ITequipment.docx'
+2026-02-18 21:38:20 [ERROR] Sorry, we couldn't find your file. Was it moved, renamed, or deleted? ("C:\...\RITM0496748_Juan Carlos DIOS...")
+2026-02-18 21:38:44 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-18 21:38:57 [ERROR] Cannot bind argument to parameter 'Value' because it is an empty string.
+2026-02-18 21:39:07 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-18 21:39:33 [INFO] Document generation completed. Files=29
+2026-02-18 21:39:33 [ERROR] Argument types do not match
+2026-02-18 21:40:05 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-18 21:40:30 [INFO] Document generation completed. Files=29
+2026-02-18 21:48:29 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-18 21:48:30 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
+2026-02-18 21:48:31 [INFO] ServiceNow SSO confirmed.
+2026-02-18 21:48:31 [INFO] [1/22] Extracting RITM0496748
+2026-02-18 21:48:33 [WARN] RITM0496748 extraction failed: not_found
+2026-02-18 21:48:33 [INFO] PERF ticket_RITM0496748 took 2145ms
+2026-02-18 21:48:33 [INFO] [2/22] Extracting RITM0405052
+2026-02-18 21:48:35 [WARN] RITM0405052 extraction failed: not_found
+2026-02-18 21:48:35 [INFO] PERF ticket_RITM0405052 took 2040ms
+2026-02-18 21:48:35 [INFO] [3/22] Extracting RITM0493120
+2026-02-18 21:48:38 [WARN] RITM0493120 extraction failed: not_found
+2026-02-18 21:48:38 [INFO] PERF ticket_RITM0493120 took 2232ms
+2026-02-18 21:48:38 [INFO] [4/22] Extracting RITM0395760
+2026-02-18 21:48:40 [WARN] RITM0395760 extraction failed: not_found
+2026-02-18 21:48:40 [INFO] PERF ticket_RITM0395760 took 2167ms
+2026-02-18 21:48:40 [INFO] [5/22] Extracting RITM0400363
+2026-02-18 21:48:42 [WARN] RITM0400363 extraction failed: not_found
+2026-02-18 21:48:42 [INFO] PERF ticket_RITM0400363 took 2213ms
+2026-02-18 21:48:42 [INFO] [6/22] Extracting RITM0400334
+2026-02-18 21:48:44 [WARN] RITM0400334 extraction failed: not_found
+2026-02-18 21:48:44 [INFO] PERF ticket_RITM0400334 took 2218ms
+2026-02-18 21:48:44 [INFO] [7/22] Extracting RITM0429435
+2026-02-18 21:48:47 [WARN] RITM0429435 extraction failed: not_found
+2026-02-18 21:48:47 [INFO] PERF ticket_RITM0429435 took 2252ms
+2026-02-18 21:48:47 [INFO] [8/22] Extracting RITM0430321
+2026-02-18 21:48:49 [WARN] RITM0430321 extraction failed: not_found
+2026-02-18 21:48:49 [INFO] PERF ticket_RITM0430321 took 2212ms
+2026-02-18 21:48:49 [INFO] [9/22] Extracting RITM0430778
+2026-02-18 21:48:51 [WARN] RITM0430778 extraction failed: not_found
+2026-02-18 21:48:51 [INFO] PERF ticket_RITM0430778 took 2252ms
+2026-02-18 21:48:51 [INFO] [10/22] Extracting RITM0400091
+2026-02-18 21:48:53 [WARN] RITM0400091 extraction failed: not_found
+2026-02-18 21:48:53 [INFO] PERF ticket_RITM0400091 took 2168ms
+2026-02-18 21:48:53 [INFO] [11/22] Extracting RITM0400088
+2026-02-18 21:48:56 [WARN] RITM0400088 extraction failed: not_found
+2026-02-18 21:48:56 [INFO] PERF ticket_RITM0400088 took 2223ms
+2026-02-18 21:48:56 [INFO] [12/22] Extracting RITM0420978
+2026-02-18 21:48:58 [WARN] RITM0420978 extraction failed: not_found
+2026-02-18 21:48:58 [INFO] PERF ticket_RITM0420978 took 2230ms
+2026-02-18 21:48:58 [INFO] [13/22] Extracting RITM0405042
+2026-02-18 21:49:00 [WARN] RITM0405042 extraction failed: not_found
+2026-02-18 21:49:00 [INFO] PERF ticket_RITM0405042 took 2234ms
+2026-02-18 21:49:00 [INFO] [14/22] Extracting RITM0433027
+2026-02-18 21:49:02 [WARN] RITM0433027 extraction failed: not_found
+2026-02-18 21:49:02 [INFO] PERF ticket_RITM0433027 took 2234ms
+2026-02-18 21:49:02 [INFO] [15/22] Extracting RITM0433109
+2026-02-18 21:49:05 [WARN] RITM0433109 extraction failed: not_found
+2026-02-18 21:49:05 [INFO] PERF ticket_RITM0433109 took 2253ms
+2026-02-18 21:49:05 [INFO] [16/22] Extracting RITM0433132
+2026-02-18 21:49:07 [WARN] RITM0433132 extraction failed: not_found
+2026-02-18 21:49:07 [INFO] PERF ticket_RITM0433132 took 2228ms
+2026-02-18 21:49:07 [INFO] [17/22] Extracting RITM0433154
+2026-02-18 21:49:09 [WARN] RITM0433154 extraction failed: not_found
+2026-02-18 21:49:09 [INFO] PERF ticket_RITM0433154 took 2236ms
+2026-02-18 21:49:09 [INFO] [18/22] Extracting RITM0433331
+2026-02-18 21:49:11 [WARN] RITM0433331 extraction failed: not_found
+2026-02-18 21:49:11 [INFO] PERF ticket_RITM0433331 took 2233ms
+2026-02-18 21:49:11 [INFO] [19/22] Extracting RITM0420972
+2026-02-18 21:49:14 [WARN] RITM0420972 extraction failed: not_found
+2026-02-18 21:49:14 [INFO] PERF ticket_RITM0420972 took 2243ms
+2026-02-18 21:49:14 [INFO] [20/22] Extracting RITM0434588
+2026-02-18 21:49:16 [WARN] RITM0434588 extraction failed: not_found
+2026-02-18 21:49:16 [INFO] PERF ticket_RITM0434588 took 2192ms
+2026-02-18 21:49:16 [INFO] [21/22] Extracting RITM0434592
+2026-02-18 21:49:18 [WARN] RITM0434592 extraction failed: not_found
+2026-02-18 21:49:18 [INFO] PERF ticket_RITM0434592 took 2229ms
+2026-02-18 21:49:18 [INFO] [22/22] Extracting RITM0434593
+2026-02-18 21:49:20 [WARN] RITM0434593 extraction failed: not_found
+2026-02-18 21:49:20 [INFO] PERF ticket_RITM0434593 took 2234ms
+2026-02-18 21:49:20 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_214829\tickets_export.json
+2026-02-18 21:49:20 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260218_214829\tickets_export.json

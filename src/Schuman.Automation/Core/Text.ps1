@@ -18,7 +18,11 @@ function Test-ClosedState {
   $value = ("" + $StateValue).Trim().ToLowerInvariant()
 
   if ($value -in @('3','4','7')) { return $true }
+  if ($label -in @('3','4','7')) { return $true }
+  if ($value -match 'closed|complete|resolved|cancel') { return $true }
   if ($label -match 'closed|complete|resolved|cancel') { return $true }
+  if ($label -match 'cerrad|complet|resuelt|cancelad') { return $true }
+  if ($label -match 'ferm|chius|annul') { return $true }
   return $false
 }
 

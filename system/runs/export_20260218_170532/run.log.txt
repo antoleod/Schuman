@@ -1,5 +1,0 @@
-﻿2026-02-18 17:05:32 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:05:34 [INFO] Tickets queued: total=72, filtered=22, scope=Auto
-2026-02-18 17:05:35 [INFO] ServiceNow SSO confirmed.
-2026-02-18 17:05:35 [INFO] [1/22] Extracting RITM0496748
-2026-02-18 17:05:37 [ERROR] The property 'Count' cannot be found on this object. Verify that the property exists.

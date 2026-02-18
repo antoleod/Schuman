@@ -1,3 +1,0 @@
-﻿2026-02-18 17:04:03 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
-2026-02-18 17:04:04 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
-2026-02-18 17:04:04 [ERROR] Cannot change thread mode after it is set. (Exception from HRESULT: 0x80010106 (RPC_E_CHANGED_MODE))

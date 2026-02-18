@@ -23,7 +23,8 @@ function Invoke-TicketExportWorkflow {
   $tickets = Read-TicketsFromExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
     -StopAfterEmptyRows $Config.Excel.StopScanAfterEmptyRows -MaxRowsAfterFirstTicket $Config.Excel.MaxRowsAfterFirstTicket
 
-  if ($tickets.Count -eq 0) {
+  $ticketList = @($tickets)
+  if ($ticketList.Count -eq 0) {
     Write-RunLog -RunContext $RunContext -Level WARN -Message 'No tickets found in Excel.'
     return [pscustomobject]@{
       Results = @()
@@ -31,12 +32,12 @@ function Invoke-TicketExportWorkflow {
     }
   }
 
-  $filtered = Apply-ProcessingScope -Tickets $tickets -Scope $ProcessingScope
+  $filtered = @(Apply-ProcessingScope -Tickets $ticketList -Scope $ProcessingScope)
   if ($MaxTickets -gt 0 -and $filtered.Count -gt $MaxTickets) {
     $filtered = @($filtered | Select-Object -First $MaxTickets)
   }
 
-  Write-RunLog -RunContext $RunContext -Level INFO -Message "Tickets queued: total=$($tickets.Count), filtered=$($filtered.Count), scope=$ProcessingScope"
+  Write-RunLog -RunContext $RunContext -Level INFO -Message "Tickets queued: total=$($ticketList.Count), filtered=$($filtered.Count), scope=$ProcessingScope"
 
   $session = $null
   $results = New-Object System.Collections.Generic.List[object]
@@ -80,7 +81,7 @@ function Invoke-TicketExportWorkflow {
   }
 
   return [pscustomobject]@{
-    Results = @($results)
+    Results = @($results.ToArray())
     CombinedJsonPath = $combinedJsonPath
   }
 }

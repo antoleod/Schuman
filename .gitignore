@@ -1,0 +1,10 @@
+﻿# Runtime artifacts
+system/runs/
+system/logs/history.log
+
+# Office temp/lock files
+~$*.xlsx
+~$*.docx
+
+# Local transient logs
+*.history.log

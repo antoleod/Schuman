@@ -1,5 +1,23 @@
 ﻿Set-StrictMode -Version Latest
 
+function Get-SafeCount {
+  param($Object)
+  if ($null -eq $Object) { return 0 }
+  $countProp = $Object.PSObject.Properties['Count']
+  if ($countProp) {
+    try { return [int]$countProp.Value } catch {}
+  }
+  $lengthProp = $Object.PSObject.Properties['Length']
+  if ($lengthProp) {
+    try { return [int]$lengthProp.Value } catch {}
+  }
+  if ($Object -is [System.Collections.IEnumerable] -and -not ($Object -is [string])) {
+    $c = 0
+    foreach ($nullItem in $Object) { $c++ }
+    return $c
+  }
+  return 1
+}
 function Invoke-WithExcelWorkbook {
   param(
     [Parameter(Mandatory = $true)][string]$ExcelPath,
@@ -100,7 +118,11 @@ function Read-TicketsFromExcel {
       }
 
       $xlUp = -4162
-      $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ticketCol).End($xlUp).Row
+      $rows = 0
+      try { $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ticketCol).End($xlUp).Row } catch {}
+      if ($rows -le 0) {
+        try { $rows = [int]($ws.UsedRange.Row + $ws.UsedRange.Rows.Count - 1) } catch { $rows = 0 }
+      }
       if ($rows -lt 2) { return }
 
       $range = $ws.Range($ws.Cells.Item(2, $ticketCol), $ws.Cells.Item($rows, $ticketCol))
@@ -169,28 +191,38 @@ function Write-TicketResultsToExcel {
       $tasksCol = Get-OrCreateHeaderColumn -Worksheet $ws -HeaderMap $map -Header $SCTasksHeader
 
       $xlUp = -4162
-      $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ticketCol).End($xlUp).Row
+      $rows = 0
+      try { $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ticketCol).End($xlUp).Row } catch {}
+      if ($rows -le 0) {
+        try { $rows = [int]($ws.UsedRange.Row + $ws.UsedRange.Rows.Count - 1) } catch { $rows = 0 }
+      }
+      if ($rows -le 1) { return }
       for ($r = 2; $r -le $rows; $r++) {
         $ticket = ("" + $ws.Cells.Item($r, $ticketCol).Text).Trim().ToUpperInvariant()
         if (-not $ResultByTicket.ContainsKey($ticket)) { continue }
 
         $res = $ResultByTicket[$ticket]
-        if ($res.affected_user) {
+        $affectedUser = if ($res.PSObject.Properties['affected_user']) { ("" + $res.affected_user).Trim() } else { '' }
+        if ($affectedUser) {
           $current = ("" + $ws.Cells.Item($r, $nameCol).Text).Trim()
           if ([string]::IsNullOrWhiteSpace($current) -or $current -eq $ticket) {
-            $ws.Cells.Item($r, $nameCol) = $res.affected_user
+            $ws.Cells.Item($r, $nameCol) = $affectedUser
           }
         }
 
-        if ($res.detected_pi_machine) {
+        $detectedPi = if ($res.PSObject.Properties['detected_pi_machine']) { ("" + $res.detected_pi_machine).Trim() } else { '' }
+        if ($detectedPi) {
           $current = ("" + $ws.Cells.Item($r, $phoneCol).Text).Trim()
           if ([string]::IsNullOrWhiteSpace($current) -or $current -eq $ticket) {
-            $ws.Cells.Item($r, $phoneCol) = $res.detected_pi_machine
+            $ws.Cells.Item($r, $phoneCol) = $detectedPi
           }
         }
 
-        $ws.Cells.Item($r, $actionCol) = $res.completion_status
-        if ($res.open_task_numbers) { $ws.Cells.Item($r, $tasksCol) = ($res.open_task_numbers -join ', ') }
+        $completion = if ($res.PSObject.Properties['completion_status']) { ("" + $res.completion_status).Trim() } else { 'Pending' }
+        $ws.Cells.Item($r, $actionCol) = $completion
+
+        $openTaskNumbers = if ($res.PSObject.Properties['open_task_numbers']) { @($res.open_task_numbers) } else { @() }
+        $ws.Cells.Item($r, $tasksCol) = if ((Get-SafeCount $openTaskNumbers) -gt 0) { ($openTaskNumbers -join ', ') } else { '' }
       }
 
       $wb.Save()
@@ -313,3 +345,5 @@ function Update-DashboardRow {
     }
   }
 }
+
+

@@ -1,2 +1,0 @@
-﻿2026-02-18 16:39:06 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
-2026-02-18 16:39:13 [ERROR] The term 'if' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.

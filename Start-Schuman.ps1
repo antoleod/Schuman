@@ -1,6 +1,6 @@
 ﻿#Requires -Version 5.1
-$dashboard = Join-Path $PSScriptRoot 'Schuman-Dashboard.ps1'
-if (-not (Test-Path -LiteralPath $dashboard)) {
-  throw "Schuman-Dashboard.ps1 not found: $dashboard"
+$main = Join-Path $PSScriptRoot 'src\Schuman.Automation\Main.ps1'
+if (-not (Test-Path -LiteralPath $main)) {
+  throw "Main UI not found: $main"
 }
-& $dashboard
+& $main

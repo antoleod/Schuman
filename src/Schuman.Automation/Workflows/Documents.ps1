@@ -14,6 +14,8 @@ function Invoke-DocumentGenerationWorkflow {
   if (-not $SheetName) { $SheetName = $Config.Excel.DefaultSheet }
   if (-not $TemplatePath) { $TemplatePath = Join-Path (Split-Path -Parent $Config.Output.SystemRoot) $Config.Documents.TemplateFile }
   if (-not $OutputDirectory) { $OutputDirectory = Join-Path (Split-Path -Parent $Config.Output.SystemRoot) $Config.Documents.OutputFolder }
+  $TemplatePath = [System.IO.Path]::GetFullPath($TemplatePath)
+  $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
 
   if (-not (Test-Path -LiteralPath $TemplatePath)) {
     throw "Word template not found: $TemplatePath"
@@ -38,9 +40,10 @@ function Invoke-DocumentGenerationWorkflow {
     $word.DisplayAlerts = 0
 
     foreach ($row in $targets) {
-      $safeName = Get-SafeFileName -Text (if ($row.RequestedFor) { $row.RequestedFor } else { $row.RITM })
+      $nameSource = if ($row.RequestedFor) { $row.RequestedFor } else { $row.RITM }
+      $safeName = Get-SafeFileName -Text $nameSource
       $baseFile = "{0}_{1}" -f $row.RITM, $safeName
-      $docxPath = Join-Path $OutputDirectory ("$baseFile.docx")
+      $docxPath = [System.IO.Path]::GetFullPath((Join-Path $OutputDirectory ("$baseFile.docx")))
 
       $doc = $null
       try {
@@ -56,7 +59,7 @@ function Invoke-DocumentGenerationWorkflow {
 
         $pdfPath = ''
         if ($ExportPdf) {
-          $pdfPath = Join-Path $OutputDirectory ("$baseFile.pdf")
+          $pdfPath = [System.IO.Path]::GetFullPath((Join-Path $OutputDirectory ("$baseFile.pdf")))
           $wdFormatPDF = 17
           $doc.SaveAs([ref]$pdfPath, [ref]$wdFormatPDF)
         }
@@ -81,14 +84,14 @@ function Invoke-DocumentGenerationWorkflow {
   }
 
   Write-RunLog -RunContext $RunContext -Level INFO -Message "Document generation completed. Files=$($generated.Count)"
-  return @($generated)
+  return @($generated.ToArray())
 }
 
 function Set-WordPlaceholder {
   param(
     [Parameter(Mandatory = $true)]$Document,
     [Parameter(Mandatory = $true)][string]$Placeholder,
-    [Parameter(Mandatory = $true)][string]$Value
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
   )
 
   $find = $Document.Content.Find
@@ -111,6 +114,12 @@ function Get-SafeFileName {
   foreach ($ch in $invalid) {
     $name = $name.Replace($ch, '_')
   }
+
+  $name = [System.Text.RegularExpressions.Regex]::Replace($name, '\s+', ' ').Trim()
+  if ($name.Length -gt 80) {
+    $name = $name.Substring(0, 80).Trim()
+  }
+  if (-not $name) { $name = 'Unknown' }
 
   return $name
 }
