@@ -11,7 +11,7 @@ param(
   [string]$ExcelPath = (Join-Path $PSScriptRoot "Schuman List.xlsx"),
   [string]$TemplatePath = (Join-Path $PSScriptRoot "Reception_ITequipment.docx"),
   [string]$OutDir = (Join-Path $PSScriptRoot "WORD files"),
-  [string]$LogPath = (Join-Path $PSScriptRoot "Generate-Schuman-Words.log"),
+  [string]$LogPath = (Join-Path (Join-Path $PSScriptRoot "system\\logs") "Generate-Schuman-Words.log"),
   [string]$PreferredSheet = "BRU",
   [string]$AutoExcelScript = (Join-Path $PSScriptRoot "auto-excel.ps1"),
   [string]$DashboardScript = (Join-Path $PSScriptRoot "dashboard-checkin-checkout.ps1"),
@@ -31,6 +31,15 @@ $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 
+$SystemRoot = Join-Path $PSScriptRoot "system"
+$SystemLogsDir = Join-Path $SystemRoot "logs"
+$SystemDbDir = Join-Path $SystemRoot "db"
+$SystemRunsDir = Join-Path $SystemRoot "runs"
+New-Item -ItemType Directory -Force -Path $SystemRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $SystemLogsDir | Out-Null
+New-Item -ItemType Directory -Force -Path $SystemDbDir | Out-Null
+New-Item -ItemType Directory -Force -Path $SystemRunsDir | Out-Null
+
 # ----------------------------
 # Config
 # ----------------------------
@@ -41,11 +50,23 @@ Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 # ----------------------------
 function Write-Log([string]$Message) {
   try {
+    $dir = Split-Path -Path $LogPath -Parent
+    if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
     $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Add-Content -LiteralPath $LogPath -Value "[$ts] $Message" -Encoding UTF8
   } catch {
     # swallow - log must never kill the app
   }
+}
+
+function Write-PerfLog {
+  param(
+    [string]$Label,
+    [System.Diagnostics.Stopwatch]$Timer
+  )
+  if (-not $Timer) { return }
+  $Timer.Stop()
+  Write-Log ("PERF {0} took {1}ms" -f $Label, [int64]$Timer.Elapsed.TotalMilliseconds)
 }
 
 function Resolve-ExcelPath {
@@ -138,6 +159,7 @@ function Invoke-AutoExcelWithLoading {
   $idx = 0
   $cancelRequested = $false
   $startedAt = [datetime]::Now
+  $swInvoke = [System.Diagnostics.Stopwatch]::StartNew()
 
   $btnCancel.Add_Click({
     $cancelRequested = $true
@@ -206,9 +228,22 @@ function Invoke-AutoExcelWithLoading {
       Start-Sleep -Milliseconds 120
     }
 
-    [void]$ps.EndInvoke($handle)
+    $outData = @($ps.EndInvoke($handle))
+    foreach ($o in $outData) {
+      if ($null -eq $o) { continue }
+      $txt = ("" + $o).Trim()
+      if (-not [string]::IsNullOrWhiteSpace($txt)) {
+        Write-Log "[auto-excel/output] $txt"
+      }
+    }
+    foreach ($e in @($ps.Streams.Error)) {
+      $et = ("" + $e).Trim()
+      if ($et) { Write-Log "[auto-excel/error] $et" }
+    }
+    Write-Log "auto-excel pre-step completed successfully."
   }
   finally {
+    Write-PerfLog -Label ("auto_excel_pre_step_{0}" -f $Mode) -Timer $swInvoke
     try { if ($ps) { $ps.Dispose() } } catch {}
     try { if ($rs) { $rs.Close(); $rs.Dispose() } } catch {}
     try { if ($loading) { $loading.Close(); $loading.Dispose() } } catch {}
@@ -217,32 +252,19 @@ function Invoke-AutoExcelWithLoading {
 
 try {
   $ExcelPath = Resolve-ExcelPath -CurrentExcelPath $ExcelPath
-
-  if (-not (Test-Path -LiteralPath $AutoExcelScript)) {
-    Write-Log "auto-excel.ps1 was not found. Please place it next to Generate-pdf.ps1."
-    Write-Host "ERROR: auto-excel.ps1 was not found. Please place it next to Generate-pdf.ps1."
-    return
-  }
-
   if ($AutoExcelMode -eq "None") {
-    Write-Log "Skipping auto-excel pre-step by request (AutoExcelMode=None)."
+    $AutoExcelMode = "Turbo"
+    Write-Log "AutoExcelMode=None overridden to Turbo (mandatory SSO/update verification)."
   }
-  else {
-    Write-Log "Running auto-excel.ps1 before PDF generation. Mode=$AutoExcelMode Scope=$AutoExcelScope MaxTickets=$AutoExcelMaxTickets Timeout=${AutoExcelTimeoutMinutes}m"
-    Invoke-AutoExcelWithLoading -ScriptPath $AutoExcelScript -ExcelPath $ExcelPath -SheetName $PreferredSheet -Mode $AutoExcelMode -Scope $AutoExcelScope -MaxTickets $AutoExcelMaxTickets -TimeoutMinutes $AutoExcelTimeoutMinutes
-  }
+  Write-Log "Auto-excel pre-sync is deferred to Start click. Mode=$AutoExcelMode Scope=$AutoExcelScope MaxTickets=$AutoExcelMaxTickets Timeout=${AutoExcelTimeoutMinutes}m"
 }
 catch {
   $err = "" + $_.Exception.Message
-  Write-Log ("Autofill failed: " + $err)
-  if ($err -match 'SSO session is required|SSO not confirmed|ServiceNow SSO session is required') {
-    Write-Host "ERROR: ServiceNow login is required. Please complete SSO login and run again."
-  } else {
-    Write-Host "ERROR: Autofill failed. PDFs were not generated. Check the log."
-  }
+  Write-Log ("Startup failed: " + $err)
+  Write-Host "ERROR: Startup failed. Check the log."
   return
 }
-Write-Log "Excel is ready. Choose DOCX/PDF and click Generate Documents."
+Write-Log "UI ready. Choose DOCX/PDF and click Generate Documents."
 
 # ----------------------------
 # Preflight (UI will also show message)
@@ -341,9 +363,9 @@ $root.Dock = "Fill"
 $root.Padding = New-Object Windows.Forms.Padding(16,16,16,16)
 $root.RowCount = 3
 $root.ColumnCount = 1
-$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
-$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100)))
-$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+[void]$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+[void]$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100)))
+[void]$root.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
 $form.Controls.Add($root)
 
 # Header card
@@ -357,10 +379,10 @@ $headerGrid = New-Object Windows.Forms.TableLayoutPanel
 $headerGrid.Dock = "Fill"
 $headerGrid.ColumnCount = 2
 $headerGrid.RowCount = 2
-$headerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 70)))
-$headerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 30)))
-$headerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
-$headerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+[void]$headerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 70)))
+[void]$headerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 30)))
+[void]$headerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
+[void]$headerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::AutoSize)))
 $headerCard.Controls.Add($headerGrid)
 
 $lblTitle = New-Object Windows.Forms.Label
@@ -418,8 +440,8 @@ $centerGrid = New-Object Windows.Forms.TableLayoutPanel
 $centerGrid.Dock = "Fill"
 $centerGrid.ColumnCount = 1
 $centerGrid.RowCount = 2
-$centerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Absolute, 20)))
-$centerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100)))
+[void]$centerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Absolute, 20)))
+[void]$centerGrid.RowStyles.Add((New-Object Windows.Forms.RowStyle([Windows.Forms.SizeType]::Percent, 100)))
 $root.Controls.Add($centerGrid, 0, 1)
 
 $progressHost = New-Object Windows.Forms.Panel
@@ -500,8 +522,8 @@ $footerGrid = New-Object Windows.Forms.TableLayoutPanel
 $footerGrid.Dock = "Fill"
 $footerGrid.ColumnCount = 2
 $footerGrid.RowCount = 1
-$footerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 100)))
-$footerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::AutoSize)))
+[void]$footerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::Percent, 100)))
+[void]$footerGrid.ColumnStyles.Add((New-Object Windows.Forms.ColumnStyle([Windows.Forms.SizeType]::AutoSize)))
 $footer.Controls.Add($footerGrid)
 
 $buttonFlow = New-Object Windows.Forms.FlowLayoutPanel
@@ -1226,8 +1248,14 @@ $script:WorkerLogic = {
   $excelCalc = $null
   $saved=0; $skipped=0; $errors=0; $total=0
   $templateInspected = $false
+  $rowLoopMsTotal = [int64]0
+  $rowLoopCount = 0
+  $rowLoopMaxMs = [int64]0
+  $rowLoopMaxRow = 0
 
   try {
+    $swRunWorker = [System.Diagnostics.Stopwatch]::StartNew()
+    $swStage = [System.Diagnostics.Stopwatch]::StartNew()
     if (-not (Test-Path -LiteralPath $Config.ExcelPath)) { throw "Missing Excel: $($Config.ExcelPath)" }
     if (-not (Test-Path -LiteralPath $Config.TemplatePath)) { throw "Missing template: $($Config.TemplatePath)" }
     New-Item -ItemType Directory -Force -Path $Config.OutDir | Out-Null
@@ -1283,7 +1311,10 @@ $script:WorkerLogic = {
 
     if(-not $nameCol){ WriteLog $Config.LogPath "Header 'Name' not found. FieldDisplayName will be left blank." }
     if(-not $piCol){ WriteLog $Config.LogPath "Header 'PI' not found. FieldPINumber will be left blank." }
+    $swStage.Stop()
+    WriteLog $Config.LogPath ("PERF worker_excel_open_headers took " + [int64]$swStage.Elapsed.TotalMilliseconds + "ms")
 
+    $swStage = [System.Diagnostics.Stopwatch]::StartNew()
     $used = $sheet.UsedRange
     $lastRow = $used.Row + $used.Rows.Count - 1
     $total = [Math]::Max(0, $lastRow - 1)
@@ -1299,10 +1330,13 @@ $script:WorkerLogic = {
       if ($piCol) { $piVals = $sheet.Range($sheet.Cells.Item(2, $piCol), $sheet.Cells.Item($lastRow, $piCol)).Value2 }
       if ($equipCol) { $equipVals = $sheet.Range($sheet.Cells.Item(2, $equipCol), $sheet.Cells.Item($lastRow, $equipCol)).Value2 }
     }
+    $swStage.Stop()
+    WriteLog $Config.LogPath ("PERF worker_excel_range_prefetch took " + [int64]$swStage.Elapsed.TotalMilliseconds + "ms")
 
     $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Init"; Total=$total })
     $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=0; Skipped=0; Errors=0 })
 
+    $swStage = [System.Diagnostics.Stopwatch]::StartNew()
     $SyncHash.Status = "Opening Word"
     if(-not $fast){ WriteLog $Config.LogPath "Opening Word" }
     $word = New-Object -ComObject Word.Application
@@ -1323,7 +1357,10 @@ $script:WorkerLogic = {
       $word.AutomationSecurity = 3
     } catch {}
     if(-not $fast){ WriteLog $Config.LogPath "Word opened" }
+    $swStage.Stop()
+    WriteLog $Config.LogPath ("PERF worker_word_open took " + [int64]$swStage.Elapsed.TotalMilliseconds + "ms")
 
+    $swRows = [System.Diagnostics.Stopwatch]::StartNew()
     # En modo Turbo, abrimos la plantilla una sola vez y la mantenemos en memoria ($templateDoc).
     # Para cada fila, copiamos el contenido de $templateDoc a un documento nuevo en blanco.
     if($Config.TurboMode){
@@ -1342,6 +1379,7 @@ $script:WorkerLogic = {
     }
 
     for($r=2;$r -le $lastRow;$r++){
+      $swRow = [System.Diagnostics.Stopwatch]::StartNew()
       if($SyncHash.Cancel){ break }
       $ri = $r - 1
 
@@ -1536,17 +1574,32 @@ $script:WorkerLogic = {
         $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowDone"; Row=$r; File=$fileName; Ok=$false; Error=$_.Exception.Message; Message="Error" })
       }
 
+      $swRow.Stop()
+      $rowMs = [int64]$swRow.Elapsed.TotalMilliseconds
+      $rowLoopMsTotal += $rowMs
+      $rowLoopCount++
+      if ($rowMs -gt $rowLoopMaxMs) { $rowLoopMaxMs = $rowMs; $rowLoopMaxRow = $r }
+
       $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=$saved; Skipped=$skipped; Errors=$errors })
     }
+    $swRows.Stop()
+    WriteLog $Config.LogPath ("PERF worker_rows_loop took " + [int64]$swRows.Elapsed.TotalMilliseconds + "ms")
 
+    $swStage = [System.Diagnostics.Stopwatch]::StartNew()
     try {
       $wb.Save()
       WriteLog $Config.LogPath "Excel saved"
     } catch {
       WriteLog $Config.LogPath ("Excel save failed: " + $_.Exception.Message)
     }
+    $swStage.Stop()
+    WriteLog $Config.LogPath ("PERF worker_excel_save took " + [int64]$swStage.Elapsed.TotalMilliseconds + "ms")
 
     $SyncHash.Result = [pscustomobject]@{ Total=$total; Saved=$saved; Skipped=$skipped; Errors=$errors }
+    $avgRowMs = if ($rowLoopCount -gt 0) { [int64]($rowLoopMsTotal / $rowLoopCount) } else { 0 }
+    WriteLog $Config.LogPath ("PERF worker_row_summary rows=" + $rowLoopCount + " avg_ms=" + $avgRowMs + " max_ms=" + $rowLoopMaxMs + " max_row=" + $rowLoopMaxRow)
+    $swRunWorker.Stop()
+    WriteLog $Config.LogPath ("PERF worker_total took " + [int64]$swRunWorker.Elapsed.TotalMilliseconds + "ms")
     WriteLog $Config.LogPath "=== RUN END === Total=$total Saved=$saved Skipped=$skipped Errors=$errors"
   }
   catch {
@@ -1694,6 +1747,29 @@ $btnStart.Add_Click({
     $lblStatusText.Text = "Select at least one output: DOCX or PDF."
     Set-StatusPill -text "Error" -state "error"
     Append-Log "Validation failed: Select at least one output: DOCX or PDF."
+    return
+  }
+
+  if (-not (Test-Path -LiteralPath $AutoExcelScript)) {
+    $lblStatusText.Text = "auto-excel.ps1 not found: $AutoExcelScript"
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "auto-excel.ps1 not found: $AutoExcelScript"
+    return
+  }
+  $lblStatusText.Text = "Syncing changes from ServiceNow..."
+  Set-StatusPill -text "Syncing" -state "running"
+  Append-Log "Running mandatory auto-excel pre-sync (Mode=$AutoExcelMode Scope=$AutoExcelScope MaxTickets=$AutoExcelMaxTickets)"
+  try {
+    $swPrefill = [System.Diagnostics.Stopwatch]::StartNew()
+    Invoke-AutoExcelWithLoading -ScriptPath $AutoExcelScript -ExcelPath $ExcelPath -SheetName $PreferredSheet -Mode $AutoExcelMode -Scope $AutoExcelScope -MaxTickets $AutoExcelMaxTickets -TimeoutMinutes $AutoExcelTimeoutMinutes
+    Write-PerfLog -Label "prefill_and_sync" -Timer $swPrefill
+    Append-Log "Pre-sync completed."
+  }
+  catch {
+    $err = "" + $_.Exception.Message
+    $lblStatusText.Text = "Pre-sync failed: $err"
+    Set-StatusPill -text "Error" -state "error"
+    Append-Log "Pre-sync failed: $err"
     return
   }
 

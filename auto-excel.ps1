@@ -49,7 +49,7 @@ param(
   # >>> CHANGE DEFAULT EXCEL NAME HERE if the planning file is renamed again <<<
   [string]$DefaultExcelName = "Schuman List.xlsx",
   [string]$DefaultStartDir = $PSScriptRoot,
-  [string]$RitmScanDbPath = (Join-Path $PSScriptRoot "ritm-scan-db.json")
+  [string]$RitmScanDbPath = (Join-Path (Join-Path $PSScriptRoot "system\db") "ritm-scan-db.json")
 )
 
 # ----------------------------
@@ -185,14 +185,22 @@ if ($NoUiFallback) {
 # ----------------------------
 # Create a unique per-run folder under %TEMP% so multiple runs don't overwrite each other.
 $RunId  = Get-Date -Format "yyyyMMdd_HHmmss"
-$OutDir = Join-Path $env:TEMP "SNOW_Tickets_Export_$RunId"
+$SystemRoot = Join-Path $PSScriptRoot "system"
+$SystemLogsDir = Join-Path $SystemRoot "logs"
+$SystemDbDir = Join-Path $SystemRoot "db"
+$SystemRunsDir = Join-Path $SystemRoot "runs"
+$OutDir = Join-Path $SystemRunsDir "SNOW_Tickets_Export_$RunId"
 
-# Ensure output folder exists.
+# Ensure system folders exist.
+New-Item -ItemType Directory -Force -Path $SystemRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $SystemLogsDir | Out-Null
+New-Item -ItemType Directory -Force -Path $SystemDbDir | Out-Null
+New-Item -ItemType Directory -Force -Path $SystemRunsDir | Out-Null
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 # Log file path.
 $LogPath = Join-Path $OutDir "run.log.txt"
-$HistoryLogPath = Join-Path $PSScriptRoot "auto-excel.history.log"
+$HistoryLogPath = Join-Path $SystemLogsDir "auto-excel.history.log"
 $ScriptBuildTag = "auto-excel build 2026-02-17 18:30 inc-hold-status-ux"
 $DashboardDefaultCheckInNote = "Deliver all credentials to the new user"
 $DashboardDefaultCheckOutNote = "Laptop has been delivered.`r`nFirst login made with the user.`r`nOutlook, Teams and Jabber successfully tested."
@@ -209,13 +217,26 @@ function Log([string]$level, [string]$msg) {
   # Build a timestamped log line.
   $line = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [$level] $msg"
 
-  # Console output for visibility.
-  Write-Host $line
-
   # Also write to run log file (best effort; do not crash if file write fails).
   try { Add-Content -Path $LogPath -Value $line } catch {}
   # Persistent history across runs.
   try { Add-Content -Path $HistoryLogPath -Value $line } catch {}
+}
+
+function Start-PerfTimer {
+  return [System.Diagnostics.Stopwatch]::StartNew()
+}
+
+function Stop-PerfTimer {
+  param(
+    [System.Diagnostics.Stopwatch]$Timer,
+    [string]$Label
+  )
+  if (-not $Timer) { return 0 }
+  $Timer.Stop()
+  $ms = [int64]$Timer.Elapsed.TotalMilliseconds
+  Log "INFO" "PERF $Label took ${ms}ms"
+  return $ms
 }
 
 function Close-ExcelProcessesIfRequested {
@@ -4786,6 +4807,10 @@ function Save-RitmScanDatabase {
     [string]$LastSuccessfulScanUtc = ""
   )
   try {
+    $dir = Split-Path -Path $Path -Parent
+    if (-not [string]::IsNullOrWhiteSpace($dir)) {
+      New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
     $items = @()
     foreach ($k in @($Map.Keys | Sort-Object)) {
       $items += $Map[$k]
@@ -5886,20 +5911,27 @@ function Extract-Ticket_JSONv2 {
 $session = $null
 
 try {
+  $swRun = Start-PerfTimer
   # 1) Load WebView2 DLLs from Teams add-in
+  $swStage = Start-PerfTimer
   Load-WebView2FromTeams
+  [void](Stop-PerfTimer -Timer $swStage -Label "load_webview2")
 
   # 2) Select Excel file
+  $swStage = Start-PerfTimer
   $ExcelPath = Pick-ExcelFile -ExcelPath $ExcelPath -DefaultStartDir $DefaultStartDir -DefaultExcelName $DefaultExcelName
   Log "INFO" "Excel selected: $ExcelPath"
+  [void](Stop-PerfTimer -Timer $swStage -Label "pick_excel")
 
   # 3) Interactive SSO login, then keep WebView2 session
+  $swStage = Start-PerfTimer
   $session = Connect-ServiceNowSSO -StartUrl $LoginUrl
   $wv = $session.Wv
   if (-not (Ensure-SnowReady -wv $wv -MaxWaitMs 12000)) {
     Log "ERROR" "SNOW session not ready after SSO. Interactive login is required."
     throw "ServiceNow SSO session is required. Please complete login and try again."
   }
+  [void](Stop-PerfTimer -Timer $swStage -Label "connect_sso")
 
   # Dashboard mode is isolated and does not run export logic.
   if ($DashboardMode) {
@@ -5909,8 +5941,10 @@ try {
   }
 
   # 4) Read tickets list from Excel
+  $swStage = Start-PerfTimer
   $tickets = Read-TicketsFromExcel -ExcelPath $ExcelPath -TicketHeader $TicketHeader -SheetName $SheetName -TicketColumn $TicketColumn
   Log "INFO" "Tickets found: $($tickets.Count)"
+  [void](Stop-PerfTimer -Timer $swStage -Label "read_tickets_excel")
 
   if ($tickets.Count -eq 0) {
     throw "No valid tickets found in Excel (INC/RITM/SCTASK + 6-8 digits)."
@@ -5960,15 +5994,27 @@ try {
   $userDisplayCache = @{}
   $baseEnableActivitySearch = $EnableActivityStreamSearch
   $baseEnableUiFallbackActivitySearch = $EnableUiFallbackActivitySearch
+  $ticketLoopMsTotal = [int64]0
+  $ticketLoopMaxMs = [int64]0
+  $ticketLoopMaxId = ""
+  $ticketsSkippedIncremental = 0
+  $ticketsProcessedFull = 0
+
+  $swStage = Start-PerfTimer
   $ritmScanDb = Load-RitmScanDatabase -Path $RitmScanDbPath
   Log "INFO" "Incremental scan DB loaded entries=$($ritmScanDb.Count) last_successful_scan_utc='$script:RitmScanDbLastSuccessfulUtc'"
+  [void](Stop-PerfTimer -Timer $swStage -Label "load_incremental_db")
+
   $stateLabelCache = @{}
   if ($TurboMode) {
+    $swStage = Start-PerfTimer
     $stateLabelCache = Get-StateLabelCacheFromSnow -wv $wv
     Log "INFO" "Turbo: state label cache loaded tables=$($stateLabelCache.Keys.Count)"
+    [void](Stop-PerfTimer -Timer $swStage -Label "load_state_cache")
   }
 
   if ($TurboMode -and -not [string]::IsNullOrWhiteSpace($script:RitmScanDbLastSuccessfulUtc)) {
+    $swStage = Start-PerfTimer
     $changed = @{}
     $ritmChangedDirect = @(Get-RitmNumbersUpdatedSince -wv $wv -SinceUtc $script:RitmScanDbLastSuccessfulUtc)
     foreach ($x in $ritmChangedDirect) { $changed[(("" + $x).Trim().ToUpperInvariant())] = $true }
@@ -5995,9 +6041,11 @@ try {
     }
     $tickets = @($filtered.ToArray())
     Log "INFO" "Turbo prefilter applied since='$script:RitmScanDbLastSuccessfulUtc' direct_changes=$($ritmChangedDirect.Count) task_changes=$($ritmChangedFromTasks.Count) skipped=$prefilterSkipped remaining=$($tickets.Count)"
+    [void](Stop-PerfTimer -Timer $swStage -Label "turbo_prefilter")
   }
 
   foreach ($t in $tickets) {
+    $swTicket = Start-PerfTimer
     $i++
     Log "INFO" "[$i/$($tickets.Count)] Open + extract: $t"
 
@@ -6052,6 +6100,10 @@ try {
           $jsonPer = ($r | ConvertTo-Json -Depth 6) -replace '\\u0027', "'"
           Set-Content -Path $perPath -Value $jsonPer -Encoding UTF8
         }
+        $ticketsSkippedIncremental++
+        $ticketMs = [int64](Stop-PerfTimer -Timer $swTicket -Label "ticket_$t")
+        $ticketLoopMsTotal += $ticketMs
+        if ($ticketMs -gt $ticketLoopMaxMs) { $ticketLoopMaxMs = $ticketMs; $ticketLoopMaxId = $t }
         $results.Add($r) | Out-Null
         continue
       }
@@ -6339,30 +6391,44 @@ try {
     }
 
     # Add to in-memory list for combined export + write-back map
+    $ticketsProcessedFull++
+    $ticketMs = [int64](Stop-PerfTimer -Timer $swTicket -Label "ticket_$t")
+    $ticketLoopMsTotal += $ticketMs
+    if ($ticketMs -gt $ticketLoopMaxMs) { $ticketLoopMaxMs = $ticketMs; $ticketLoopMaxId = $t }
     $results.Add($r) | Out-Null
   }
   $EnableActivityStreamSearch = $baseEnableActivitySearch
   $EnableUiFallbackActivitySearch = $baseEnableUiFallbackActivitySearch
 
   # 6) Save combined JSON
+  $swStage = Start-PerfTimer
   $jsonAll = ($results | ConvertTo-Json -Depth 6) -replace '\\u0027', "'"
   Set-Content -Path $AllJson -Value $jsonAll -Encoding UTF8
   Log "INFO" "ALL JSON: $AllJson"
   Log "INFO" "DONE. Logs: $LogPath"
+  [void](Stop-PerfTimer -Timer $swStage -Label "save_combined_json")
 
   # 7) Optional write-back to Excel
   if ($WriteBackExcel) {
+    $swStage = Start-PerfTimer
     # Build a map ticket -> result object
     $map = @{}
     foreach ($r in $results) { $map[$r.ticket] = $r }
 
     Write-BackToExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
       -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ResultMap $map
+    [void](Stop-PerfTimer -Timer $swStage -Label "writeback_excel")
   }
 
   $script:RitmScanRunSuccessful = $true
   $script:RitmScanDbLastSuccessfulUtc = Convert-ToUtcStampText -UtcDate (Get-Date).ToUniversalTime()
+  $swStage = Start-PerfTimer
   [void](Save-RitmScanDatabase -Path $RitmScanDbPath -Map $ritmScanDb -LastSuccessfulScanUtc $script:RitmScanDbLastSuccessfulUtc)
+  [void](Stop-PerfTimer -Timer $swStage -Label "save_incremental_db")
+
+  $avgTicketMs = if ($tickets.Count -gt 0) { [int64]($ticketLoopMsTotal / $tickets.Count) } else { 0 }
+  Log "INFO" "PERF ticket_summary total=$($tickets.Count) full=$ticketsProcessedFull skipped_incremental=$ticketsSkippedIncremental avg_ms=$avgTicketMs max_ms=$ticketLoopMaxMs max_ticket='$ticketLoopMaxId'"
+  [void](Stop-PerfTimer -Timer $swRun -Label "run_total")
 
   # 8) Final success popup
   if (-not $NoPopups) {

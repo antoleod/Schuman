@@ -822,3 +822,8 @@
 [2026-02-18 08:56:43] Excel is ready. Choose DOCX/PDF and click Generate Documents.
 [2026-02-18 08:57:44] Running auto-excel.ps1 before PDF generation. Mode=Smart Scope=RitmOnly MaxTickets=0 Timeout=20m
 [2026-02-18 08:57:45] Excel is ready. Choose DOCX/PDF and click Generate Documents.
+[2026-02-18 09:41:40] Running auto-excel.ps1 before PDF generation. Mode=Turbo Scope=RitmOnly MaxTickets=0 Timeout=20m
+[2026-02-18 09:41:41] auto-excel pre-step completed successfully.
+[2026-02-18 09:41:41] PERF auto_excel_pre_step_Turbo took 288ms
+[2026-02-18 09:41:41] PERF prefill_and_sync took 489ms
+[2026-02-18 09:41:41] Excel is ready. Choose DOCX/PDF and click Generate Documents.
