@@ -1,0 +1,1 @@
+﻿2026-02-18 16:34:44 [ERROR] Argument types do not match

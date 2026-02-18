@@ -1,33 +1,24 @@
-# =============================================================================
-# Dashboard Launcher (UIX)
-# =============================================================================
-# Dedicated entry point for Check-in / Check-out dashboard mode.
-# It reuses auto-excel.ps1 with -DashboardMode so export flow is not triggered.
-
+﻿#Requires -Version 5.1
 param(
-  [string]$ExcelPath = (Join-Path $PSScriptRoot "Schuman List.xlsx"),
-  [string]$SheetName = "BRU",
-  [ValidateSet("Turbo","Smart","Quick","Full")]
-  [string]$PreSyncMode = "Turbo"
+  [string]$ExcelPath = (Join-Path $PSScriptRoot 'Schuman List.xlsx'),
+  [string]$SheetName = 'BRU',
+  [ValidateSet('Turbo','Smart','Quick','Full')]
+  [string]$PreSyncMode = 'Turbo'
 )
 
-$target = Join-Path $PSScriptRoot "auto-excel.ps1"
-if (-not (Test-Path -LiteralPath $target)) {
-  throw "auto-excel.ps1 not found at: $target"
+$entry = Join-Path $PSScriptRoot 'Invoke-Schuman.ps1'
+if (-not (Test-Path -LiteralPath $entry)) {
+  throw "Invoke-Schuman.ps1 not found: $entry"
 }
 
-Write-Host "Running mandatory pre-sync before dashboard (mode=$PreSyncMode)..."
-$preArgs = @("-NoPopups", "-ExcelPath", $ExcelPath, "-SheetName", $SheetName, "-ProcessingScope", "RitmOnly")
-switch ($PreSyncMode) {
-  "Quick" { $preArgs += "-QuickMode" }
-  "Smart" { $preArgs += "-SmartMode" }
-  "Turbo" { $preArgs += "-TurboMode" }
-  default { }
-}
-& $target @preArgs
+# Keep mandatory pre-sync behavior.
+$maxTickets = 0
+$scope = 'RitmOnly'
+if ($PreSyncMode -eq 'Quick') { $maxTickets = 30 }
+
+& $entry -Operation Export -ExcelPath $ExcelPath -SheetName $SheetName -ProcessingScope $scope -MaxTickets $maxTickets -NoPopups
 if (($LASTEXITCODE -ne $null) -and ($LASTEXITCODE -ne 0)) {
-  throw "Mandatory pre-sync failed (exit code $LASTEXITCODE). Dashboard was not started."
+  throw "Pre-sync failed (exit code $LASTEXITCODE)."
 }
 
-Write-Host "Pre-sync OK. Launching dashboard..."
-& $target -DashboardMode -ExcelPath $ExcelPath -SheetName $SheetName
+& $entry -Operation DashboardSearch -ExcelPath $ExcelPath -SheetName $SheetName
