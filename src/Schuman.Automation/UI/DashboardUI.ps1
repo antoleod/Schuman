@@ -5,7 +5,8 @@ function New-DashboardUI {
     [Parameter(Mandatory = $true)][string]$ExcelPath,
     [string]$SheetName = 'BRU',
     [Parameter(Mandatory = $true)][hashtable]$Config,
-    [Parameter(Mandatory = $true)][hashtable]$RunContext
+    [Parameter(Mandatory = $true)][hashtable]$RunContext,
+    $InitialSession = $null
   )
 
   $fontName = Get-UiFontName
@@ -154,6 +155,11 @@ function New-DashboardUI {
   $colRitm.HeaderText = 'RITM'
   [void]$grid.Columns.Add($colRitm)
 
+  $colPi = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $colPi.Name = 'PI'
+  $colPi.HeaderText = 'PI'
+  [void]$grid.Columns.Add($colPi)
+
   $colSctask = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
   $colSctask.Name = 'SCTASK'
   $colSctask.HeaderText = 'SCTASK'
@@ -199,15 +205,27 @@ function New-DashboardUI {
   $btnCheckOut.Size = New-Object System.Drawing.Size(160, 36)
   & $btnStyle $btnCheckOut $false
 
+  $btnCloseCode = New-Object System.Windows.Forms.Button
+  $btnCloseCode.Text = 'Cerrar codigo'
+  $btnCloseCode.Location = New-Object System.Drawing.Point(704, 626)
+  $btnCloseCode.Size = New-Object System.Drawing.Size(180, 36)
+  & $btnStyle $btnCloseCode $false
+
+  $btnCloseDocs = New-Object System.Windows.Forms.Button
+  $btnCloseDocs.Text = 'Cerrar documentos'
+  $btnCloseDocs.Location = New-Object System.Drawing.Point(894, 626)
+  $btnCloseDocs.Size = New-Object System.Drawing.Size(192, 36)
+  & $btnStyle $btnCloseDocs $false
+
   $lblStatus = New-Object System.Windows.Forms.Label
   $lblStatus.Text = 'Type to filter users. Nothing is loaded by default.'
-  $lblStatus.Location = New-Object System.Drawing.Point(710, 634)
-  $lblStatus.Size = New-Object System.Drawing.Size(700, 28)
+  $lblStatus.Location = New-Object System.Drawing.Point(16, 668)
+  $lblStatus.Size = New-Object System.Drawing.Size(1070, 28)
   $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 170)
 
   $form.Controls.AddRange(@(
       $lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpenSnow, $chkUltraFast, $chkOpenOnly, $lblHint,
-      $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $lblStatus
+      $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $btnCloseCode, $btnCloseDocs, $lblStatus
     ))
 
   $state = [pscustomobject]@{
@@ -215,7 +233,8 @@ function New-DashboardUI {
     RunContext = $RunContext
     ExcelPath = $ExcelPath
     SheetName = $SheetName
-    Session = $null
+    Session = $InitialSession
+    OwnsSession = ($null -eq $InitialSession)
     Rows = @()
     AllRows = @()
     AllRowsUniverse = @()
@@ -248,6 +267,7 @@ function New-DashboardUI {
           ("" + $x.Row),
           ("" + $x.RequestedFor),
           ("" + $x.RITM),
+          ("" + $x.PI),
           ("" + $x.SCTASK)
         )
       }
@@ -333,7 +353,7 @@ function New-DashboardUI {
       if ($ForceReload -or $state.AllRowsUniverse.Count -eq 0) {
         $state.AllRowsUniverse = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText '')
         foreach ($r in $state.AllRowsUniverse) {
-          $blob = "{0} {1} {2} {3} {4} {5}" -f ("" + $r.RequestedFor), ("" + $r.RITM), ("" + $r.SCTASK), ("" + $r.DashboardStatus), ("" + $r.PresentTime), ("" + $r.ClosedTime)
+          $blob = "{0} {1} {2} {3} {4} {5} {6}" -f ("" + $r.RequestedFor), ("" + $r.RITM), ("" + $r.PI), ("" + $r.SCTASK), ("" + $r.DashboardStatus), ("" + $r.PresentTime), ("" + $r.ClosedTime)
           $r | Add-Member -NotePropertyName __search -NotePropertyValue $blob.ToLowerInvariant() -Force
         }
       }
@@ -504,7 +524,7 @@ function New-DashboardUI {
   }
 
   $searchTimer = New-Object System.Windows.Forms.Timer
-  $searchTimer.Interval = 260
+  $searchTimer.Interval = 150
   $state.Controls.SearchTimer = $searchTimer
   $searchTimer.Add_Tick(({
     if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
@@ -581,11 +601,23 @@ function New-DashboardUI {
   $btnRecalc.Add_Click(({ & $recalculateRow }.GetNewClosure()))
   $btnCheckIn.Add_Click(({ & $applyAction 'checkin' }.GetNewClosure()))
   $btnCheckOut.Add_Click(({ & $applyAction 'checkout' }.GetNewClosure()))
+  $btnCloseCode.Add_Click(({
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('code.exe', 'code-insiders.exe', 'cursor.exe') -Owner $form
+    if (-not $r.Cancelled) { $lblStatus.Text = $r.Message }
+  }).GetNewClosure())
+  $btnCloseDocs.Add_Click(({
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form
+    if (-not $r.Cancelled) { $lblStatus.Text = $r.Message }
+  }).GetNewClosure())
 
   $form.add_FormClosed(({
     param($sender, $eventArgs)
     try { if ($sender.Tag.Controls.SearchTimer) { $sender.Tag.Controls.SearchTimer.Stop(); $sender.Tag.Controls.SearchTimer.Dispose() } } catch {}
-    try { if ($sender.Tag.Session) { Close-ServiceNowSession -Session $sender.Tag.Session } } catch {}
+    try {
+      if ($sender.Tag.Session -and $sender.Tag.OwnsSession) {
+        Close-ServiceNowSession -Session $sender.Tag.Session
+      }
+    } catch {}
   }).GetNewClosure())
 
   try {

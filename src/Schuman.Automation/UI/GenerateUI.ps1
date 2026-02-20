@@ -250,6 +250,20 @@ function New-GeneratePdfUI {
   $btnOpen.Enabled = $false
   [void]$buttonFlow.Controls.Add($btnOpen)
 
+  $btnCloseCode = New-Object System.Windows.Forms.Button
+  $btnCloseCode.Text = 'Cerrar codigo'
+  $btnCloseCode.Width = 120
+  $btnCloseCode.Height = 30
+  $btnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  [void]$buttonFlow.Controls.Add($btnCloseCode)
+
+  $btnCloseDocs = New-Object System.Windows.Forms.Button
+  $btnCloseDocs.Text = 'Cerrar documentos'
+  $btnCloseDocs.Width = 145
+  $btnCloseDocs.Height = 30
+  $btnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  [void]$buttonFlow.Controls.Add($btnCloseDocs)
+
   $btnToggleLog = New-Object System.Windows.Forms.Button
   $btnToggleLog.Text = 'Show Log'
   $btnToggleLog.Width = 110
@@ -325,7 +339,7 @@ function New-GeneratePdfUI {
     $logBox.BackColor = $p.Bg
     $logBox.ForeColor = $p.Text
 
-    foreach ($btn in @($btnDashboard, $btnStart, $btnStop, $btnOpen, $btnToggleLog)) {
+    foreach ($btn in @($btnDashboard, $btnStart, $btnStop, $btnOpen, $btnCloseCode, $btnCloseDocs, $btnToggleLog)) {
       $btn.BackColor = $p.Card
       $btn.ForeColor = $p.Text
       $btn.FlatAppearance.BorderColor = $p.Border
@@ -383,6 +397,22 @@ function New-GeneratePdfUI {
     $out = ("" + $OutputPath).Trim()
     if (-not $out) { return }
     try { Start-Process $out | Out-Null } catch {}
+  })
+
+  $btnCloseCode.Add_Click({
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('code.exe', 'code-insiders.exe', 'cursor.exe') -Owner $form
+    if (-not $r.Cancelled) {
+      $lblStatusText.Text = $r.Message
+      & $appendLog $r.Message
+    }
+  })
+
+  $btnCloseDocs.Add_Click({
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form
+    if (-not $r.Cancelled) {
+      $lblStatusText.Text = $r.Message
+      & $appendLog $r.Message
+    }
   })
 
   $btnToggleLog.Add_Click({

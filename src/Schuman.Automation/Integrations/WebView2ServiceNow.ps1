@@ -68,7 +68,7 @@ function New-ServiceNowSession {
   $task = $wv.EnsureCoreWebView2Async()
   while (-not $task.IsCompleted) {
     [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 40
+    Start-Sleep -Milliseconds 20
   }
   if ($task.IsFaulted) { throw $task.Exception.InnerException }
 
@@ -80,15 +80,77 @@ function New-ServiceNowSession {
     $state = Invoke-WebViewScriptJson -WebView $wv -Script @"
 (function(){
   try {
+    function isVisible(el){
+      if (!el) return false;
+      try {
+        var s = window.getComputedStyle(el);
+        if (!s) return true;
+        if (s.display === 'none' || s.visibility === 'hidden') return false;
+        if (parseFloat(s.opacity || '1') <= 0.01) return false;
+      } catch(e) {}
+      var r = null;
+      try { r = el.getBoundingClientRect(); } catch(e) {}
+      if (!r) return true;
+      return (r.width >= 40 && r.height >= 16);
+    }
+
+    function hasLoginControls(doc){
+      if (!doc) return false;
+      var nodes = doc.querySelectorAll('form#login,input#user_name,input#username,input[type=password],button[type=submit][id*="sign"],button[id*="signin"],input[type=submit][value*="Sign"]');
+      if (!nodes || nodes.length === 0) return false;
+      for (var i=0; i<nodes.length; i++) {
+        if (isVisible(nodes[i])) return true;
+      }
+      return false;
+    }
+
+    function hasBlockingLoginInIframes(root){
+      if (!root) return false;
+      var iframes = root.querySelectorAll('iframe');
+      for (var i=0; i<iframes.length; i++) {
+        try {
+          if (!isVisible(iframes[i])) continue;
+          var fr = iframes[i].getBoundingClientRect();
+          var iframeIsLarge = !!fr && fr.width > 320 && fr.height > 220;
+          if (!iframeIsLarge) continue;
+          var fdoc = iframes[i].contentDocument;
+          if (hasLoginControls(fdoc)) return true;
+        } catch(e) {}
+      }
+      return false;
+    }
+
     var href = location.href || '';
     var host = '';
     try { host = (new URL(href)).host || ''; } catch(e) {}
     var isSnow = /service-now\.com/i.test(host);
-    var hasLogin = !!document.querySelector('form#login,input#user_name,input#username,input[type=password]');
+    var hasTopLogin = hasLoginControls(document);
+    var hasIframeLogin = hasBlockingLoginInIframes(document);
     var hasNow = (typeof window.NOW !== 'undefined') || (typeof window.g_user !== 'undefined');
-    var domReady = !!document.querySelector('sn-polaris-layout, now-global-nav, sn-appshell-root');
-    var logged = isSnow && !hasLogin && (hasNow || domReady);
-    return JSON.stringify({ href:href, title: document.title || '', logged: logged, isSnow:isSnow });
+    var hasShell = !!document.querySelector('sn-polaris-layout, now-global-nav, sn-appshell-root,#filter');
+    var domReady = hasShell;
+    var title = (document.title || '').toLowerCase();
+    var titleLooksLogin = /sign\s*in|login|log\s*in/.test(title);
+    var userId = '';
+    try {
+      if (window.g_user) {
+        userId = '' + (window.g_user.userID || window.g_user.userId || window.g_user.user_id || '');
+      } else if (window.NOW && window.NOW.user) {
+        userId = '' + (window.NOW.user.userID || window.NOW.user.userId || window.NOW.user.user_id || '');
+      }
+    } catch(e) {}
+    userId = (userId || '').trim();
+    var hasValidUser = /^[0-9a-f]{32}$/i.test(userId);
+    var loginBlocking = hasTopLogin || (hasIframeLogin && !hasShell);
+    var logged = isSnow && !loginBlocking && (hasNow || hasShell) && domReady && hasValidUser && !titleLooksLogin;
+    return JSON.stringify({
+      href:href,
+      title: document.title || '',
+      logged: logged,
+      isSnow:isSnow,
+      hasLogin:loginBlocking,
+      hasValidUser:hasValidUser
+    });
   } catch(e) {
     return JSON.stringify({ logged:false, error:''+e });
   }
@@ -96,7 +158,7 @@ function New-ServiceNowSession {
 "@ -TimeoutMs 4000
 
     if ($state) {
-      $label.Text = "URL: $($state.href)`r`nTITLE: $($state.title)"
+      $label.Text = "URL: $($state.href)`r`nTITLE: $($state.title)`r`nLOGIN_FORM: $($state.hasLogin) | USER_OK: $($state.hasValidUser)"
       if ($state.logged -eq $true) {
         $label.ForeColor = [System.Drawing.Color]::Green
         $authenticated = $true
@@ -107,7 +169,7 @@ function New-ServiceNowSession {
       }
     }
 
-    Start-Sleep -Milliseconds 200
+    Start-Sleep -Milliseconds 120
   }
 
   if (-not $authenticated) {

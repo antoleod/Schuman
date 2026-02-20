@@ -297,31 +297,71 @@ function Search-DashboardRows {
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Closed Time')
     $taskCol = Resolve-HeaderColumn -HeaderMap $map -Names @('SCTasks', 'SCTask', 'SC Task')
     $nameCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Requested for', 'Name', 'User')
+    $piCol = Resolve-HeaderColumn -HeaderMap $map -Names @('PI', 'Phone', 'Configuration Item', 'CI')
 
     $rows = [int]($ws.UsedRange.Row + $ws.UsedRange.Rows.Count - 1)
-    $cols = [int]$ws.UsedRange.Columns.Count
-    for ($r = 2; $r -le $rows; $r++) {
-      $blobParts = New-Object System.Collections.Generic.List[string]
-      for ($c = 1; $c -le $cols; $c++) {
-        $v = ("" + $ws.Cells.Item($r, $c).Text).Trim()
-        if ($v) { [void]$blobParts.Add($v) }
+    if ($rows -lt 2) { return }
+
+    $getColValues = {
+      param([int]$ColumnIndex)
+      $out = @{}
+      if (-not $ColumnIndex -or $ColumnIndex -le 0) { return $out }
+
+      $rng = $null
+      try {
+        $rng = $ws.Range($ws.Cells.Item(2, $ColumnIndex), $ws.Cells.Item($rows, $ColumnIndex))
+        $vals = $rng.Value2
+        if ($vals -is [System.Array]) {
+          $countRows = $vals.GetLength(0)
+          for ($i = 1; $i -le $countRows; $i++) {
+            $out[$i + 1] = ("" + $vals[$i, 1]).Trim()
+          }
+        }
+        else {
+          $out[2] = ("" + $vals).Trim()
+        }
       }
-      $blob = $blobParts -join ' '
-      if ([string]::IsNullOrWhiteSpace($blob)) { continue }
+      finally {
+        try { if ($rng) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($rng) } } catch {}
+      }
+
+      return $out
+    }
+
+    $ritmValues = & $getColValues $ritmCol
+    $nameValues = & $getColValues $nameCol
+    $statusValues = & $getColValues $statusCol
+    $presentValues = & $getColValues $presentCol
+    $closedValues = & $getColValues $closedCol
+    $taskValues = & $getColValues $taskCol
+    $piValues = & $getColValues $piCol
+
+    $queryNorm = $query.ToLowerInvariant()
+    for ($r = 2; $r -le $rows; $r++) {
+      $ritm = if ($ritmValues.ContainsKey($r)) { ("" + $ritmValues[$r]).Trim().ToUpperInvariant() } else { '' }
+      if (-not $ritm) { continue }
+
+      $requestedFor = if ($nameValues.ContainsKey($r)) { ("" + $nameValues[$r]).Trim() } else { '' }
+      $dashboardStatus = if ($statusValues.ContainsKey($r)) { ("" + $statusValues[$r]).Trim() } else { '' }
+      $presentTime = if ($presentValues.ContainsKey($r)) { ("" + $presentValues[$r]).Trim() } else { '' }
+      $closedTime = if ($closedValues.ContainsKey($r)) { ("" + $closedValues[$r]).Trim() } else { '' }
+      $sctask = if ($taskValues.ContainsKey($r)) { ("" + $taskValues[$r]).Trim() } else { '' }
+      $pi = if ($piValues.ContainsKey($r)) { ("" + $piValues[$r]).Trim() } else { '' }
+
       if ($query) {
-        $blobNorm = $blob.ToLowerInvariant()
-        $queryNorm = $query.ToLowerInvariant()
+        $blobNorm = ("{0} {1} {2} {3} {4} {5} {6}" -f $requestedFor, $ritm, $sctask, $pi, $dashboardStatus, $presentTime, $closedTime).ToLowerInvariant()
         if (-not $blobNorm.Contains($queryNorm)) { continue }
       }
 
       $rowsOut.Add([pscustomobject]@{
         Row = $r
-        RITM = ("" + $ws.Cells.Item($r, $ritmCol).Text).Trim().ToUpperInvariant()
-        RequestedFor = if ($nameCol) { ("" + $ws.Cells.Item($r, $nameCol).Text).Trim() } else { '' }
-        DashboardStatus = if ($statusCol) { ("" + $ws.Cells.Item($r, $statusCol).Text).Trim() } else { '' }
-        PresentTime = if ($presentCol) { ("" + $ws.Cells.Item($r, $presentCol).Text).Trim() } else { '' }
-        ClosedTime = if ($closedCol) { ("" + $ws.Cells.Item($r, $closedCol).Text).Trim() } else { '' }
-        SCTASK = if ($taskCol) { ("" + $ws.Cells.Item($r, $taskCol).Text).Trim() } else { '' }
+        RITM = $ritm
+        RequestedFor = $requestedFor
+        PI = $pi
+        DashboardStatus = $dashboardStatus
+        PresentTime = $presentTime
+        ClosedTime = $closedTime
+        SCTASK = $sctask
       }) | Out-Null
     }
   }

@@ -927,6 +927,29 @@ function Resolve-UiForm {
   throw "UI factory '$UiName' did not return a WinForms Form."
 }
 
+function Start-StartupSsoSession {
+  param(
+    [hashtable]$Config,
+    [hashtable]$RunContext
+  )
+
+  try {
+    return (New-ServiceNowSession -Config $Config -RunContext $RunContext)
+  }
+  catch {
+    [System.Windows.Forms.MessageBox]::Show(
+      "ServiceNow SSO login is mandatory at startup.`r`n`r`n$($_.Exception.Message)",
+      'SSO Verification'
+    ) | Out-Null
+    return $null
+  }
+}
+
+$startupSession = Start-StartupSsoSession -Config $globalConfig -RunContext $uiRunContext
+if (-not $startupSession) {
+  return
+}
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'Schuman — Main'
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
@@ -964,10 +987,12 @@ $layout = New-Object System.Windows.Forms.TableLayoutPanel
 $layout.Dock = [System.Windows.Forms.DockStyle]::Top
 $layout.AutoSize = $true
 $layout.ColumnCount = 1
-$layout.RowCount = 6
+$layout.RowCount = 8
 $layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
 $layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
 $layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 10)))
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))
 $layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
 $layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))
 $layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
@@ -1030,8 +1055,42 @@ $btnForce.Font = New-Object System.Drawing.Font((Get-UiFontName), 10, [System.Dr
 $btnForce.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 0)
 $layout.Controls.Add($btnForce, 0, 5)
 
+$btnEmergency = New-Object System.Windows.Forms.TableLayoutPanel
+$btnEmergency.Dock = [System.Windows.Forms.DockStyle]::Top
+$btnEmergency.AutoSize = $true
+$btnEmergency.ColumnCount = 2
+$btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+$btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+$layout.Controls.Add($btnEmergency, 0, 7)
+
+$btnCloseCode = New-Object System.Windows.Forms.Button
+$btnCloseCode.Text = 'Cerrar codigo'
+$btnCloseCode.Dock = [System.Windows.Forms.DockStyle]::Fill
+$btnCloseCode.Height = 36
+$btnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnCloseCode.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(210, 80, 80)
+$btnCloseCode.FlatAppearance.BorderSize = 1
+$btnCloseCode.BackColor = [System.Drawing.Color]::FromArgb(255, 238, 238)
+$btnCloseCode.ForeColor = [System.Drawing.Color]::FromArgb(160, 32, 32)
+$btnCloseCode.Font = New-Object System.Drawing.Font((Get-UiFontName), 10, [System.Drawing.FontStyle]::Bold)
+$btnCloseCode.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
+$btnEmergency.Controls.Add($btnCloseCode, 0, 0)
+
+$btnCloseDocs = New-Object System.Windows.Forms.Button
+$btnCloseDocs.Text = 'Cerrar documentos'
+$btnCloseDocs.Dock = [System.Windows.Forms.DockStyle]::Fill
+$btnCloseDocs.Height = 36
+$btnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnCloseDocs.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(210, 80, 80)
+$btnCloseDocs.FlatAppearance.BorderSize = 1
+$btnCloseDocs.BackColor = [System.Drawing.Color]::FromArgb(255, 238, 238)
+$btnCloseDocs.ForeColor = [System.Drawing.Color]::FromArgb(160, 32, 32)
+$btnCloseDocs.Font = New-Object System.Drawing.Font((Get-UiFontName), 10, [System.Drawing.FontStyle]::Bold)
+$btnCloseDocs.Margin = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
+$btnEmergency.Controls.Add($btnCloseDocs, 1, 0)
+
 $status = New-Object System.Windows.Forms.Label
-$status.Text = 'Status: Ready'
+$status.Text = 'Status: Ready (SSO connected)'
 $status.AutoSize = $true
 $status.ForeColor = [System.Drawing.Color]::FromArgb(110,110,115)
 $root.Controls.Add($status, 1, 2)
@@ -1047,7 +1106,7 @@ $openModule = {
 
   $status.Text = 'Status: Opening module...'
   if ($module -eq 'Dashboard') {
-    $frm = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext) -UiName 'New-DashboardUI'
+    $frm = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
     [void]$frm.ShowDialog($form)
   }
   else {
@@ -1055,7 +1114,7 @@ $openModule = {
     $defaultOutput = Join-Path $projectRoot $globalConfig.Documents.OutputFolder
 
     $frm = Resolve-UiForm -UiResult (New-GeneratePdfUI -ExcelPath $excel -SheetName $SheetName -TemplatePath $defaultTemplate -OutputPath $defaultOutput -OnOpenDashboard {
-      $d = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext) -UiName 'New-DashboardUI'
+      $d = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
       [void]$d.ShowDialog($form)
     } -OnGenerate {
       param($argsObj)
@@ -1079,6 +1138,18 @@ $openModule = {
 
 $btnDashboard.Add_Click({ & $openModule 'Dashboard' })
 $btnGenerate.Add_Click({ & $openModule 'Generate' })
+$btnCloseCode.Add_Click({
+  $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('code.exe', 'code-insiders.exe', 'cursor.exe') -Owner $form
+  if (-not $r.Cancelled) {
+    $status.Text = "Status: $($r.Message)"
+  }
+})
+$btnCloseDocs.Add_Click({
+  $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form
+  if (-not $r.Cancelled) {
+    $status.Text = "Status: $($r.Message)"
+  }
+})
 $btnForce.Add_Click({
   $excel = ("" + $txtExcel.Text).Trim()
   if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
@@ -1115,5 +1186,11 @@ $btnForce.Add_Click({
     $btnForce.Enabled = $true
   }
 })
+
+[void]$form.add_FormClosed(({
+  try {
+    if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
+  } catch {}
+}).GetNewClosure())
 
 [void]$form.ShowDialog()
