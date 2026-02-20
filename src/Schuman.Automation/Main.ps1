@@ -1836,6 +1836,7 @@ $script:CurrentMainTheme = @{}
 $script:CurrentMainFontScale = 1.0
 $global:CurrentMainTheme = @{}
 $global:CurrentMainFontScale = 1.0
+$script:ThemeAppliedStamp = @{}
 
 function Convert-HexToUiColor {
   param(
@@ -1922,6 +1923,7 @@ function Update-UiButtonVisual {
     'AccentButton' { $bg = $Theme.Accent; $bgHover = $Theme.AccentHover }
   }
   $fill = if ($Hover) { $bgHover } else { $bg }
+  $Button.UseVisualStyleBackColor = $false
   $Button.BackColor = $fill
   $Button.ForeColor = Get-ReadableTextColor -Background $fill
   $Button.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
@@ -1964,6 +1966,11 @@ function Apply-ThemeToControlTree {
       }
     }
     elseif ($Ctrl -is [System.Windows.Forms.TableLayoutPanel] -or $Ctrl -is [System.Windows.Forms.FlowLayoutPanel]) { $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG } }
+    elseif ($Ctrl -is [System.Windows.Forms.GroupBox]) { $Ctrl.ForeColor = $Theme.Text; $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG }; $Ctrl.Font = $regular }
+    elseif ($Ctrl -is [System.Windows.Forms.CheckBox] -or $Ctrl -is [System.Windows.Forms.RadioButton]) { $Ctrl.ForeColor = $Theme.Text; $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG }; $Ctrl.Font = $regular }
+    elseif ($Ctrl -is [System.Windows.Forms.NumericUpDown] -or $Ctrl -is [System.Windows.Forms.DateTimePicker]) { $Ctrl.BackColor = $Theme.InputBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
+    elseif ($Ctrl -is [System.Windows.Forms.TabControl]) { $Ctrl.BackColor = $Theme.FormBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
+    elseif ($Ctrl -is [System.Windows.Forms.TabPage]) { $Ctrl.BackColor = $Theme.CardBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
     elseif ($Ctrl -is [System.Windows.Forms.StatusStrip] -or $Ctrl -is [System.Windows.Forms.ToolStrip]) {
       $Ctrl.BackColor = $Theme.HeaderBG
       $Ctrl.ForeColor = $Theme.Text
@@ -1972,6 +1979,14 @@ function Apply-ThemeToControlTree {
         foreach ($item in $Ctrl.Items) {
           $item.ForeColor = $Theme.Text
           $item.BackColor = $Theme.HeaderBG
+          if ($item -is [System.Windows.Forms.ToolStripDropDownItem]) {
+            try {
+              foreach ($dd in $item.DropDownItems) {
+                $dd.BackColor = $Theme.HeaderBG
+                $dd.ForeColor = $Theme.Text
+              }
+            } catch {}
+          }
         }
       } catch {}
     }
@@ -1980,7 +1995,14 @@ function Apply-ThemeToControlTree {
       $Ctrl.ForeColor = $Theme.Primary
     }
     elseif ($Ctrl -is [System.Windows.Forms.Label]) { $Ctrl.ForeColor = if ($role -eq 'MutedLabel' -or $role -eq 'StatusLabel') { $Theme.MutedText } else { $Theme.Text }; $Ctrl.Font = if ($role -eq 'HeaderTitle') { $title } else { $regular } }
-    elseif ($Ctrl -is [System.Windows.Forms.TextBox] -or $Ctrl -is [System.Windows.Forms.RichTextBox] -or $Ctrl -is [System.Windows.Forms.ComboBox]) { $Ctrl.BackColor = $Theme.InputBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
+    elseif ($Ctrl -is [System.Windows.Forms.TextBox] -or $Ctrl -is [System.Windows.Forms.RichTextBox] -or $Ctrl -is [System.Windows.Forms.ComboBox]) {
+      $Ctrl.BackColor = $Theme.InputBG
+      $Ctrl.ForeColor = $Theme.Text
+      $Ctrl.Font = $regular
+      if ($Ctrl -is [System.Windows.Forms.ComboBox]) {
+        $Ctrl.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+      }
+    }
     elseif ($Ctrl -is [System.Windows.Forms.DataGridView]) {
       $Ctrl.BackgroundColor = $Theme.CardBG; $Ctrl.GridColor = $Theme.Border; $Ctrl.BorderStyle = [System.Windows.Forms.BorderStyle]::None
       $Ctrl.DefaultCellStyle.BackColor = $Theme.CardBG; $Ctrl.DefaultCellStyle.ForeColor = $Theme.Text
@@ -2002,6 +2024,36 @@ function Apply-ThemeToControlTree {
   & $walk $RootControl
   if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
     Apply-UiRoundedButtonsRecursive -Root $RootControl -Radius 10
+  }
+}
+
+function Sync-ThemeAcrossOpenForms {
+  param([switch]$Force)
+
+  if (-not $script:CurrentMainTheme -or $script:CurrentMainTheme.Count -eq 0) { return }
+  $scale = 1.0
+  try { $scale = [double]$script:CurrentMainFontScale } catch { $scale = 1.0 }
+  if ($scale -le 0) { $scale = 1.0 }
+
+  $forms = @()
+  try { $forms = @([System.Windows.Forms.Application]::OpenForms | ForEach-Object { $_ }) } catch { $forms = @() }
+  foreach ($openForm in $forms) {
+    if (-not $openForm -or $openForm.IsDisposed) { continue }
+    $id = [string]$openForm.GetHashCode()
+    $stamp = ("{0}|{1}|{2}" -f $id, $script:CurrentMainTheme.GetHashCode(), [Math]::Round($scale, 3))
+    if (-not $Force -and $script:ThemeAppliedStamp.ContainsKey($id) -and $script:ThemeAppliedStamp[$id] -eq $stamp) { continue }
+    try {
+      Apply-ThemeToControlTree -RootControl $openForm -Theme $script:CurrentMainTheme -FontScale $scale
+      if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
+        Apply-UiRoundedButtonsRecursive -Root $openForm -Radius 10
+      }
+      try { $openForm.Invalidate() } catch {}
+      try { $openForm.Refresh() } catch {}
+      $script:ThemeAppliedStamp[$id] = $stamp
+    }
+    catch {
+      try { Write-Log -Level WARN -Message ("Theme sync failed on window '{0}': {1}" -f ("" + $openForm.Text), $_.Exception.Message) } catch {}
+    }
   }
 }
 
@@ -2067,6 +2119,7 @@ function Apply-MainUiTheme {
   $script:CurrentMainFontScale = ($safeScale / 100.0)
   $global:CurrentMainTheme = $resolved
   $global:CurrentMainFontScale = ($safeScale / 100.0)
+  $script:ThemeAppliedStamp = @{}
 
   if ($script:ApplyThemeToControlTreeHandler) {
     if ($form -and -not $form.IsDisposed) {
@@ -2091,6 +2144,7 @@ function Apply-MainUiTheme {
       }
     }
   }
+  try { Sync-ThemeAcrossOpenForms -Force } catch {}
 
   $moduleHeight = if ($Compact) { 38 } else { 46 }
   $dangerHeight = if ($Compact) { 32 } else { 36 }
@@ -2581,6 +2635,15 @@ $btnForce.Add_Click(({
   Invoke-UiHandler -Context 'Force Update' -Action $forceUpdateAction
 }).GetNewClosure())
 
+if (-not (Get-Variable -Name ThemeSyncTimer -Scope Script -ErrorAction SilentlyContinue)) {
+  $script:ThemeSyncTimer = New-Object System.Windows.Forms.Timer
+  $script:ThemeSyncTimer.Interval = 700
+  $script:ThemeSyncTimer.Add_Tick(({
+    try { Sync-ThemeAcrossOpenForms } catch {}
+  }).GetNewClosure())
+}
+try { $script:ThemeSyncTimer.Start() } catch {}
+
 [void]$form.add_FormClosed(({
   try {
     if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
@@ -2590,6 +2653,12 @@ $btnForce.Add_Click(({
     if ($script:MainBusyTimer) {
       $script:MainBusyTimer.Stop()
       $script:MainBusyTimer.Dispose()
+    }
+  } catch {}
+  try {
+    if ($script:ThemeSyncTimer) {
+      $script:ThemeSyncTimer.Stop()
+      $script:ThemeSyncTimer.Dispose()
     }
   } catch {}
 }).GetNewClosure())

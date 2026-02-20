@@ -754,6 +754,13 @@ function New-GeneratePdfUI {
 
   $UI = New-UI -ExcelPath $ExcelPath -SheetName $SheetName -TemplatePath $TemplatePath -OutputPath $OutputPath -OnOpenDashboard $OnOpenDashboard -OnGenerate $OnGenerate
   $null = Initialize-Controls -UI $UI
+  try {
+    $themeVar = Get-Variable -Name CurrentMainTheme -Scope Global -ErrorAction SilentlyContinue
+    if ($themeVar -and $themeVar.Value -and $UI.ChkDark) {
+      $UI.ChkDark.Visible = $false
+      $UI.ChkDark.Enabled = $false
+    }
+  } catch {}
   Register-GenerateHandlers -UI $UI
   Set-GenerateUiTheme -UI $UI
   Set-StatusPill -UI $UI -Text 'Idle' -State idle

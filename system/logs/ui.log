@@ -71,3 +71,21 @@ The term 'Set-UiControlRole' is not recognized as the name of a cmdlet, function
 [2026-02-21 00:30:10] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
 [2026-02-21 00:30:15] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
 [2026-02-21 00:30:15] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-21 00:38:44] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:38:46] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:38:46] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-21 00:42:19] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:42:21] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:42:21] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-21 00:43:47] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:43:49] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:43:49] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-21 00:44:20] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:44:22] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:44:22] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-21 00:47:26] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:47:29] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:47:29] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-21 00:52:10] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:52:13] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:52:13] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
