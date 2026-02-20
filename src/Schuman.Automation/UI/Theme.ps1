@@ -67,6 +67,67 @@ function Stop-UiProcessesByName {
   }
 }
 
+function Set-UiRoundedButton {
+  param(
+    [Parameter(Mandatory = $true)][System.Windows.Forms.Button]$Button,
+    [int]$Radius = 10
+  )
+
+  if (-not $Button -or $Button.IsDisposed) { return }
+  $safeRadius = [Math]::Max(2, [Math]::Min(30, $Radius))
+  $attach = {
+    param($btn, [int]$r)
+    if (-not $btn -or $btn.IsDisposed) { return }
+    $w = [Math]::Max(1, $btn.Width)
+    $h = [Math]::Max(1, $btn.Height)
+    $arc = [Math]::Min([Math]::Min($w, $h) - 1, $r * 2)
+    if ($arc -lt 2) { return }
+    $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $path.AddArc(0, 0, $arc, $arc, 180, 90)
+    $path.AddArc($w - $arc, 0, $arc, $arc, 270, 90)
+    $path.AddArc($w - $arc, $h - $arc, $arc, $arc, 0, 90)
+    $path.AddArc(0, $h - $arc, $arc, $arc, 90, 90)
+    $path.CloseFigure()
+    $oldRegion = $btn.Region
+    $btn.Region = New-Object System.Drawing.Region($path)
+    $path.Dispose()
+    try { if ($oldRegion) { $oldRegion.Dispose() } } catch {}
+  }
+
+  & $attach $Button $safeRadius
+  $Button.Tag = if ($Button.Tag -is [hashtable]) { $Button.Tag } else { @{} }
+  if (-not $Button.Tag.ContainsKey('__roundedBound')) {
+    $Button.Add_SizeChanged(({
+      param($sender, $e)
+      try {
+        $meta = if ($sender.Tag -is [hashtable]) { $sender.Tag } else { @{} }
+        $r = 10
+        if ($meta.ContainsKey('__roundRadius')) { $r = [int]$meta['__roundRadius'] }
+        & $attach $sender $r
+      } catch {}
+    }).GetNewClosure())
+    $Button.Tag['__roundedBound'] = $true
+  }
+  $Button.Tag['__roundRadius'] = $safeRadius
+}
+
+function Apply-UiRoundedButtonsRecursive {
+  param(
+    [Parameter(Mandatory = $true)][System.Windows.Forms.Control]$Root,
+    [int]$Radius = 10
+  )
+
+  if (-not $Root -or $Root.IsDisposed) { return }
+  foreach ($ctrl in $Root.Controls) {
+    if ($ctrl -is [System.Windows.Forms.Button]) {
+      Set-UiRoundedButton -Button $ctrl -Radius $Radius
+    }
+    if ($ctrl -and $ctrl.HasChildren) {
+      Apply-UiRoundedButtonsRecursive -Root $ctrl -Radius $Radius
+    }
+  }
+}
+
 function Invoke-UiEmergencyClose {
   param(
     [Parameter(Mandatory = $true)][string]$ActionLabel,
@@ -74,48 +135,29 @@ function Invoke-UiEmergencyClose {
     [System.Windows.Forms.IWin32Window]$Owner = $null
   )
 
-  $confirmText = "This will force-close: {0}`r`nUnsaved changes may be lost.`r`n`r`nContinue?" -f ($ExecutableNames -join ', ')
-  $confirmResult = if ($Owner) {
-    [System.Windows.Forms.MessageBox]::Show($Owner, $confirmText, $ActionLabel, [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
-  }
-  else {
-    [System.Windows.Forms.MessageBox]::Show($confirmText, $ActionLabel, [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
-  }
-  if ($confirmResult -ne [System.Windows.Forms.DialogResult]::Yes) {
-    return [pscustomobject]@{
-      Cancelled = $true
-      KilledCount = 0
-      FailedCount = 0
-      Message = 'Operation cancelled.'
+  $mode = 'All'
+  $labelText = ("" + $ActionLabel).Trim().ToLowerInvariant()
+  if ($labelText -match 'codigo') { $mode = 'Code' }
+  elseif ($labelText -match 'document') { $mode = 'Documents' }
+
+  $comClosed = 0
+  $procClosed = 0
+  $procFailed = 0
+  try {
+    $cleanupCmd = Get-Command -Name Stop-SchumanOwnedResources -ErrorAction SilentlyContinue
+    if ($cleanupCmd) {
+      $res = Stop-SchumanOwnedResources -Mode $mode
+      try { $comClosed = [int]$res.ComClosedCount } catch {}
+      try { $procClosed = [int]$res.ProcessClosedCount } catch {}
+      try { $procFailed = [int]$res.ProcessFailedCount } catch {}
     }
-  }
-
-  $result = Stop-UiProcessesByName -ExecutableNames $ExecutableNames
-  $killedCount = @($result.Killed).Count
-  $failedCount = @($result.Failed).Count
-
-  if ($killedCount -eq 0 -and $failedCount -eq 0) {
-    $message = 'No matching running process was found.'
-  }
-  elseif ($failedCount -eq 0) {
-    $message = "Closed process(es): $killedCount"
-  }
-  else {
-    $message = "Closed: $killedCount | Failed: $failedCount"
-  }
-
-  if ($Owner) {
-    [System.Windows.Forms.MessageBox]::Show($Owner, $message, $ActionLabel, [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-  }
-  else {
-    [System.Windows.Forms.MessageBox]::Show($message, $ActionLabel, [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-  }
+  } catch {}
 
   return [pscustomobject]@{
     Cancelled = $false
-    KilledCount = $killedCount
-    FailedCount = $failedCount
-    Message = $message
+    KilledCount = [int]$procClosed
+    FailedCount = [int]$procFailed
+    Message = ("Cleanup done (COM={0}, ProcClosed={1}, ProcFailed={2})" -f $comClosed, $procClosed, $procFailed)
   }
 }
 

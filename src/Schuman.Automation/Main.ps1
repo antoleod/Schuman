@@ -89,6 +89,133 @@ function global:Release-ComObjectSafe {
   try { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($obj) } catch {}
 }
 
+if (-not (Get-Variable -Name SchumanOwnedComResources -Scope Script -ErrorAction SilentlyContinue)) {
+  $script:SchumanOwnedComResources = New-Object System.Collections.ArrayList
+}
+if (-not (Get-Variable -Name SchumanOwnedProcesses -Scope Script -ErrorAction SilentlyContinue)) {
+  $script:SchumanOwnedProcesses = @{}
+}
+
+function global:Register-SchumanOwnedComResource {
+  param(
+    [Parameter(Mandatory = $true)][string]$Kind,
+    [Parameter(Mandatory = $true)]$Object,
+    [string]$Tag = ''
+  )
+  if ($null -eq $Object) { return $null }
+  $entry = [pscustomobject]@{
+    Kind = ("" + $Kind).Trim()
+    Object = $Object
+    Tag = ("" + $Tag).Trim()
+    AddedAt = [DateTime]::UtcNow
+    Id = [Guid]::NewGuid().ToString('N')
+  }
+  [void]$script:SchumanOwnedComResources.Add($entry)
+  return $entry
+}
+
+function global:Unregister-SchumanOwnedComResource {
+  param($Object)
+  if ($null -eq $Object) { return }
+  for ($i = $script:SchumanOwnedComResources.Count - 1; $i -ge 0; $i--) {
+    $item = $script:SchumanOwnedComResources[$i]
+    if ($item -and $item.Object -eq $Object) {
+      [void]$script:SchumanOwnedComResources.RemoveAt($i)
+    }
+  }
+}
+
+function global:Register-SchumanOwnedProcess {
+  param(
+    [Parameter(Mandatory = $true)][System.Diagnostics.Process]$Process,
+    [string]$Tag = ''
+  )
+  if (-not $Process) { return }
+  try {
+    $script:SchumanOwnedProcesses[[string]$Process.Id] = [pscustomobject]@{
+      Id = [int]$Process.Id
+      Name = ("" + $Process.ProcessName).Trim()
+      Process = $Process
+      Tag = ("" + $Tag).Trim()
+      AddedAt = [DateTime]::UtcNow
+    }
+  } catch {}
+}
+
+function global:Unregister-SchumanOwnedProcess {
+  param([int]$ProcessId)
+  $key = [string]$ProcessId
+  if ($script:SchumanOwnedProcesses.ContainsKey($key)) {
+    $script:SchumanOwnedProcesses.Remove($key)
+  }
+}
+
+function global:Stop-SchumanOwnedResources {
+  param(
+    [ValidateSet('Code','Documents','All')][string]$Mode = 'All'
+  )
+
+  $comClosed = 0
+  $procClosed = 0
+  $procFailed = 0
+
+  $closeComEntry = {
+    param($entry)
+    if (-not $entry) { return }
+    $kind = ("" + $entry.Kind).Trim().ToLowerInvariant()
+    $obj = $entry.Object
+    if ($null -eq $obj) { return }
+    try {
+      if ($kind -like '*doc*' -or $kind -eq 'workbook') {
+        try { $obj.Close($false) | Out-Null } catch {}
+      }
+      elseif ($kind -like '*word*' -or $kind -like '*excel*') {
+        try { $obj.Quit() | Out-Null } catch {}
+      }
+    } catch {}
+    try { Release-ComObjectSafe $obj } catch {}
+    $script:SchumanOwnedComResources.Remove($entry) | Out-Null
+    $comClosed++
+  }
+
+  if ($Mode -eq 'Documents' -or $Mode -eq 'All') {
+    $snapshot = @($script:SchumanOwnedComResources)
+    for ($i = $snapshot.Count - 1; $i -ge 0; $i--) {
+      $entry = $snapshot[$i]
+      if (-not $entry) { continue }
+      $kind = ("" + $entry.Kind).Trim().ToLowerInvariant()
+      if ($kind -like '*excel*' -or $kind -like '*word*' -or $kind -like '*doc*' -or $kind -eq 'workbook') {
+        & $closeComEntry $entry
+      }
+    }
+  }
+
+  $ownedSnapshot = @($script:SchumanOwnedProcesses.Values)
+  foreach ($p in $ownedSnapshot) {
+    if (-not $p) { continue }
+    $tag = ("" + $p.Tag).Trim().ToLowerInvariant()
+    $matchesMode = ($Mode -eq 'All') -or (($Mode -eq 'Documents') -and ($tag -match 'doc|export|excel|word|force')) -or (($Mode -eq 'Code') -and ($tag -match 'code|main|ui'))
+    if (-not $matchesMode) { continue }
+    try {
+      if ($p.Process -and (-not $p.Process.HasExited)) {
+        try { $p.Process.CloseMainWindow() | Out-Null } catch {}
+        Start-Sleep -Milliseconds 600
+        if (-not $p.Process.HasExited) {
+          try { Stop-Process -Id $p.Id -Force -ErrorAction Stop; $procClosed++ } catch { $procFailed++ }
+        }
+      }
+      else { $procClosed++ }
+    } catch { $procFailed++ }
+    Unregister-SchumanOwnedProcess -ProcessId $p.Id
+  }
+
+  return [pscustomobject]@{
+    ComClosedCount = [int]$comClosed
+    ProcessClosedCount = [int]$procClosed
+    ProcessFailedCount = [int]$procFailed
+  }
+}
+
 function global:Invoke-UiEmergencyClose {
   param(
     [string]$ActionLabel = '',
@@ -103,11 +230,9 @@ function global:Invoke-UiEmergencyClose {
     Initialize-UiEmergencyCloseDependency
   }
 
+  $externalResult = $null
   if ($script:ExternalInvokeUiEmergencyClose) {
-    try {
-      return (& $script:ExternalInvokeUiEmergencyClose -ActionLabel $ActionLabel -ExecutableNames $ExecutableNames -Owner $Owner)
-    }
-    catch {}
+    try { $externalResult = (& $script:ExternalInvokeUiEmergencyClose -ActionLabel $ActionLabel -ExecutableNames $ExecutableNames -Owner $Owner) } catch {}
   }
 
   $labelText = ("" + $ActionLabel).Trim().ToLowerInvariant()
@@ -121,69 +246,26 @@ function global:Invoke-UiEmergencyClose {
     elseif ($joined -match 'word|excel') { $modeResolved = 'Documents' }
   }
 
-  $killed = 0
-  $failed = 0
-  $messages = New-Object System.Collections.Generic.List[string]
-
-  $closeVarIfExists = {
-    param([string]$VarName, [scriptblock]$Action)
-    foreach ($scopeName in @('Script','Global')) {
-      try {
-        $v = Get-Variable -Name $VarName -Scope $scopeName -ErrorAction SilentlyContinue
-        if ($v -and $null -ne $v.Value) { & $Action $v.Value }
-      }
-      catch {}
-    }
+  $cleanup = Stop-SchumanOwnedResources -Mode $modeResolved
+  if ($externalResult -and $externalResult.PSObject.Properties['KilledCount']) {
+    try { $cleanup.ProcessClosedCount = [int]$cleanup.ProcessClosedCount + [int]$externalResult.KilledCount } catch {}
+  }
+  if ($externalResult -and $externalResult.PSObject.Properties['FailedCount']) {
+    try { $cleanup.ProcessFailedCount = [int]$cleanup.ProcessFailedCount + [int]$externalResult.FailedCount } catch {}
   }
 
-  try {
-    if ($modeResolved -eq 'Documents' -or $modeResolved -eq 'All') {
-      & $closeVarIfExists 'doc' { param($o) try { $o.Close($false) } catch {}; Release-ComObjectSafe $o }
-      & $closeVarIfExists 'workbook' { param($o) try { $o.Close($false) } catch {}; Release-ComObjectSafe $o }
-      & $closeVarIfExists 'word' { param($o) try { $o.Quit() } catch {}; Release-ComObjectSafe $o }
-      & $closeVarIfExists 'excel' { param($o) try { $o.Quit() } catch {}; Release-ComObjectSafe $o }
-      & $closeVarIfExists 'documents' {
-        param($o)
-        try {
-          foreach ($item in @($o)) { try { if ($item) { $item.Close($false) } } catch {} }
-        } catch {}
-      }
-
-      foreach ($p in @('winword', 'excel')) {
-        try {
-          $targets = @(Get-Process -Name $p -ErrorAction SilentlyContinue)
-          foreach ($t in $targets) {
-            try { Stop-Process -Id $t.Id -Force -ErrorAction Stop; $killed++ } catch { $failed++ }
-          }
-        }
-        catch {}
-      }
-      [void]$messages.Add('Document cleanup attempted.')
-    }
-
-    if ($modeResolved -eq 'Code' -or $modeResolved -eq 'All') {
-      foreach ($p in @('code', 'code-insiders', 'cursor')) {
-        try {
-          $targets = @(Get-Process -Name $p -ErrorAction SilentlyContinue)
-          foreach ($t in $targets) {
-            try { Stop-Process -Id $t.Id -Force -ErrorAction Stop; $killed++ } catch { $failed++ }
-          }
-        }
-        catch {}
-      }
-      if ($MainForm) {
-        try { $MainForm.Close() } catch {}
-      }
-      [void]$messages.Add('Code/app cleanup attempted.')
+  if ($modeResolved -eq 'Code' -or $modeResolved -eq 'All') {
+    try { Close-SchumanOpenForms } catch {}
+    if ($MainForm) {
+      try { $MainForm.Close() } catch {}
     }
   }
-  catch {}
 
   return [pscustomobject]@{
     Cancelled = $false
-    KilledCount = [int]$killed
-    FailedCount = [int]$failed
-    Message = if ($messages.Count -gt 0) { ($messages -join ' ') } else { 'Cleanup attempted.' }
+    KilledCount = [int]$cleanup.ProcessClosedCount
+    FailedCount = [int]$cleanup.ProcessFailedCount
+    Message = ("Cleanup done (COM={0}, ProcClosed={1}, ProcFailed={2})" -f $cleanup.ComClosedCount, $cleanup.ProcessClosedCount, $cleanup.ProcessFailedCount)
   }
 }
 
@@ -318,7 +400,7 @@ function global:Close-SchumanOpenForms {
     [System.Windows.Forms.Form]$Except = $null
   )
   try {
-    $forms = @([System.Windows.Forms.Application]::OpenForms)
+    $forms = @([System.Windows.Forms.Application]::OpenForms | ForEach-Object { $_ })
     foreach ($openForm in $forms) {
       if (-not $openForm -or $openForm.IsDisposed) { continue }
       if ($Except -and ($openForm -eq $Except)) { continue }
@@ -946,6 +1028,7 @@ function Invoke-PreloadExport {
     try {
       $st = $loading.Tag
       [void]$st.Proc.Start()
+      Register-SchumanOwnedProcess -Process $st.Proc -Tag 'export'
       $animTimer.Start()
       $watchTimer.Start()
     }
@@ -962,6 +1045,7 @@ function Invoke-PreloadExport {
     if ($st) { $ok = [bool]$st.Ok }
   }
   finally {
+    try { if ($proc) { Unregister-SchumanOwnedProcess -ProcessId $proc.Id } } catch {}
     try { $animTimer.Stop() } catch {}
     try { $watchTimer.Stop() } catch {}
     try { $animTimer.Dispose() } catch {}
@@ -1095,6 +1179,7 @@ function Invoke-DocsGenerate {
   $loading.add_Shown({
     try {
       [void]$loading.Tag.Proc.Start()
+      Register-SchumanOwnedProcess -Process $loading.Tag.Proc -Tag 'docsgenerate'
       $animTimer.Start()
       $watchTimer.Start()
     } catch {
@@ -1109,6 +1194,7 @@ function Invoke-DocsGenerate {
     if ($loading.Tag) { $ok = [bool]$loading.Tag.Ok }
   }
   finally {
+    try { if ($proc) { Unregister-SchumanOwnedProcess -ProcessId $proc.Id } } catch {}
     try { $animTimer.Stop(); $animTimer.Dispose() } catch {}
     try { $watchTimer.Stop(); $watchTimer.Dispose() } catch {}
     try { $loading.Dispose() } catch {}
@@ -1373,6 +1459,7 @@ function Invoke-ForceExcelUpdate {
   $loading.add_Shown({
     try {
       [void]$loading.Tag.Proc.Start()
+      Register-SchumanOwnedProcess -Process $loading.Tag.Proc -Tag 'forceupdate'
       $animTimer.Start()
       $watchTimer.Start()
     } catch {
@@ -1401,6 +1488,7 @@ function Invoke-ForceExcelUpdate {
     }
   }
   finally {
+    try { if ($proc) { Unregister-SchumanOwnedProcess -ProcessId $proc.Id } } catch {}
     try { $animTimer.Stop(); $animTimer.Dispose() } catch {}
     try { $watchTimer.Stop(); $watchTimer.Dispose() } catch {}
     try { $loading.Dispose() } catch {}
@@ -1530,6 +1618,14 @@ $txtExcel.Dock = [System.Windows.Forms.DockStyle]::Top
 $txtExcel.Text = $ExcelPath
 $txtExcel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
 $layout.Controls.Add($txtExcel, 0, 1)
+$txtExcel.Add_TextChanged(({
+  $ready = Test-MainExcelReady -ExcelPathValue $txtExcel.Text -SheetNameValue $SheetName
+  if ($ready) {
+    Update-MainExcelDependentControls -ExcelReady $true
+  } else {
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
+  }
+}).GetNewClosure())
 
 $prefsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $prefsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
@@ -1718,17 +1814,28 @@ function global:Set-MainBusyState {
     if ($loadingBar -and -not $loadingBar.IsDisposed) { $loadingBar.Visible = $true }
     try { $script:MainBusyTimer.Start() } catch {}
     $status.Text = ("Status: {0}." -f $script:MainBusyBaseText)
+    try {
+      if ($btnDashboard) { $btnDashboard.Enabled = $false }
+      if ($btnGenerate) { $btnGenerate.Enabled = $false }
+      if ($btnForce) { $btnForce.Enabled = $false }
+    } catch {}
   }
   else {
     try { $script:MainBusyTimer.Stop() } catch {}
     if ($loadingBar -and -not $loadingBar.IsDisposed) { $loadingBar.Visible = $false }
     $status.Text = 'Status: Ready'
+    try {
+      Update-MainExcelDependentControls -ExcelReady $script:MainExcelReady
+    } catch {}
   }
 }
 
 $script:UiRoleByControlId = @{}
 $script:UiHoverBoundByControlId = @{}
 $script:CurrentMainTheme = @{}
+$script:CurrentMainFontScale = 1.0
+$global:CurrentMainTheme = @{}
+$global:CurrentMainFontScale = 1.0
 
 function Convert-HexToUiColor {
   param(
@@ -1857,6 +1964,21 @@ function Apply-ThemeToControlTree {
       }
     }
     elseif ($Ctrl -is [System.Windows.Forms.TableLayoutPanel] -or $Ctrl -is [System.Windows.Forms.FlowLayoutPanel]) { $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG } }
+    elseif ($Ctrl -is [System.Windows.Forms.StatusStrip] -or $Ctrl -is [System.Windows.Forms.ToolStrip]) {
+      $Ctrl.BackColor = $Theme.HeaderBG
+      $Ctrl.ForeColor = $Theme.Text
+      $Ctrl.Font = $regular
+      try {
+        foreach ($item in $Ctrl.Items) {
+          $item.ForeColor = $Theme.Text
+          $item.BackColor = $Theme.HeaderBG
+        }
+      } catch {}
+    }
+    elseif ($Ctrl -is [System.Windows.Forms.ProgressBar]) {
+      $Ctrl.BackColor = $Theme.CardBG
+      $Ctrl.ForeColor = $Theme.Primary
+    }
     elseif ($Ctrl -is [System.Windows.Forms.Label]) { $Ctrl.ForeColor = if ($role -eq 'MutedLabel' -or $role -eq 'StatusLabel') { $Theme.MutedText } else { $Theme.Text }; $Ctrl.Font = if ($role -eq 'HeaderTitle') { $title } else { $regular } }
     elseif ($Ctrl -is [System.Windows.Forms.TextBox] -or $Ctrl -is [System.Windows.Forms.RichTextBox] -or $Ctrl -is [System.Windows.Forms.ComboBox]) { $Ctrl.BackColor = $Theme.InputBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
     elseif ($Ctrl -is [System.Windows.Forms.DataGridView]) {
@@ -1867,10 +1989,20 @@ function Apply-ThemeToControlTree {
       $Ctrl.ColumnHeadersDefaultCellStyle.BackColor = $Theme.HeaderBG; $Ctrl.ColumnHeadersDefaultCellStyle.ForeColor = $Theme.Text
       $Ctrl.EnableHeadersVisualStyles = $false
     }
-    elseif ($Ctrl -is [System.Windows.Forms.Button]) { $Ctrl.Font = $bold; Ensure-UiButtonHoverBinding -Button $Ctrl; Update-UiButtonVisual -Button $Ctrl -Theme $Theme -Hover:$false }
+    elseif ($Ctrl -is [System.Windows.Forms.Button]) {
+      $Ctrl.Font = $bold
+      Ensure-UiButtonHoverBinding -Button $Ctrl
+      Update-UiButtonVisual -Button $Ctrl -Theme $Theme -Hover:$false
+      if (Get-Command -Name Set-UiRoundedButton -ErrorAction SilentlyContinue) {
+        Set-UiRoundedButton -Button $Ctrl -Radius 10
+      }
+    }
     foreach ($child in $Ctrl.Controls) { & $walk $child }
   }
   & $walk $RootControl
+  if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
+    Apply-UiRoundedButtonsRecursive -Root $RootControl -Radius 10
+  }
 }
 
 $script:SetUiControlRoleHandler = ${function:Set-UiControlRole}
@@ -1932,7 +2064,9 @@ function Apply-MainUiTheme {
   $resolved.AccentHover = Get-ShiftedUiColor -Color $accent -Delta 10
   $resolved.FocusBorder = $accent
   $script:CurrentMainTheme = $resolved
+  $script:CurrentMainFontScale = ($safeScale / 100.0)
   $global:CurrentMainTheme = $resolved
+  $global:CurrentMainFontScale = ($safeScale / 100.0)
 
   if ($script:ApplyThemeToControlTreeHandler) {
     if ($form -and -not $form.IsDisposed) {
@@ -1941,7 +2075,8 @@ function Apply-MainUiTheme {
       try { $form.Refresh() } catch {}
     }
     $formsToRefresh = @()
-    try { $formsToRefresh = @([System.Windows.Forms.Application]::OpenForms) } catch {}
+    try { $formsToRefresh = @([System.Windows.Forms.Application]::OpenForms | ForEach-Object { $_ }) } catch {}
+    try { Write-Log -Level INFO -Message ("Theme apply '{0}/{1}' on {2} open form(s)." -f $safeTheme, $safeAccent, $formsToRefresh.Count) } catch {}
     foreach ($openForm in $formsToRefresh) {
       if (-not $openForm -or $openForm.IsDisposed) { continue }
       if ($form -and ($openForm -eq $form)) { continue }
@@ -1949,6 +2084,7 @@ function Apply-MainUiTheme {
         & $script:ApplyThemeToControlTreeHandler -RootControl $openForm -Theme $resolved -FontScale ($safeScale / 100.0)
         $openForm.Invalidate()
         $openForm.Refresh()
+        try { Write-Log -Level INFO -Message ("Theme applied to window: {0}" -f ("" + $openForm.Text)) } catch {}
       }
       catch {
         try { Write-Log -Level WARN -Message ("Theme apply skipped for a window: " + $_.Exception.Message) } catch {}
@@ -1994,6 +2130,36 @@ try { Apply-MainUiTheme -ThemeName $themePref -AccentName $accentPref -FontScale
 catch { Show-UiError -Title 'Theme' -Message 'Could not apply initial theme.' -Exception $_.Exception }
 
 $script:ApplyMainUiThemeHandler = ${function:Apply-MainUiTheme}
+$script:MainExcelReady = $false
+
+function Test-MainExcelReady {
+  param([string]$ExcelPathValue,[string]$SheetNameValue)
+  $path = ("" + $ExcelPathValue).Trim()
+  if ([string]::IsNullOrWhiteSpace($path)) { return $false }
+  if (-not (Test-Path -LiteralPath $path)) { return $false }
+  try {
+    $rows = @(Search-DashboardRows -ExcelPath $path -SheetName $SheetNameValue -SearchText '')
+    return ($rows.Count -gt 0)
+  } catch {
+    return $false
+  }
+}
+
+function Update-MainExcelDependentControls {
+  param([bool]$ExcelReady,[string]$Reason = '')
+  $script:MainExcelReady = [bool]$ExcelReady
+  $btnDashboard.Enabled = [bool]$ExcelReady
+  $btnGenerate.Enabled = [bool]$ExcelReady
+  $btnForce.Enabled = [bool]$ExcelReady
+  if (-not $ExcelReady -and $status -and -not $status.IsDisposed) {
+    $msg = ("" + $Reason).Trim()
+    if (-not $msg) { $msg = 'Please load Excel first.' }
+    $status.Text = ("Status: {0}" -f $msg)
+  }
+  elseif ($ExcelReady -and $status -and -not $status.IsDisposed -and -not $script:MainBusyActive) {
+    $status.Text = 'Status: Ready'
+  }
+}
 
 $showSettingsDialog = ({
   if (-not $form -or $form.IsDisposed) {
@@ -2237,9 +2403,14 @@ $showSettingsDialog = ({
 $openModule = {
   param([string]$module)
 
+  if (-not $script:MainExcelReady) {
+    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+    return
+  }
   $excel = ("" + $txtExcel.Text).Trim()
   if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
-    [System.Windows.Forms.MessageBox]::Show('Select a valid Excel file first.','Validation') | Out-Null
+    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.','Validation') | Out-Null
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
     return
   }
 
@@ -2291,9 +2462,10 @@ $closeCodeAction = {
     return
   }
   try {
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'Documents' -MainForm $form -BaseDir $projectRoot
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'All' -MainForm $form -BaseDir $projectRoot
     if ($r -and -not $r.Cancelled) {
       $status.Text = "Status: $($r.Message)"
+      try { Close-SchumanOpenForms } catch {}
     }
   }
   catch {
@@ -2317,9 +2489,14 @@ $closeDocsAction = {
   }
 }.GetNewClosure()
 $forceUpdateAction = {
+  if (-not $script:MainExcelReady) {
+    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+    return
+  }
   $excel = ("" + $txtExcel.Text).Trim()
   if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
-    [System.Windows.Forms.MessageBox]::Show('Select a valid Excel file first.','Validation') | Out-Null
+    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.','Validation') | Out-Null
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
     return
   }
 
@@ -2373,6 +2550,13 @@ $forceUpdateAction = {
   }
 }.GetNewClosure()
 
+$initialExcelReady = Test-MainExcelReady -ExcelPathValue $txtExcel.Text -SheetNameValue $SheetName
+if ($initialExcelReady) {
+  Update-MainExcelDependentControls -ExcelReady $true
+} else {
+  Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
+}
+
 $btnDashboard.Add_Click(({
   Invoke-UiHandler -Context 'Open Dashboard' -Action $openDashboardAction
 }).GetNewClosure())
@@ -2401,6 +2585,7 @@ $btnForce.Add_Click(({
   try {
     if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
   } catch {}
+  try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
   try {
     if ($script:MainBusyTimer) {
       $script:MainBusyTimer.Stop()
@@ -2412,21 +2597,7 @@ $btnForce.Add_Click(({
 [void]$form.add_FormClosing(({
   param($sender, $eventArgs)
   try {
-    $choice = [System.Windows.Forms.MessageBox]::Show(
-      'Close Schuman now? You can also cleanup Word/Excel processes opened by the app.',
-      'Schuman',
-      [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
-      [System.Windows.Forms.MessageBoxIcon]::Question
-    )
-    if ($choice -eq [System.Windows.Forms.DialogResult]::Cancel) {
-      $eventArgs.Cancel = $true
-      return
-    }
-    if ($choice -eq [System.Windows.Forms.DialogResult]::Yes) {
-      try {
-        Invoke-UiEmergencyClose -ActionLabel 'App Close Cleanup' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form -Mode 'Documents' -MainForm $form | Out-Null
-      } catch {}
-    }
+    try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
     try { Close-SchumanOpenForms -Except $sender } catch {}
   }
   catch {}

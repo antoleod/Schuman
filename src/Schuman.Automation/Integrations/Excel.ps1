@@ -41,17 +41,25 @@ function Invoke-WithExcelWorkbook {
   $wb = $null
   try {
     $excel = New-Object -ComObject Excel.Application
+    if (Get-Command -Name Register-SchumanOwnedComResource -ErrorAction SilentlyContinue) {
+      Register-SchumanOwnedComResource -Kind 'ExcelApplication' -Object $excel -Tag 'excel-workbook' | Out-Null
+    }
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
     try { $excel.AskToUpdateLinks = $false } catch {}
     try { $excel.EnableEvents = $false } catch {}
 
     $wb = $excel.Workbooks.Open($ExcelPath, $null, $ReadOnly)
+    if (Get-Command -Name Register-SchumanOwnedComResource -ErrorAction SilentlyContinue) {
+      Register-SchumanOwnedComResource -Kind 'Workbook' -Object $wb -Tag 'excel-workbook' | Out-Null
+    }
     & $Action $excel $wb
   }
   finally {
     try { if ($wb) { $wb.Close($false) | Out-Null } } catch {}
     try { if ($excel) { $excel.Quit() | Out-Null } } catch {}
+    try { if ($wb -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $wb } } catch {}
+    try { if ($excel -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $excel } } catch {}
     try { if ($wb) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } } catch {}
     try { if ($excel) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } } catch {}
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
@@ -283,9 +291,15 @@ function global:Search-DashboardRows {
   $ws = $null
   try {
     $excel = New-Object -ComObject Excel.Application
+    if (Get-Command -Name Register-SchumanOwnedComResource -ErrorAction SilentlyContinue) {
+      Register-SchumanOwnedComResource -Kind 'ExcelApplication' -Object $excel -Tag 'dashboard-search' | Out-Null
+    }
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
     $wb = $excel.Workbooks.Open($ExcelPath, $null, $true)
+    if (Get-Command -Name Register-SchumanOwnedComResource -ErrorAction SilentlyContinue) {
+      Register-SchumanOwnedComResource -Kind 'Workbook' -Object $wb -Tag 'dashboard-search' | Out-Null
+    }
     $ws = $wb.Worksheets.Item($SheetName)
 
     $map = Get-ExcelHeaderMap -Worksheet $ws
@@ -376,6 +390,9 @@ function global:Search-DashboardRows {
   finally {
     try { if ($wb) { $wb.Close($false) | Out-Null } } catch {}
     try { if ($excel) { $excel.Quit() | Out-Null } } catch {}
+    try { if ($ws -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $ws } } catch {}
+    try { if ($wb -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $wb } } catch {}
+    try { if ($excel -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $excel } } catch {}
     try { if ($ws) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) } } catch {}
     try { if ($wb) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($wb) } } catch {}
     try { if ($excel) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) } } catch {}

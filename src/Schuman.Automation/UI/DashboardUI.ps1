@@ -376,6 +376,8 @@ function New-DashboardUI {
     LastSearch = ''
     QueryCache = @{}
     ExcelStamp = 0L
+    ExcelReady = $false
+    IsLoading = $false
     UserDirectory = @()
     UltraFast = $true
     DefaultCheckIn = $defaultCheckIn
@@ -401,15 +403,15 @@ function New-DashboardUI {
       [bool]$IsLoading,
       [string]$Message = ''
     )
+    $state.IsLoading = [bool]$IsLoading
     if ($state.Controls.LoadingBar) {
       $state.Controls.LoadingBar.Visible = $IsLoading
     }
-    if ($btnRefresh -and -not $btnRefresh.IsDisposed) { $btnRefresh.Enabled = (-not $IsLoading) }
-    if ($btnRecalc -and -not $btnRecalc.IsDisposed) { $btnRecalc.Enabled = (-not $IsLoading) }
     if ($IsLoading -and -not [string]::IsNullOrWhiteSpace($Message)) {
       $lblStatus.Text = $Message
       try { [System.Windows.Forms.Application]::DoEvents() } catch {}
     }
+    try { & $updateActionButtons } catch {}
   }).GetNewClosure()
 
   $ensureTemplateStoreDirectory = ({
@@ -556,7 +558,15 @@ function New-DashboardUI {
     return [bool]$lifecycle.IsOpen
   }).GetNewClosure()
 
+  $ensureExcelReady = ({
+    if ([bool]$state.ExcelReady) { return $true }
+    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Dashboard') | Out-Null
+    $lblStatus.Text = 'Please load Excel first.'
+    return $false
+  }).GetNewClosure()
+
   $updateActionButtons = ({
+    $excelReady = [bool]$state.ExcelReady
     $sel = & $getSelectedRow
     $hasValidRitm = $false
     $isClosed = $false
@@ -566,10 +576,17 @@ function New-DashboardUI {
       $life = & $resolveRowLifecycle $sel
       $isClosed = [bool]$life.IsClosed
     }
-    $btnCheckIn.Enabled = ($hasValidRitm -and -not $isClosed)
-    $btnCheckOut.Enabled = $hasValidRitm
-    $btnRecalc.Enabled = $hasValidRitm
-    $btnOpenSnow.Enabled = $hasValidRitm
+    $allowActions = ($excelReady -and -not $state.IsLoading)
+    $btnRefresh.Enabled = $allowActions
+    $btnClear.Enabled = $allowActions
+    $btnTemplateSettings.Enabled = $allowActions
+    $btnCheckIn.Enabled = ($allowActions -and $hasValidRitm -and -not $isClosed)
+    $btnCheckOut.Enabled = ($allowActions -and $hasValidRitm)
+    $btnRecalc.Enabled = ($allowActions -and $hasValidRitm)
+    $btnOpenSnow.Enabled = ($allowActions -and $hasValidRitm)
+    $txtSearch.Enabled = $allowActions
+    $chkOpenOnly.Enabled = $allowActions
+    $chkUltraFast.Enabled = $allowActions
   }).GetNewClosure()
 
   $getVisibleRows = ({
@@ -709,10 +726,15 @@ function New-DashboardUI {
           $state.AllRows = @(& $fetchRows -QueryText '' -ForceReload:$ReloadFromExcel)
         }
         $state.Rows = @(& $getVisibleRows)
+        $state.ExcelReady = ($state.Rows.Count -gt 0)
         $state.LastSearch = ''
         & $bindRowsToGrid $state.Rows
         & $updateActionButtons
-        $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
+        if ($state.ExcelReady) {
+          $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
+        } else {
+          $lblStatus.Text = 'Please load Excel first.'
+        }
         return
       }
 
@@ -724,15 +746,22 @@ function New-DashboardUI {
 
       $rows = & $getVisibleRows
       $state.Rows = @($rows)
+      $state.ExcelReady = ($state.Rows.Count -gt 0)
       $state.LastSearch = $q
       & $bindRowsToGrid $rows
       & $updateActionButtons
 
       $filterNote = if ($chkOpenOnly.Checked) { ' (solo abiertos)' } else { '' }
-      $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+      if ($state.ExcelReady) {
+        $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+      } else {
+        $lblStatus.Text = 'Please load Excel first.'
+      }
     }
     catch {
       $err = $_.Exception.Message
+      $state.ExcelReady = $false
+      & $updateActionButtons
       [System.Windows.Forms.MessageBox]::Show("Search failed: $err", 'Dashboard Error') | Out-Null
       try { Write-Log -Level ERROR -Message ("Dashboard search failed: " + $err) } catch {}
     }
@@ -744,6 +773,7 @@ function New-DashboardUI {
   $applyAction = ({
     param([string]$action)
     try {
+      if (-not (& $ensureExcelReady)) { return }
       $row = & $getSelectedRow
       if (-not $row) {
         [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
@@ -803,6 +833,7 @@ function New-DashboardUI {
 
   $recalculateRow = ({
     try {
+      if (-not (& $ensureExcelReady)) { return }
       & $setLoadingState -IsLoading $true -Message 'Recalculating row from ServiceNow...'
       $row = & $getSelectedRow
       if (-not $row) {
@@ -963,14 +994,21 @@ function New-DashboardUI {
       & $setLoadingState -IsLoading $true -Message 'Preloading Excel rows...'
       $state.AllRows = @(& $fetchRows -QueryText '' -ForceReload)
       $state.Rows = @(& $getVisibleRows)
+      $state.ExcelReady = ($state.Rows.Count -gt 0)
       $state.LastSearch = ''
       $state.UserDirectory = @($state.AllRows | ForEach-Object { ("" + $_.RequestedFor).Trim() } | Where-Object { $_ } | Sort-Object -Unique)
       & $bindRowsToGrid $state.Rows
       & $updateActionButtons
-      $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
+      if ($state.ExcelReady) {
+        $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
+      } else {
+        $lblStatus.Text = 'Please load Excel first.'
+      }
       try { Write-Log -Level INFO -Message ("Preloaded {0} rows from Excel." -f $state.Rows.Count) } catch {}
     }
     catch {
+      $state.ExcelReady = $false
+      & $updateActionButtons
       $lblStatus.Text = 'Preload failed.'
       [System.Windows.Forms.MessageBox]::Show("Preload failed: $($_.Exception.Message)", 'Dashboard Error') | Out-Null
     }
@@ -1039,6 +1077,7 @@ function New-DashboardUI {
 
   $btnRefresh.Add_Click(({
     try {
+      if (-not (& $ensureExcelReady)) { return }
       $state.Controls.Search.Text = $state.LastSearch
       & $performSearch -ReloadFromExcel
       $lblStatus.Text = 'Done: dashboard refreshed from Excel.'
@@ -1050,12 +1089,14 @@ function New-DashboardUI {
   }).GetNewClosure())
 
   $btnClear.Add_Click(({
+    if (-not (& $ensureExcelReady)) { return }
     $state.Controls.Search.Text = ''
     $state.LastSearch = ''
     & $performSearch
   }).GetNewClosure())
 
   $btnUseCheckInNote.Add_Click(({
+    if (-not (& $ensureExcelReady)) { return }
     $row = & $getSelectedRow
     if (-not $row) {
       [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
@@ -1064,6 +1105,7 @@ function New-DashboardUI {
     $state.Controls.Comment.Text = & $renderTemplateForRow -TemplateText $state.Templates.checkIn -rowItem $row
   }).GetNewClosure())
   $btnUseCheckOutNote.Add_Click(({
+    if (-not (& $ensureExcelReady)) { return }
     $row = & $getSelectedRow
     if (-not $row) {
       [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
@@ -1072,6 +1114,7 @@ function New-DashboardUI {
     $state.Controls.Comment.Text = & $renderTemplateForRow -TemplateText $state.Templates.checkOut -rowItem $row
   }).GetNewClosure())
   $btnOpenSnow.Add_Click(({
+    if (-not (& $ensureExcelReady)) { return }
     $row = & $getSelectedRow
     if (-not $row) {
       [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
@@ -1084,7 +1127,7 @@ function New-DashboardUI {
   $btnCheckIn.Add_Click(({ & $applyAction 'checkin' }.GetNewClosure()))
   $btnCheckOut.Add_Click(({ & $applyAction 'checkout' }.GetNewClosure()))
   $btnCloseCode.Add_Click(({
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'Documents' -MainForm $form
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'All' -MainForm $form
     if (-not $r.Cancelled) {
       $lblStatus.Text = $r.Message
       try {
@@ -1118,15 +1161,22 @@ function New-DashboardUI {
   $state.Controls.Comment.Text = $state.DefaultCheckIn
   $state.AllRows = @()
   $state.Rows = @()
+  $state.ExcelReady = $false
   & $bindRowsToGrid @()
   $lblStatus.Text = 'Loading initial Excel data...'
   [void]$form.Add_Shown(({
     & $layoutDashboard
     try {
       $applyThemeToControlTreeHandler = ${function:Apply-ThemeToControlTree}
-      $themeVar = Get-Variable -Name CurrentMainTheme -Scope Script -ErrorAction SilentlyContinue
+      $themeVar = Get-Variable -Name CurrentMainTheme -Scope Global -ErrorAction SilentlyContinue
+      $scaleVar = Get-Variable -Name CurrentMainFontScale -Scope Global -ErrorAction SilentlyContinue
+      $scale = 1.0
+      if ($scaleVar -and $scaleVar.Value) { try { $scale = [double]$scaleVar.Value } catch { $scale = 1.0 } }
       if ($applyThemeToControlTreeHandler -and $themeVar -and $themeVar.Value) {
-        & $applyThemeToControlTreeHandler -RootControl $form -Theme $themeVar.Value -FontScale 1.0
+        & $applyThemeToControlTreeHandler -RootControl $form -Theme $themeVar.Value -FontScale $scale
+      }
+      if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
+        Apply-UiRoundedButtonsRecursive -Root $form -Radius 10
       }
     } catch {}
     if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }

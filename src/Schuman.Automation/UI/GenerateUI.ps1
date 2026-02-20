@@ -61,6 +61,7 @@ function New-UI {
   $UI.OutputPath = ("" + $OutputPath).Trim()
   $UI.OnOpenDashboard = $OnOpenDashboard
   $UI.OnGenerate = $OnGenerate
+  $UI.ExcelReady = $false
   $UI.Theme = @{
     Light = @{
       Bg = [System.Drawing.Color]::FromArgb(245, 246, 248)
@@ -483,6 +484,15 @@ function Generate-PDF {
 function Set-GenerateUiTheme {
   param([hashtable]$UI)
 
+  $globalTheme = $null
+  $globalScale = 1.0
+  try {
+    $themeVar = Get-Variable -Name CurrentMainTheme -Scope Global -ErrorAction SilentlyContinue
+    if ($themeVar -and $themeVar.Value) { $globalTheme = $themeVar.Value }
+    $scaleVar = Get-Variable -Name CurrentMainFontScale -Scope Global -ErrorAction SilentlyContinue
+    if ($scaleVar -and $scaleVar.Value) { $globalScale = [double]$scaleVar.Value }
+  } catch {}
+
   $palette = if ($UI.ChkDark.Checked) { $UI.Theme.Dark } else { $UI.Theme.Light }
   $UI.Form.BackColor = $palette.Bg
   $UI.Form.ForeColor = $palette.Text
@@ -531,6 +541,26 @@ function Set-GenerateUiTheme {
   $UI.Grid.DefaultCellStyle.SelectionForeColor = $palette.Text
   $UI.Grid.AlternatingRowsDefaultCellStyle.BackColor = $palette.Card
   $UI.Grid.AlternatingRowsDefaultCellStyle.ForeColor = $palette.Text
+
+  if ($globalTheme -and (Get-Command -Name Apply-ThemeToControlTree -ErrorAction SilentlyContinue)) {
+    try { Apply-ThemeToControlTree -RootControl $UI.Form -Theme $globalTheme -FontScale $globalScale } catch {}
+  }
+  if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
+    try { Apply-UiRoundedButtonsRecursive -Root $UI.Form -Radius 10 } catch {}
+  }
+}
+
+function Update-GenerateDataState {
+  param([hashtable]$UI,[bool]$ExcelReady,[string]$Reason = '')
+  $UI.ExcelReady = [bool]$ExcelReady
+  $UI.BtnStart.Enabled = [bool]$ExcelReady
+  $UI.BtnDashboard.Enabled = [bool]$ExcelReady
+  if (-not $ExcelReady) {
+    $msg = ("" + $Reason).Trim()
+    if (-not $msg) { $msg = 'Please load Excel first.' }
+    $UI.LblStatusText.Text = $msg
+    Set-StatusPill -UI $UI -Text 'Missing Excel' -State error
+  }
 }
 
 function Set-StatusPill {
@@ -581,6 +611,10 @@ function Register-GenerateHandlers {
   $UI.BtnDashboard.Add_Click(({
     param($sender, $args)
     Invoke-UiSafe -UI $UI -Context 'Open Dashboard' -Action {
+      if (-not [bool]$UI.ExcelReady) {
+        [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+        return
+      }
       if ($UI.OnOpenDashboard) { & $UI.OnOpenDashboard; return }
       $UI.LblStatusText.Text = 'Dashboard callback not configured.'
       Set-StatusPill -UI $UI -Text 'Error' -State error
@@ -600,10 +634,11 @@ function Register-GenerateHandlers {
   $UI.BtnCloseCode.Add_Click(({
     param($sender, $args)
     Invoke-UiSafe -UI $UI -Context 'Cerrar codigo' -Action {
-      $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $UI.Form -Mode 'Documents' -MainForm $UI.Form
+      $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $UI.Form -Mode 'All' -MainForm $UI.Form
       if (-not $r.Cancelled) {
         $UI.LblStatusText.Text = $r.Message
         Append-GenerateLog -UI $UI -Line $r.Message
+        try { if (Get-Command -Name Close-SchumanOpenForms -ErrorAction SilentlyContinue) { Close-SchumanOpenForms } } catch {}
       }
     }
   }).GetNewClosure())
@@ -644,6 +679,10 @@ function Register-GenerateHandlers {
   $UI.BtnStart.Add_Click(({
     param($sender, $args)
     Invoke-UiSafe -UI $UI -Context 'Generate Documents' -Action {
+      if (-not [bool]$UI.ExcelReady) {
+        [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+        return
+      }
       $UI.BtnStart.Enabled = $false
       $UI.BtnDashboard.Enabled = $false
       try {
@@ -686,8 +725,10 @@ function Register-GenerateHandlers {
         Show-UiError -Context 'Generate-PDF' -ErrorRecord $_
       }
       finally {
-        $UI.BtnStart.Enabled = $true
-        $UI.BtnDashboard.Enabled = $true
+        if ([bool]$UI.ExcelReady) {
+          $UI.BtnStart.Enabled = $true
+          $UI.BtnDashboard.Enabled = $true
+        }
       }
     }
   }).GetNewClosure())
@@ -722,6 +763,7 @@ function New-GeneratePdfUI {
     $rows = @(Export-Excel -UI $UI)
     Update-Grid -UI $UI -Rows $rows
     $total = $rows.Count
+    Update-GenerateDataState -UI $UI -ExcelReady ($total -gt 0) -Reason 'Please load Excel first.'
     $UI.LblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
     if ($total -gt 0) {
       $UI.LblStatusText.Text = "Ready. Preloaded $total rows from Excel."
@@ -729,6 +771,7 @@ function New-GeneratePdfUI {
     }
   }
   catch {
+    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason 'Please load Excel first.'
     Show-UiError -Context 'Load-Data' -ErrorRecord $_
   }
 

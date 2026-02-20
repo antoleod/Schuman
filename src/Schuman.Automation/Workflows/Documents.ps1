@@ -36,6 +36,9 @@ function Invoke-DocumentGenerationWorkflow {
   $generated = New-Object System.Collections.Generic.List[object]
   try {
     $word = New-Object -ComObject Word.Application
+    if (Get-Command -Name Register-SchumanOwnedComResource -ErrorAction SilentlyContinue) {
+      Register-SchumanOwnedComResource -Kind 'WordApplication' -Object $word -Tag 'documents-generate' | Out-Null
+    }
     $word.Visible = $false
     $word.DisplayAlerts = 0
 
@@ -49,6 +52,9 @@ function Invoke-DocumentGenerationWorkflow {
       try {
         Copy-Item -LiteralPath $TemplatePath -Destination $docxPath -Force
         $doc = $word.Documents.Open($docxPath)
+        if (Get-Command -Name Register-SchumanOwnedComResource -ErrorAction SilentlyContinue) {
+          Register-SchumanOwnedComResource -Kind 'WordDocument' -Object $doc -Tag 'documents-generate' | Out-Null
+        }
 
         Set-WordPlaceholder -Document $doc -Placeholder '{{RITM}}' -Value $row.RITM
         Set-WordPlaceholder -Document $doc -Placeholder '{{NAME}}' -Value $row.RequestedFor
@@ -73,12 +79,14 @@ function Invoke-DocumentGenerationWorkflow {
       }
       finally {
         try { if ($doc) { $doc.Close($true) | Out-Null } } catch {}
+        try { if ($doc -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $doc } } catch {}
         try { if ($doc) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($doc) } } catch {}
       }
     }
   }
   finally {
     try { if ($word) { $word.Quit() | Out-Null } } catch {}
+    try { if ($word -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $word } } catch {}
     try { if ($word) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) } } catch {}
     [GC]::Collect(); [GC]::WaitForPendingFinalizers()
   }

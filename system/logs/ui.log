@@ -67,3 +67,7 @@ The term 'Set-UiControlRole' is not recognized as the name of a cmdlet, function
 [2026-02-20 23:44:03] [ERROR] ThreadException: The term 'Get-ServiceNowTasksForRitm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
 [2026-02-20 23:54:30] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
 [2026-02-21 00:02:01] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:24:20] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:30:10] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:30:15] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-21 00:30:15] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
