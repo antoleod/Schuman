@@ -268,7 +268,7 @@ function Write-TicketResultsToExcel {
   }
 }
 
-function Search-DashboardRows {
+function global:Search-DashboardRows {
   param(
     [Parameter(Mandatory = $true)][string]$ExcelPath,
     [Parameter(Mandatory = $true)][string]$SheetName,
@@ -293,6 +293,8 @@ function Search-DashboardRows {
     if (-not $ritmCol) { throw 'Dashboard requires a RITM/Number column.' }
 
     $statusCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Dashboard Status')
+    $ritmStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Estado de RITM', 'RITM State', 'RITM Status', 'State', 'Status')
+    $taskStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('SCTASK State', 'SCTASK Status', 'SC Task State', 'Task State')
     $presentCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Present Time')
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Closed Time')
     $taskCol = Resolve-HeaderColumn -HeaderMap $map -Names @('SCTasks', 'SCTask', 'SC Task')
@@ -331,6 +333,8 @@ function Search-DashboardRows {
     $ritmValues = & $getColValues $ritmCol
     $nameValues = & $getColValues $nameCol
     $statusValues = & $getColValues $statusCol
+    $ritmStateValues = & $getColValues $ritmStateCol
+    $taskStateValues = & $getColValues $taskStateCol
     $presentValues = & $getColValues $presentCol
     $closedValues = & $getColValues $closedCol
     $taskValues = & $getColValues $taskCol
@@ -343,13 +347,15 @@ function Search-DashboardRows {
 
       $requestedFor = if ($nameValues.ContainsKey($r)) { ("" + $nameValues[$r]).Trim() } else { '' }
       $dashboardStatus = if ($statusValues.ContainsKey($r)) { ("" + $statusValues[$r]).Trim() } else { '' }
+      $ritmState = if ($ritmStateValues.ContainsKey($r)) { ("" + $ritmStateValues[$r]).Trim() } else { '' }
+      $taskState = if ($taskStateValues.ContainsKey($r)) { ("" + $taskStateValues[$r]).Trim() } else { '' }
       $presentTime = if ($presentValues.ContainsKey($r)) { ("" + $presentValues[$r]).Trim() } else { '' }
       $closedTime = if ($closedValues.ContainsKey($r)) { ("" + $closedValues[$r]).Trim() } else { '' }
       $sctask = if ($taskValues.ContainsKey($r)) { ("" + $taskValues[$r]).Trim() } else { '' }
       $pi = if ($piValues.ContainsKey($r)) { ("" + $piValues[$r]).Trim() } else { '' }
 
       if ($query) {
-        $blobNorm = ("{0} {1} {2} {3} {4} {5} {6}" -f $requestedFor, $ritm, $sctask, $pi, $dashboardStatus, $presentTime, $closedTime).ToLowerInvariant()
+        $blobNorm = ("{0} {1} {2} {3} {4} {5} {6} {7} {8}" -f $requestedFor, $ritm, $sctask, $pi, $dashboardStatus, $ritmState, $taskState, $presentTime, $closedTime).ToLowerInvariant()
         if (-not $blobNorm.Contains($queryNorm)) { continue }
       }
 
@@ -359,6 +365,8 @@ function Search-DashboardRows {
         RequestedFor = $requestedFor
         PI = $pi
         DashboardStatus = $dashboardStatus
+        RITMState = $ritmState
+        SCTASKState = $taskState
         PresentTime = $presentTime
         ClosedTime = $closedTime
         SCTASK = $sctask
@@ -377,7 +385,7 @@ function Search-DashboardRows {
   return @($rowsOut.ToArray())
 }
 
-function Update-DashboardRow {
+function global:Update-DashboardRow {
   param(
     [Parameter(Mandatory = $true)][string]$ExcelPath,
     [Parameter(Mandatory = $true)][string]$SheetName,

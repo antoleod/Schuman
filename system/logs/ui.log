@@ -1,0 +1,69 @@
+﻿[2026-02-20 13:33:00] [ERROR] ThreadException: The term 'Invoke-UiHandler' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 13:37:42] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 13:37:51] [ERROR] ThreadException: The term 'Invoke-UiHandler' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 13:37:57] [ERROR] ThreadException: The term 'Invoke-UiHandler' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 13:39:33] [ERROR] ThreadException: The term 'Invoke-UiHandler' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 13:39:44] [ERROR] ThreadException: The term 'Invoke-UiHandler' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 13:47:56] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 13:51:24] [ERROR] ThreadException: The term 'Show-UiError' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 13:52:56] [ERROR] ThreadException: The term 'Show-UiError' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 14:11:12] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 14:12:03] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 14:13:21] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 14:13:51] [ERROR] Unable to apply personalization.
+
+You cannot call a method on a null-valued expression.
+[2026-02-20 14:14:43] [ERROR] Cerrar codigo: The term 'Invoke-UiEmergencyClose' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 14:14:52] [ERROR] Cerrar documentos: The term 'Invoke-UiEmergencyClose' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 14:15:36] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 14:17:25] [ERROR] Unable to apply personalization.
+
+You cannot call a method on a null-valued expression.
+[2026-02-20 14:18:18] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 14:18:22] [ERROR] Force Update: The term 'Show-ForceUpdateOptionsDialog' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 14:19:21] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 14:19:53] [ERROR] Unable to apply personalization.
+
+You cannot call a method on a null-valued expression.
+[2026-02-20 14:19:56] [ERROR] Force Update: The term 'Show-ForceUpdateOptionsDialog' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 14:20:08] [INFO] Preloaded 79 rows from Excel.
+[2026-02-20 21:51:54] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 21:52:31] [ERROR] Open Settings failed.
+
+The term 'Set-MainBusyState' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 21:52:31] [ERROR] ThreadException: The term 'Set-MainBusyState' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 21:53:23] [ERROR] Force Update: The term 'Set-MainBusyState' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 21:53:23] [ERROR] UI: Unknown error.
+[2026-02-20 21:54:16] [ERROR] Owner form not available.
+[2026-02-20 21:54:42] [ERROR] Owner form not available.
+[2026-02-20 21:55:25] [ERROR] Force Update: The term 'Invoke-ForceExcelUpdate' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 21:55:25] [ERROR] UI: Unknown error.
+[2026-02-20 21:56:04] [INFO] Preloaded 79 rows from Excel.
+[2026-02-20 22:01:13] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:01:35] [ERROR] Force Update: The term 'Invoke-ForceExcelUpdate' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 22:01:35] [ERROR] UI: Unknown error.
+[2026-02-20 22:09:55] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:36:30] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:39:07] [ERROR] ThreadException: The variable '$grid' cannot be retrieved because it has not been set.
+[2026-02-20 22:40:18] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:43:52] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:45:51] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:47:08] [ERROR] Open Settings failed.
+
+The term 'Get-UiFontName' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 22:53:24] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 22:54:13] [ERROR] Open Settings failed.
+
+The term 'Get-UiFontNameSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 23:24:30] [ERROR] Open Settings failed.
+
+The term 'Set-UiControlRole' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 23:25:07] [ERROR] ThreadException: The variable '$cAccent' cannot be retrieved because it has not been set.
+[2026-02-20 23:27:09] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 23:34:28] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 23:36:06] [ERROR] ThreadException: The variable '$cAccent' cannot be retrieved because it has not been set.
+[2026-02-20 23:36:35] [INFO] Preloaded 79 rows from Excel.
+[2026-02-20 23:42:18] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-20 23:44:03] [ERROR] ThreadException: The term 'Get-ServiceNowTasksForRitm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-20 23:54:30] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-21 00:02:01] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."

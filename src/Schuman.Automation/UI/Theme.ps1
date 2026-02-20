@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version Latest
 
-function Get-UiFontName {
+function global:Get-UiFontName {
   $candidates = @('Segoe UI Variable Text', 'Segoe UI')
   $installed = New-Object System.Drawing.Text.InstalledFontCollection
   foreach ($name in $candidates) {
@@ -40,6 +40,7 @@ function Stop-UiProcessesByName {
   }
 
   foreach ($p in $procs) {
+    if ([int]$p.ProcessId -eq $PID) { continue }
     $name = ("" + $p.Name).Trim().ToLowerInvariant()
     if (-not $name) { continue }
     if (-not ($targets -contains $name)) { continue }

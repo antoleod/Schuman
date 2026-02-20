@@ -1665,3 +1665,96 @@
 2026-02-19 11:59:54 [INFO] PERF ticket_RITM0434593 took 2308ms
 2026-02-19 11:59:54 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260219_115902\tickets_export.json
 2026-02-19 11:59:54 [INFO] Writing extracted data back to Excel.
+2026-02-20 09:59:25 [INFO] ServiceNow SSO confirmed.
+2026-02-20 13:32:49 [INFO] ServiceNow SSO confirmed.
+2026-02-20 13:37:43 [INFO] ServiceNow SSO confirmed.
+2026-02-20 13:47:57 [INFO] ServiceNow SSO confirmed.
+2026-02-20 14:11:47 [INFO] ServiceNow SSO confirmed.
+2026-02-20 14:12:04 [INFO] ServiceNow SSO confirmed.
+2026-02-20 14:13:22 [INFO] ServiceNow SSO confirmed.
+2026-02-20 14:15:37 [INFO] ServiceNow SSO confirmed.
+2026-02-20 14:18:19 [INFO] ServiceNow SSO confirmed.
+2026-02-20 14:19:21 [INFO] ServiceNow SSO confirmed.
+2026-02-20 21:52:18 [INFO] ServiceNow SSO confirmed.
+2026-02-20 21:53:57 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:01:14 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:09:56 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:10:13 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-20 22:10:15 [INFO] Tickets queued: total=72, filtered=22, scope=RitmOnly
+2026-02-20 22:10:16 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:10:16 [INFO] [1/22] Extracting RITM0496748
+2026-02-20 22:10:17 [INFO] RITM0496748 status='1' open_tasks=1
+2026-02-20 22:10:17 [INFO] PERF ticket_RITM0496748 took 993ms
+2026-02-20 22:10:17 [INFO] [2/22] Extracting RITM0405052
+2026-02-20 22:10:18 [INFO] RITM0405052 status='1' open_tasks=2
+2026-02-20 22:10:18 [INFO] [3/22] Extracting RITM0493120
+2026-02-20 22:10:19 [INFO] RITM0493120 status='1' open_tasks=1
+2026-02-20 22:10:19 [INFO] PERF ticket_RITM0493120 took 809ms
+2026-02-20 22:10:19 [INFO] [4/22] Extracting RITM0395760
+2026-02-20 22:10:20 [INFO] RITM0395760 status='3' open_tasks=0
+2026-02-20 22:10:20 [INFO] PERF ticket_RITM0395760 took 680ms
+2026-02-20 22:10:20 [INFO] [5/22] Extracting RITM0400363
+2026-02-20 22:10:20 [INFO] PERF ticket_RITM0400363 took 529ms
+2026-02-20 22:10:20 [INFO] [6/22] Extracting RITM0400334
+2026-02-20 22:10:21 [INFO] RITM0400334 status='3' open_tasks=0
+2026-02-20 22:10:21 [INFO] PERF ticket_RITM0400334 took 524ms
+2026-02-20 22:10:21 [INFO] [7/22] Extracting RITM0429435
+2026-02-20 22:10:21 [INFO] RITM0429435 status='3' open_tasks=0
+2026-02-20 22:10:21 [INFO] [8/22] Extracting RITM0430321
+2026-02-20 22:10:22 [INFO] RITM0430321 status='3' open_tasks=0
+2026-02-20 22:10:22 [INFO] PERF ticket_RITM0430321 took 345ms
+2026-02-20 22:10:22 [INFO] [9/22] Extracting RITM0430778
+2026-02-20 22:10:22 [INFO] RITM0430778 status='3' open_tasks=0
+2026-02-20 22:10:22 [INFO] PERF ticket_RITM0430778 took 536ms
+2026-02-20 22:10:22 [INFO] [10/22] Extracting RITM0400091
+2026-02-20 22:10:23 [INFO] RITM0400091 status='3' open_tasks=0
+2026-02-20 22:10:23 [INFO] PERF ticket_RITM0400091 took 500ms
+2026-02-20 22:10:23 [INFO] [11/22] Extracting RITM0400088
+2026-02-20 22:10:23 [INFO] PERF ticket_RITM0400088 took 521ms
+2026-02-20 22:10:23 [INFO] [12/22] Extracting RITM0420978
+2026-02-20 22:10:24 [INFO] RITM0420978 status='3' open_tasks=0
+2026-02-20 22:10:24 [INFO] PERF ticket_RITM0420978 took 509ms
+2026-02-20 22:10:24 [INFO] [13/22] Extracting RITM0405042
+2026-02-20 22:10:25 [INFO] RITM0405042 status='3' open_tasks=0
+2026-02-20 22:10:25 [INFO] PERF ticket_RITM0405042 took 589ms
+2026-02-20 22:10:25 [INFO] [14/22] Extracting RITM0433027
+2026-02-20 22:10:25 [INFO] RITM0433027 status='3' open_tasks=0
+2026-02-20 22:10:25 [INFO] PERF ticket_RITM0433027 took 509ms
+2026-02-20 22:10:25 [INFO] [15/22] Extracting RITM0433109
+2026-02-20 22:10:26 [INFO] RITM0433109 status='3' open_tasks=0
+2026-02-20 22:10:26 [INFO] PERF ticket_RITM0433109 took 518ms
+2026-02-20 22:10:26 [INFO] [16/22] Extracting RITM0433132
+2026-02-20 22:10:26 [INFO] RITM0433132 status='3' open_tasks=0
+2026-02-20 22:10:26 [INFO] PERF ticket_RITM0433132 took 491ms
+2026-02-20 22:10:26 [INFO] [17/22] Extracting RITM0433154
+2026-02-20 22:10:27 [INFO] RITM0433154 status='3' open_tasks=0
+2026-02-20 22:10:27 [INFO] PERF ticket_RITM0433154 took 342ms
+2026-02-20 22:10:27 [INFO] [18/22] Extracting RITM0433331
+2026-02-20 22:10:27 [INFO] RITM0433331 status='3' open_tasks=0
+2026-02-20 22:10:27 [INFO] PERF ticket_RITM0433331 took 523ms
+2026-02-20 22:10:27 [INFO] [19/22] Extracting RITM0420972
+2026-02-20 22:10:28 [INFO] RITM0420972 status='3' open_tasks=0
+2026-02-20 22:10:28 [INFO] PERF ticket_RITM0420972 took 453ms
+2026-02-20 22:10:28 [INFO] [20/22] Extracting RITM0434588
+2026-02-20 22:10:28 [INFO] RITM0434588 status='2' open_tasks=0
+2026-02-20 22:10:28 [INFO] PERF ticket_RITM0434588 took 622ms
+2026-02-20 22:10:28 [INFO] [21/22] Extracting RITM0434592
+2026-02-20 22:10:29 [INFO] RITM0434592 status='4' open_tasks=0
+2026-02-20 22:10:29 [INFO] PERF ticket_RITM0434592 took 757ms
+2026-02-20 22:10:29 [INFO] [22/22] Extracting RITM0434593
+2026-02-20 22:10:29 [INFO] RITM0434593 status='3' open_tasks=0
+2026-02-20 22:10:29 [INFO] PERF ticket_RITM0434593 took 332ms
+2026-02-20 22:10:30 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260220_221013\tickets_export.json
+2026-02-20 22:10:30 [INFO] Writing extracted data back to Excel.
+2026-02-20 22:10:32 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260220_221013\tickets_export.json
+2026-02-20 22:36:32 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:40:19 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:43:53 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:45:52 [INFO] ServiceNow SSO confirmed.
+2026-02-20 22:53:25 [INFO] ServiceNow SSO confirmed.
+2026-02-20 23:23:19 [INFO] ServiceNow SSO confirmed.
+2026-02-20 23:27:10 [INFO] ServiceNow SSO confirmed.
+2026-02-20 23:34:29 [INFO] ServiceNow SSO confirmed.
+2026-02-20 23:42:18 [INFO] ServiceNow SSO confirmed.
+2026-02-20 23:54:31 [INFO] ServiceNow SSO confirmed.
+2026-02-21 00:02:03 [INFO] ServiceNow SSO confirmed.

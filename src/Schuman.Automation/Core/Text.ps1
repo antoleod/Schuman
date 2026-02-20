@@ -8,7 +8,7 @@ function Get-TicketType {
   return 'UNKNOWN'
 }
 
-function Test-ClosedState {
+function global:Test-ClosedState {
   param(
     [string]$StateLabel,
     [string]$StateValue

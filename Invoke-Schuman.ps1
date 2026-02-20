@@ -18,6 +18,7 @@ param(
   [string]$PiSearchMode = 'Auto',
   [int]$MaxTickets = 0,
   [switch]$NoWriteBack,
+  [switch]$SkipLegalNameFallback,
 
   [string]$SearchText = '',
   [int]$Row = 0,
@@ -46,7 +47,7 @@ try {
     'Export' {
       $res = Invoke-TicketExportWorkflow -Config $config -RunContext $runContext -ExcelPath $resolvedExcel -SheetName $SheetName `
         -TicketHeader $TicketHeader -TicketColumn $TicketColumn -NameHeader $NameHeader -PhoneHeader $PhoneHeader `
-        -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ProcessingScope $ProcessingScope -PiSearchMode $PiSearchMode -MaxTickets $MaxTickets -NoWriteBack:$NoWriteBack
+        -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader -ProcessingScope $ProcessingScope -PiSearchMode $PiSearchMode -MaxTickets $MaxTickets -NoWriteBack:$NoWriteBack -SkipLegalNameFallback:$SkipLegalNameFallback
 
       Write-RunLog -RunContext $runContext -Level INFO -Message "Export completed. JSON: $($res.CombinedJsonPath)"
       if (-not $NoPopups) {

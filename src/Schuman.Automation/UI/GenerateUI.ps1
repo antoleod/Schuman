@@ -1,6 +1,50 @@
 Set-StrictMode -Version Latest
 
-function New-GeneratePdfUI {
+function Write-Log {
+  param(
+    [string]$Message,
+    [ValidateSet('INFO', 'WARN', 'ERROR')][string]$Level = 'INFO',
+    [string]$LogPath = ''
+  )
+
+  try {
+    $text = if ($null -eq $Message) { '' } else { [string]$Message }
+    if ([string]::IsNullOrWhiteSpace($LogPath)) {
+      $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+      $logsDir = Join-Path $projectRoot 'system\logs'
+      if (-not (Test-Path -LiteralPath $logsDir)) {
+        New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+      }
+      $LogPath = Join-Path $logsDir 'ui.log'
+    }
+    $line = "[{0}] [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Level, $text
+    Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+  }
+  catch {}
+}
+
+function Show-UiError {
+  param(
+    [string]$Context,
+    [System.Management.Automation.ErrorRecord]$ErrorRecord
+  )
+
+  $ctx = if ([string]::IsNullOrWhiteSpace($Context)) { 'UI' } else { $Context }
+  $msg = 'Unknown error.'
+
+  try {
+    if ($ErrorRecord -and $ErrorRecord.Exception) {
+      $msg = ("" + $ErrorRecord.Exception.Message).Trim()
+    }
+    if ([string]::IsNullOrWhiteSpace($msg)) { $msg = 'Unknown error.' }
+  }
+  catch {}
+
+  Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $msg)
+  try { [System.Windows.Forms.MessageBox]::Show("$ctx failed.`r`n`r`n$msg", 'Schuman', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null } catch {}
+}
+
+function New-UI {
   param(
     [string]$ExcelPath = '',
     [string]$SheetName = 'BRU',
@@ -10,9 +54,14 @@ function New-GeneratePdfUI {
     [scriptblock]$OnGenerate = $null
   )
 
-  $fontName = Get-UiFontName
-
-  $theme = @{
+  $UI = [hashtable]::Synchronized(@{})
+  $UI.ExcelPath = ("" + $ExcelPath).Trim()
+  $UI.SheetName = if ([string]::IsNullOrWhiteSpace($SheetName)) { 'BRU' } else { $SheetName }
+  $UI.TemplatePath = ("" + $TemplatePath).Trim()
+  $UI.OutputPath = ("" + $OutputPath).Trim()
+  $UI.OnOpenDashboard = $OnOpenDashboard
+  $UI.OnGenerate = $OnGenerate
+  $UI.Theme = @{
     Light = @{
       Bg = [System.Drawing.Color]::FromArgb(245, 246, 248)
       Card = [System.Drawing.Color]::FromArgb(255, 255, 255)
@@ -44,18 +93,36 @@ function New-GeneratePdfUI {
       StopBorder = [System.Drawing.Color]::FromArgb(210, 80, 80)
     }
   }
+  $UI.GridTable = New-Object System.Data.DataTable 'GenerateStatus'
+  [void]$UI.GridTable.Columns.Add('Row', [string])
+  [void]$UI.GridTable.Columns.Add('Ticket', [string])
+  [void]$UI.GridTable.Columns.Add('User', [string])
+  [void]$UI.GridTable.Columns.Add('File', [string])
+  [void]$UI.GridTable.Columns.Add('Status', [string])
+  [void]$UI.GridTable.Columns.Add('Message', [string])
+  [void]$UI.GridTable.Columns.Add('Progress', [string])
 
+  return $UI
+}
+
+function Initialize-Controls {
+  param([hashtable]$UI)
+
+  $fontName = Get-UiFontName
   $form = New-Object System.Windows.Forms.Form
   $form.Text = 'Schuman Word Generator'
   $form.Size = New-Object System.Drawing.Size(1120, 720)
-  $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
   $form.MinimumSize = New-Object System.Drawing.Size(980, 640)
-  $form.BackColor = $theme.Dark.Bg
+  $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
   $form.Font = New-Object System.Drawing.Font($fontName, 10)
+  $form.Tag = $UI
+  $UI.Form = $form
+
   try {
     $prop = $form.GetType().GetProperty('DoubleBuffered', 'NonPublic,Instance')
     if ($prop) { $prop.SetValue($form, $true, $null) }
-  } catch {}
+  }
+  catch {}
 
   $root = New-Object System.Windows.Forms.TableLayoutPanel
   $root.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -66,12 +133,14 @@ function New-GeneratePdfUI {
   [void]$root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
   [void]$root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
   [void]$form.Controls.Add($root)
+  $UI.Root = $root
 
   $headerCard = New-Object System.Windows.Forms.Panel
   $headerCard.Dock = [System.Windows.Forms.DockStyle]::Fill
   $headerCard.Padding = New-Object System.Windows.Forms.Padding(16, 16, 16, 12)
   $headerCard.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 12)
   [void]$root.Controls.Add($headerCard, 0, 0)
+  $UI.HeaderCard = $headerCard
 
   $headerGrid = New-Object System.Windows.Forms.TableLayoutPanel
   $headerGrid.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -88,13 +157,13 @@ function New-GeneratePdfUI {
   $lblTitle.Font = New-Object System.Drawing.Font($fontName, 13, [System.Drawing.FontStyle]::Bold)
   $lblTitle.AutoSize = $true
   [void]$headerGrid.Controls.Add($lblTitle, 0, 0)
+  $UI.LblTitle = $lblTitle
 
   $headerActions = New-Object System.Windows.Forms.FlowLayoutPanel
   $headerActions.AutoSize = $true
   $headerActions.WrapContents = $false
   $headerActions.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
   $headerActions.Anchor = 'Top,Right'
-  $headerActions.Margin = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
   [void]$headerGrid.Controls.Add($headerActions, 1, 0)
 
   $btnDashboard = New-Object System.Windows.Forms.Button
@@ -103,33 +172,36 @@ function New-GeneratePdfUI {
   $btnDashboard.Height = 32
   $btnDashboard.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
   $btnDashboard.Font = New-Object System.Drawing.Font($fontName, 9, [System.Drawing.FontStyle]::Bold)
-  $btnDashboard.FlatAppearance.BorderSize = 2
   [void]$headerActions.Controls.Add($btnDashboard)
+  $UI.BtnDashboard = $btnDashboard
 
   $statusPill = New-Object System.Windows.Forms.Panel
   $statusPill.AutoSize = $true
   $statusPill.Padding = New-Object System.Windows.Forms.Padding(10, 4, 10, 4)
   $statusPill.Margin = New-Object System.Windows.Forms.Padding(8, 4, 0, 0)
   [void]$headerActions.Controls.Add($statusPill)
+  $UI.StatusPill = $statusPill
 
   $lblStatusPill = New-Object System.Windows.Forms.Label
   $lblStatusPill.Text = 'Idle'
   $lblStatusPill.AutoSize = $true
   [void]$statusPill.Controls.Add($lblStatusPill)
+  $UI.LblStatusPill = $lblStatusPill
 
   $lblMetrics = New-Object System.Windows.Forms.Label
   $lblMetrics.Text = 'Total: 0 | Saved: 0 | Skipped: 0 | Errors: 0'
   $lblMetrics.AutoSize = $true
   $lblMetrics.Margin = New-Object System.Windows.Forms.Padding(0, 6, 0, 0)
   [void]$headerGrid.Controls.Add($lblMetrics, 0, 1)
+  $UI.LblMetrics = $lblMetrics
 
   $lblStatusText = New-Object System.Windows.Forms.Label
   $lblStatusText.Text = 'Ready.'
   $lblStatusText.AutoSize = $true
-  $lblStatusText.Margin = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
   $lblStatusText.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
   $lblStatusText.Anchor = 'Top,Right'
   [void]$headerGrid.Controls.Add($lblStatusText, 1, 1)
+  $UI.LblStatusText = $lblStatusText
 
   $centerGrid = New-Object System.Windows.Forms.TableLayoutPanel
   $centerGrid.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -144,17 +216,20 @@ function New-GeneratePdfUI {
   $progressHost.Dock = [System.Windows.Forms.DockStyle]::Fill
   $progressHost.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 12)
   [void]$centerGrid.Controls.Add($progressHost, 0, 0)
+  $UI.ProgressHost = $progressHost
 
   $progressFill = New-Object System.Windows.Forms.Panel
   $progressFill.Height = 20
   $progressFill.Width = 0
   $progressFill.Dock = [System.Windows.Forms.DockStyle]::Left
   [void]$progressHost.Controls.Add($progressFill)
+  $UI.ProgressFill = $progressFill
 
   $listCard = New-Object System.Windows.Forms.Panel
   $listCard.Dock = [System.Windows.Forms.DockStyle]::Fill
   $listCard.Padding = New-Object System.Windows.Forms.Padding(15)
   [void]$centerGrid.Controls.Add($listCard, 0, 1)
+  $UI.ListCard = $listCard
 
   $grid = New-Object System.Windows.Forms.DataGridView
   $grid.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -165,6 +240,7 @@ function New-GeneratePdfUI {
   $grid.RowHeadersVisible = $false
   $grid.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
   $grid.MultiSelect = $false
+  $grid.AutoGenerateColumns = $false
   $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
   $grid.EnableHeadersVisualStyles = $false
   $grid.ColumnHeadersHeight = 32
@@ -172,32 +248,39 @@ function New-GeneratePdfUI {
   try {
     $prop = $grid.GetType().GetProperty('DoubleBuffered', 'NonPublic,Instance')
     if ($prop) { $prop.SetValue($grid, $true, $null) }
-  } catch {}
+  }
+  catch {}
   [void]$listCard.Controls.Add($grid)
+  $UI.Grid = $grid
 
-  [void]$grid.Columns.Add('Row', 'Row #')
-  [void]$grid.Columns.Add('Ticket', 'Ticket/RITM')
-  [void]$grid.Columns.Add('User', 'User')
-  [void]$grid.Columns.Add('File', 'Output File')
-  [void]$grid.Columns.Add('Status', 'Status')
-  [void]$grid.Columns.Add('Message', 'Message')
-  [void]$grid.Columns.Add('Progress', 'Progress')
-  $grid.Columns['Row'].FillWeight = 8
-  $grid.Columns['Ticket'].FillWeight = 16
-  $grid.Columns['User'].FillWeight = 16
-  $grid.Columns['File'].FillWeight = 24
-  $grid.Columns['Status'].FillWeight = 12
-  $grid.Columns['Message'].FillWeight = 24
-  $grid.Columns['Progress'].FillWeight = 10
-  $grid.Columns['Progress'].DefaultCellStyle.Alignment = 'MiddleRight'
+  foreach ($columnName in @('Row', 'Ticket', 'User', 'File', 'Status', 'Message', 'Progress')) {
+    $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+    $col.Name = $columnName
+    $col.DataPropertyName = $columnName
+    switch ($columnName) {
+      'Row' { $col.HeaderText = 'Row #'; $col.FillWeight = 8 }
+      'Ticket' { $col.HeaderText = 'Ticket/RITM'; $col.FillWeight = 16 }
+      'User' { $col.HeaderText = 'User'; $col.FillWeight = 16 }
+      'File' { $col.HeaderText = 'Output File'; $col.FillWeight = 24 }
+      'Status' { $col.HeaderText = 'Status'; $col.FillWeight = 12 }
+      'Message' { $col.HeaderText = 'Message'; $col.FillWeight = 24 }
+      'Progress' {
+        $col.HeaderText = 'Progress'
+        $col.FillWeight = 10
+        $col.DefaultCellStyle.Alignment = 'MiddleRight'
+      }
+    }
+    [void]$grid.Columns.Add($col)
+  }
+  $grid.DataSource = $UI.GridTable
 
   $logPanel = New-Object System.Windows.Forms.Panel
   $logPanel.Dock = [System.Windows.Forms.DockStyle]::Bottom
   $logPanel.Padding = New-Object System.Windows.Forms.Padding(15)
-  $logPanel.Margin = New-Object System.Windows.Forms.Padding(0, 12, 0, 0)
   $logPanel.Height = 0
   $logPanel.Visible = $false
   [void]$listCard.Controls.Add($logPanel)
+  $UI.LogPanel = $logPanel
 
   $logBox = New-Object System.Windows.Forms.RichTextBox
   $logBox.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -205,16 +288,17 @@ function New-GeneratePdfUI {
   $logBox.HideSelection = $false
   $logBox.BorderStyle = [System.Windows.Forms.BorderStyle]::None
   [void]$logPanel.Controls.Add($logBox)
+  $UI.LogBox = $logBox
 
   $footer = New-Object System.Windows.Forms.Panel
   $footer.Dock = [System.Windows.Forms.DockStyle]::Fill
   $footer.Padding = New-Object System.Windows.Forms.Padding(16, 12, 16, 12)
   [void]$root.Controls.Add($footer, 0, 2)
+  $UI.Footer = $footer
 
   $footerGrid = New-Object System.Windows.Forms.TableLayoutPanel
   $footerGrid.Dock = [System.Windows.Forms.DockStyle]::Fill
   $footerGrid.ColumnCount = 2
-  $footerGrid.RowCount = 1
   [void]$footerGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
   [void]$footerGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
   [void]$footer.Controls.Add($footerGrid)
@@ -224,336 +308,429 @@ function New-GeneratePdfUI {
   $buttonFlow.AutoSize = $true
   $buttonFlow.WrapContents = $false
   $buttonFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
-  $buttonFlow.Padding = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
   [void]$footerGrid.Controls.Add($buttonFlow, 0, 0)
 
-  $btnStart = New-Object System.Windows.Forms.Button
-  $btnStart.Text = 'Generate Documents'
-  $btnStart.Width = 170
-  $btnStart.Height = 30
-  $btnStart.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  [void]$buttonFlow.Controls.Add($btnStart)
+  $UI.BtnStart = New-Object System.Windows.Forms.Button
+  $UI.BtnStart.Text = 'Generate Documents'
+  $UI.BtnStart.Width = 170
+  $UI.BtnStart.Height = 30
+  $UI.BtnStart.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  [void]$buttonFlow.Controls.Add($UI.BtnStart)
 
-  $btnStop = New-Object System.Windows.Forms.Button
-  $btnStop.Text = 'Stop'
-  $btnStop.Width = 110
-  $btnStop.Height = 30
-  $btnStop.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  $btnStop.Enabled = $false
-  [void]$buttonFlow.Controls.Add($btnStop)
+  $UI.BtnStop = New-Object System.Windows.Forms.Button
+  $UI.BtnStop.Text = 'Stop'
+  $UI.BtnStop.Width = 110
+  $UI.BtnStop.Height = 30
+  $UI.BtnStop.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  $UI.BtnStop.Enabled = $false
+  [void]$buttonFlow.Controls.Add($UI.BtnStop)
 
-  $btnOpen = New-Object System.Windows.Forms.Button
-  $btnOpen.Text = 'Open Output Folder'
-  $btnOpen.Width = 170
-  $btnOpen.Height = 30
-  $btnOpen.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  $btnOpen.Enabled = $false
-  [void]$buttonFlow.Controls.Add($btnOpen)
+  $UI.BtnOpen = New-Object System.Windows.Forms.Button
+  $UI.BtnOpen.Text = 'Open Output Folder'
+  $UI.BtnOpen.Width = 170
+  $UI.BtnOpen.Height = 30
+  $UI.BtnOpen.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  $UI.BtnOpen.Enabled = $false
+  [void]$buttonFlow.Controls.Add($UI.BtnOpen)
 
-  $btnCloseCode = New-Object System.Windows.Forms.Button
-  $btnCloseCode.Text = 'Cerrar codigo'
-  $btnCloseCode.Width = 120
-  $btnCloseCode.Height = 30
-  $btnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  [void]$buttonFlow.Controls.Add($btnCloseCode)
+  $UI.BtnCloseCode = New-Object System.Windows.Forms.Button
+  $UI.BtnCloseCode.Text = 'Cerrar codigo'
+  $UI.BtnCloseCode.Width = 120
+  $UI.BtnCloseCode.Height = 30
+  $UI.BtnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  [void]$buttonFlow.Controls.Add($UI.BtnCloseCode)
 
-  $btnCloseDocs = New-Object System.Windows.Forms.Button
-  $btnCloseDocs.Text = 'Cerrar documentos'
-  $btnCloseDocs.Width = 145
-  $btnCloseDocs.Height = 30
-  $btnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  [void]$buttonFlow.Controls.Add($btnCloseDocs)
+  $UI.BtnCloseDocs = New-Object System.Windows.Forms.Button
+  $UI.BtnCloseDocs.Text = 'Cerrar documentos'
+  $UI.BtnCloseDocs.Width = 145
+  $UI.BtnCloseDocs.Height = 30
+  $UI.BtnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  [void]$buttonFlow.Controls.Add($UI.BtnCloseDocs)
 
-  $btnToggleLog = New-Object System.Windows.Forms.Button
-  $btnToggleLog.Text = 'Show Log'
-  $btnToggleLog.Width = 110
-  $btnToggleLog.Height = 30
-  $btnToggleLog.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  [void]$buttonFlow.Controls.Add($btnToggleLog)
+  $UI.BtnToggleLog = New-Object System.Windows.Forms.Button
+  $UI.BtnToggleLog.Text = 'Show Log'
+  $UI.BtnToggleLog.Width = 110
+  $UI.BtnToggleLog.Height = 30
+  $UI.BtnToggleLog.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  [void]$buttonFlow.Controls.Add($UI.BtnToggleLog)
 
   $optionsFlow = New-Object System.Windows.Forms.FlowLayoutPanel
   $optionsFlow.Dock = [System.Windows.Forms.DockStyle]::Fill
   $optionsFlow.AutoSize = $true
   $optionsFlow.WrapContents = $false
   $optionsFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::RightToLeft
-  $optionsFlow.Padding = New-Object System.Windows.Forms.Padding(0, 6, 0, 0)
   [void]$footerGrid.Controls.Add($optionsFlow, 1, 0)
 
-  $chkShowWord = New-Object System.Windows.Forms.CheckBox
-  $chkShowWord.Text = 'Show Word after generation'
-  $chkShowWord.AutoSize = $true
-  $chkShowWord.Checked = $false
-  [void]$optionsFlow.Controls.Add($chkShowWord)
+  $UI.ChkShowWord = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkShowWord.Text = 'Show Word after generation'
+  $UI.ChkShowWord.AutoSize = $true
+  [void]$optionsFlow.Controls.Add($UI.ChkShowWord)
 
-  $chkSaveDocx = New-Object System.Windows.Forms.CheckBox
-  $chkSaveDocx.Text = 'Save DOCX'
-  $chkSaveDocx.AutoSize = $true
-  $chkSaveDocx.Checked = $true
-  [void]$optionsFlow.Controls.Add($chkSaveDocx)
+  $UI.ChkSaveDocx = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkSaveDocx.Text = 'Save DOCX'
+  $UI.ChkSaveDocx.AutoSize = $true
+  $UI.ChkSaveDocx.Checked = $true
+  [void]$optionsFlow.Controls.Add($UI.ChkSaveDocx)
 
-  $chkSavePdf = New-Object System.Windows.Forms.CheckBox
-  $chkSavePdf.Text = 'Save PDF'
-  $chkSavePdf.AutoSize = $true
-  $chkSavePdf.Checked = $true
-  [void]$optionsFlow.Controls.Add($chkSavePdf)
+  $UI.ChkSavePdf = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkSavePdf.Text = 'Save PDF'
+  $UI.ChkSavePdf.AutoSize = $true
+  $UI.ChkSavePdf.Checked = $true
+  [void]$optionsFlow.Controls.Add($UI.ChkSavePdf)
 
-  $chkDark = New-Object System.Windows.Forms.CheckBox
-  $chkDark.Text = 'Dark theme'
-  $chkDark.AutoSize = $true
-  $chkDark.Checked = $true
-  [void]$optionsFlow.Controls.Add($chkDark)
+  $UI.ChkDark = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkDark.Text = 'Dark theme'
+  $UI.ChkDark.AutoSize = $true
+  $UI.ChkDark.Checked = $true
+  [void]$optionsFlow.Controls.Add($UI.ChkDark)
 
-  $appendLog = {
-    param([string]$line)
-    $logBox.AppendText("[" + (Get-Date -Format 'HH:mm:ss') + "] $line" + [Environment]::NewLine)
-  }
+  return $UI
+}
 
-  $setStatusPill = {
-    param([string]$Text, [string]$State)
-    $p = if ($chkDark.Checked) { $theme.Dark } else { $theme.Light }
-    $lblStatusPill.Text = $Text
-    switch ($State) {
-      'running' { $statusPill.BackColor = $p.Accent }
-      'error' { $statusPill.BackColor = $p.Error }
-      'done' { $statusPill.BackColor = $p.Success }
-      default { $statusPill.BackColor = $p.Border }
-    }
-    $lblStatusPill.ForeColor = $p.BadgeText
-  }
+function Update-Grid {
+  param(
+    [hashtable]$UI,
+    [object[]]$Rows
+  )
 
-  $applyTheme = {
-    $p = if ($chkDark.Checked) { $theme.Dark } else { $theme.Light }
+  if (-not $UI.ContainsKey('Grid') -or -not $UI.Grid) { return }
+  if (-not $UI.ContainsKey('GridTable') -or -not $UI.GridTable) { return }
 
-    $form.BackColor = $p.Bg
-    $form.ForeColor = $p.Text
-    $headerCard.BackColor = $p.Card
-    $listCard.BackColor = $p.Card
-    $footer.BackColor = $p.Card
-    $logPanel.BackColor = $p.Card
-    $progressHost.BackColor = $p.Border
-    $progressFill.BackColor = $p.Accent
-
-    $lblTitle.ForeColor = $p.Text
-    $lblMetrics.ForeColor = $p.Sub
-    $lblStatusText.ForeColor = $p.Sub
-    $logBox.BackColor = $p.Bg
-    $logBox.ForeColor = $p.Text
-
-    foreach ($btn in @($btnDashboard, $btnStart, $btnStop, $btnOpen, $btnCloseCode, $btnCloseDocs, $btnToggleLog)) {
-      $btn.BackColor = $p.Card
-      $btn.ForeColor = $p.Text
-      $btn.FlatAppearance.BorderColor = $p.Border
-      $btn.FlatAppearance.BorderSize = 1
-    }
-
-    $btnDashboard.BackColor = $p.Bg
-    $btnDashboard.ForeColor = $p.Accent
-    $btnDashboard.FlatAppearance.BorderColor = $p.Accent
-    $btnDashboard.FlatAppearance.BorderSize = 2
-
-    $btnStart.BackColor = $p.Accent
-    $btnStart.ForeColor = $p.BadgeText
-    $btnStart.FlatAppearance.BorderColor = $p.Accent
-
-    $btnStop.BackColor = $p.StopBg
-    $btnStop.ForeColor = $p.StopFg
-    $btnStop.FlatAppearance.BorderColor = $p.StopBorder
-
-    foreach ($chk in @($chkDark, $chkSavePdf, $chkSaveDocx, $chkShowWord)) {
-      $chk.BackColor = $p.Card
-      $chk.ForeColor = $p.Sub
-    }
-
-    $grid.BackgroundColor = $p.Bg
-    $grid.GridColor = $p.Border
-    $grid.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-    $grid.ColumnHeadersDefaultCellStyle.BackColor = $p.Card
-    $grid.ColumnHeadersDefaultCellStyle.ForeColor = $p.Sub
-    $grid.DefaultCellStyle.BackColor = $p.Bg
-    $grid.DefaultCellStyle.ForeColor = $p.Text
-    $grid.DefaultCellStyle.SelectionBackColor = $p.Shadow
-    $grid.DefaultCellStyle.SelectionForeColor = $p.Text
-    $grid.AlternatingRowsDefaultCellStyle.BackColor = $p.Card
-    $grid.AlternatingRowsDefaultCellStyle.ForeColor = $p.Text
-
-    & $setStatusPill $lblStatusPill.Text 'idle'
-  }
-
-  $updateOutputButton = {
-    $out = ("" + $OutputPath).Trim()
-    $btnOpen.Enabled = (-not [string]::IsNullOrWhiteSpace($out)) -and (Test-Path -LiteralPath $out)
-  }
-
-  $btnDashboard.Add_Click({
-    if ($OnOpenDashboard) {
-      & $OnOpenDashboard
-      return
-    }
-    $lblStatusText.Text = 'Dashboard callback not configured.'
-    & $setStatusPill 'Error' 'error'
-  })
-
-  $btnOpen.Add_Click({
-    $out = ("" + $OutputPath).Trim()
-    if (-not $out) { return }
-    try { Start-Process $out | Out-Null } catch {}
-  })
-
-  $btnCloseCode.Add_Click({
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('code.exe', 'code-insiders.exe', 'cursor.exe') -Owner $form
-    if (-not $r.Cancelled) {
-      $lblStatusText.Text = $r.Message
-      & $appendLog $r.Message
-    }
-  })
-
-  $btnCloseDocs.Add_Click({
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form
-    if (-not $r.Cancelled) {
-      $lblStatusText.Text = $r.Message
-      & $appendLog $r.Message
-    }
-  })
-
-  $btnToggleLog.Add_Click({
-    $logPanel.Visible = -not $logPanel.Visible
-    if ($logPanel.Visible) {
-      $logPanel.Height = 150
-      $btnToggleLog.Text = 'Hide Log'
-    } else {
-      $logPanel.Height = 0
-      $btnToggleLog.Text = 'Show Log'
-    }
-  })
-
-  $btnStop.Add_Click({
-    [System.Windows.Forms.MessageBox]::Show('Stop is not available in this integrated mode.', 'Info') | Out-Null
-  })
-
-  $btnStart.Add_Click({
-    if (-not $OnGenerate) {
-      & $appendLog 'Generate callback not configured.'
-      $lblStatusText.Text = 'Generate callback not configured.'
-      & $setStatusPill 'Error' 'error'
-      return
-    }
-
-    $argsObj = [pscustomobject]@{
-      ExcelPath = ("" + $ExcelPath).Trim()
-      TemplatePath = ("" + $TemplatePath).Trim()
-      OutputPath = ("" + $OutputPath).Trim()
-      ExportPdf = [bool]$chkSavePdf.Checked
-      SaveDocx = [bool]$chkSaveDocx.Checked
-      ShowWord = [bool]$chkShowWord.Checked
-    }
-
-    if (-not (Test-Path -LiteralPath $argsObj.ExcelPath)) {
-      [System.Windows.Forms.MessageBox]::Show('Excel file not found.', 'Validation') | Out-Null
-      return
-    }
-    if (-not (Test-Path -LiteralPath $argsObj.TemplatePath)) {
-      [System.Windows.Forms.MessageBox]::Show('Template file not found.', 'Validation') | Out-Null
-      return
-    }
-    if ([string]::IsNullOrWhiteSpace($argsObj.OutputPath)) {
-      [System.Windows.Forms.MessageBox]::Show('Output folder is required.', 'Validation') | Out-Null
-      return
-    }
-
-    $btnStart.Enabled = $false
-    $btnDashboard.Enabled = $false
-    $lblStatusText.Text = 'Generating documents...'
-    & $setStatusPill 'Running' 'running'
-    & $appendLog 'Starting document generation.'
-
-    $result = $null
+  $rowsSafe = @($Rows)
+  $UI.Grid.SuspendLayout()
+  try {
+    $UI.GridTable.BeginLoadData()
     try {
-      $result = & $OnGenerate $argsObj
-      if ($result -and $result.ok -eq $true) {
-        $lblStatusText.Text = 'Generation complete.'
-        & $setStatusPill 'Done' 'done'
-        $msg = if ($result.message) { "" + $result.message } else { 'Documents generated successfully.' }
-        & $appendLog $msg
-
-        if ($result.outputPath) { $OutputPath = "" + $result.outputPath }
-        & $updateOutputButton
-
-        $null = $grid.Rows.Add(@(
-          '' ,
-          '' ,
-          '' ,
-          $OutputPath,
-          'Done',
-          $msg,
-          '100%'
-        ))
-        $lblMetrics.Text = 'Total: 1 | Saved: 1 | Skipped: 0 | Errors: 0'
+      $UI.GridTable.Rows.Clear()
+      foreach ($item in $rowsSafe) {
+        $dr = $UI.GridTable.NewRow()
+        $dr['Row'] = if ($null -ne $item.Row) { "" + $item.Row } else { '' }
+        $dr['Ticket'] = if ($null -ne $item.Ticket) { "" + $item.Ticket } else { '' }
+        $dr['User'] = if ($null -ne $item.User) { "" + $item.User } else { '' }
+        $dr['File'] = if ($null -ne $item.File) { "" + $item.File } else { '' }
+        $dr['Status'] = if ($null -ne $item.Status) { "" + $item.Status } else { '' }
+        $dr['Message'] = if ($null -ne $item.Message) { "" + $item.Message } else { '' }
+        $dr['Progress'] = if ($null -ne $item.Progress) { "" + $item.Progress } else { '' }
+        [void]$UI.GridTable.Rows.Add($dr)
       }
-      else {
-        $msg = if ($result -and $result.message) { "" + $result.message } else { 'Unknown error.' }
-        $lblStatusText.Text = 'Generation failed.'
-        & $setStatusPill 'Error' 'error'
-        & $appendLog $msg
-        $lblMetrics.Text = 'Total: 1 | Saved: 0 | Skipped: 0 | Errors: 1'
-      }
-    }
-    catch {
-      $lblStatusText.Text = 'Generation failed.'
-      & $setStatusPill 'Error' 'error'
-      & $appendLog ("ERROR: " + $_.Exception.Message)
-      [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'Generate') | Out-Null
-      $lblMetrics.Text = 'Total: 1 | Saved: 0 | Skipped: 0 | Errors: 1'
     }
     finally {
-      $btnStart.Enabled = $true
-      $btnDashboard.Enabled = $true
+      $UI.GridTable.EndLoadData()
     }
-  })
+    $UI.Grid.ClearSelection()
+  }
+  finally {
+    $UI.Grid.ResumeLayout()
+  }
+}
 
-  $chkDark.Add_CheckedChanged({ & $applyTheme })
+function Load-Data {
+  param([hashtable]$UI)
 
-  $preloadGrid = {
-    if ([string]::IsNullOrWhiteSpace($ExcelPath)) { return }
-    if (-not (Test-Path -LiteralPath $ExcelPath)) { return }
-    if (-not (Get-Command -Name Search-DashboardRows -ErrorAction SilentlyContinue)) { return }
+  if (-not $UI.ContainsKey('ExcelPath') -or [string]::IsNullOrWhiteSpace($UI.ExcelPath)) { return @() }
+  if (-not (Test-Path -LiteralPath $UI.ExcelPath)) { return @() }
+  if (-not (Get-Command -Name Search-DashboardRows -ErrorAction SilentlyContinue)) { return @() }
 
-    try {
-      $rows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText '')
-      $grid.Rows.Clear()
+  $results = New-Object System.Collections.Generic.List[object]
+  $rows = @(Search-DashboardRows -ExcelPath $UI.ExcelPath -SheetName $UI.SheetName -SearchText '')
+  foreach ($r in $rows) {
+    $ticket = ("" + $r.RITM).Trim()
+    if (-not $ticket) { continue }
+    $status = ("" + $r.DashboardStatus).Trim()
+    if (-not $status) { $status = 'Ready' }
+    $message = if ($status -eq 'Ready') { 'Preloaded from Excel' } else { 'Preloaded from Excel status' }
+    $results.Add([pscustomobject]@{
+        Row = ("" + $r.Row)
+        Ticket = $ticket
+        User = ("" + $r.RequestedFor)
+        File = ''
+        Status = $status
+        Message = $message
+        Progress = '0%'
+      }) | Out-Null
+  }
+  return @($results.ToArray())
+}
 
-      foreach ($r in $rows) {
-        $ticket = ("" + $r.RITM).Trim()
-        if (-not $ticket) { continue }
-        $status = ("" + $r.DashboardStatus).Trim()
-        if (-not $status) { $status = 'Ready' }
-        $msg = if ($status -eq 'Ready') { 'Preloaded from Excel' } else { 'Preloaded from Excel status' }
+function Export-Excel {
+  param([hashtable]$UI)
+  return @(Load-Data -UI $UI)
+}
 
-        $null = $grid.Rows.Add(@(
-            ("" + $r.Row),
-            $ticket,
-            ("" + $r.RequestedFor),
-            '',
-            $status,
-            $msg,
-            '0%'
-          ))
-      }
+function Generate-PDF {
+  param([hashtable]$UI)
 
-      $total = $grid.Rows.Count
-      $lblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
-      if ($total -gt 0) {
-        $lblStatusText.Text = "Ready. Preloaded $total rows from Excel."
-        & $appendLog "Preloaded $total rows from Excel."
-      }
-    }
-    catch {
-      & $appendLog ("Preload failed: " + $_.Exception.Message)
-    }
+  if (-not $UI.ContainsKey('OnGenerate') -or -not $UI.OnGenerate) {
+    throw 'Generate callback not configured.'
   }
 
-  & $applyTheme
-  & $setStatusPill 'Idle' 'idle'
-  & $updateOutputButton
-  & $preloadGrid
-  return $form
+  $argsObj = [pscustomobject]@{
+    ExcelPath = $UI.ExcelPath
+    TemplatePath = $UI.TemplatePath
+    OutputPath = $UI.OutputPath
+    ExportPdf = [bool]$UI.ChkSavePdf.Checked
+    SaveDocx = [bool]$UI.ChkSaveDocx.Checked
+    ShowWord = [bool]$UI.ChkShowWord.Checked
+  }
+
+  if (-not (Test-Path -LiteralPath $argsObj.ExcelPath)) { throw 'Excel file not found.' }
+  if (-not (Test-Path -LiteralPath $argsObj.TemplatePath)) { throw 'Template file not found.' }
+  if ([string]::IsNullOrWhiteSpace($argsObj.OutputPath)) { throw 'Output folder is required.' }
+
+  return (& $UI.OnGenerate $argsObj)
+}
+
+function Set-GenerateUiTheme {
+  param([hashtable]$UI)
+
+  $palette = if ($UI.ChkDark.Checked) { $UI.Theme.Dark } else { $UI.Theme.Light }
+  $UI.Form.BackColor = $palette.Bg
+  $UI.Form.ForeColor = $palette.Text
+  $UI.HeaderCard.BackColor = $palette.Card
+  $UI.ListCard.BackColor = $palette.Card
+  $UI.Footer.BackColor = $palette.Card
+  $UI.LogPanel.BackColor = $palette.Card
+  $UI.ProgressHost.BackColor = $palette.Border
+  $UI.ProgressFill.BackColor = $palette.Accent
+  $UI.LblTitle.ForeColor = $palette.Text
+  $UI.LblMetrics.ForeColor = $palette.Sub
+  $UI.LblStatusText.ForeColor = $palette.Sub
+  $UI.LogBox.BackColor = $palette.Bg
+  $UI.LogBox.ForeColor = $palette.Text
+
+  foreach ($btn in @($UI.BtnDashboard, $UI.BtnStart, $UI.BtnStop, $UI.BtnOpen, $UI.BtnCloseCode, $UI.BtnCloseDocs, $UI.BtnToggleLog)) {
+    $btn.BackColor = $palette.Card
+    $btn.ForeColor = $palette.Text
+    $btn.FlatAppearance.BorderColor = $palette.Border
+    $btn.FlatAppearance.BorderSize = 1
+  }
+  $UI.BtnDashboard.BackColor = $palette.Bg
+  $UI.BtnDashboard.ForeColor = $palette.Accent
+  $UI.BtnDashboard.FlatAppearance.BorderColor = $palette.Accent
+  $UI.BtnDashboard.FlatAppearance.BorderSize = 2
+  $UI.BtnStart.BackColor = $palette.Accent
+  $UI.BtnStart.ForeColor = $palette.BadgeText
+  $UI.BtnStart.FlatAppearance.BorderColor = $palette.Accent
+  $UI.BtnStop.BackColor = $palette.StopBg
+  $UI.BtnStop.ForeColor = $palette.StopFg
+  $UI.BtnStop.FlatAppearance.BorderColor = $palette.StopBorder
+
+  foreach ($chk in @($UI.ChkDark, $UI.ChkSavePdf, $UI.ChkSaveDocx, $UI.ChkShowWord)) {
+    $chk.BackColor = $palette.Card
+    $chk.ForeColor = $palette.Sub
+  }
+
+  $UI.Grid.BackgroundColor = $palette.Bg
+  $UI.Grid.GridColor = $palette.Border
+  $UI.Grid.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+  $UI.Grid.ColumnHeadersDefaultCellStyle.BackColor = $palette.Card
+  $UI.Grid.ColumnHeadersDefaultCellStyle.ForeColor = $palette.Sub
+  $UI.Grid.DefaultCellStyle.BackColor = $palette.Bg
+  $UI.Grid.DefaultCellStyle.ForeColor = $palette.Text
+  $UI.Grid.DefaultCellStyle.SelectionBackColor = $palette.Shadow
+  $UI.Grid.DefaultCellStyle.SelectionForeColor = $palette.Text
+  $UI.Grid.AlternatingRowsDefaultCellStyle.BackColor = $palette.Card
+  $UI.Grid.AlternatingRowsDefaultCellStyle.ForeColor = $palette.Text
+}
+
+function Set-StatusPill {
+  param(
+    [hashtable]$UI,
+    [string]$Text,
+    [ValidateSet('idle', 'running', 'done', 'error')]$State = 'idle'
+  )
+
+  $palette = if ($UI.ChkDark.Checked) { $UI.Theme.Dark } else { $UI.Theme.Light }
+  $UI.LblStatusPill.Text = $Text
+  switch ($State) {
+    'running' { $UI.StatusPill.BackColor = $palette.Accent }
+    'done' { $UI.StatusPill.BackColor = $palette.Success }
+    'error' { $UI.StatusPill.BackColor = $palette.Error }
+    default { $UI.StatusPill.BackColor = $palette.Border }
+  }
+  $UI.LblStatusPill.ForeColor = $palette.BadgeText
+}
+
+function Append-GenerateLog {
+  param([hashtable]$UI, [string]$Line)
+  $text = if ($null -eq $Line) { '' } else { [string]$Line }
+  $formatted = "[{0}] {1}{2}" -f (Get-Date -Format 'HH:mm:ss'), $text, [Environment]::NewLine
+  try { $UI.LogBox.AppendText($formatted) } catch {}
+  Write-Log -Level INFO -Message $text
+}
+
+function Update-OutputButton {
+  param([hashtable]$UI)
+  $out = ("" + $UI.OutputPath).Trim()
+  $UI.BtnOpen.Enabled = (-not [string]::IsNullOrWhiteSpace($out)) -and (Test-Path -LiteralPath $out)
+}
+
+function Invoke-UiSafe {
+  param(
+    [hashtable]$UI,
+    [string]$Context,
+    [scriptblock]$Action
+  )
+  try { & $Action }
+  catch { Show-UiError -Context $Context -ErrorRecord $_ }
+}
+
+function Register-GenerateHandlers {
+  param([hashtable]$UI)
+
+  $UI.BtnDashboard.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Open Dashboard' -Action {
+      if ($UI.OnOpenDashboard) { & $UI.OnOpenDashboard; return }
+      $UI.LblStatusText.Text = 'Dashboard callback not configured.'
+      Set-StatusPill -UI $UI -Text 'Error' -State error
+    }
+  }).GetNewClosure())
+
+  $UI.BtnOpen.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Open Output Folder' -Action {
+      $out = ("" + $UI.OutputPath).Trim()
+      if (-not $out) { return }
+      if (-not (Test-Path -LiteralPath $out)) { return }
+      Start-Process -FilePath $out | Out-Null
+    }
+  }).GetNewClosure())
+
+  $UI.BtnCloseCode.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Cerrar codigo' -Action {
+      $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $UI.Form -Mode 'Documents' -MainForm $UI.Form
+      if (-not $r.Cancelled) {
+        $UI.LblStatusText.Text = $r.Message
+        Append-GenerateLog -UI $UI -Line $r.Message
+      }
+    }
+  }).GetNewClosure())
+
+  $UI.BtnCloseDocs.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Cerrar documentos' -Action {
+      $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $UI.Form
+      if (-not $r.Cancelled) {
+        $UI.LblStatusText.Text = $r.Message
+        Append-GenerateLog -UI $UI -Line $r.Message
+      }
+    }
+  }).GetNewClosure())
+
+  $UI.BtnToggleLog.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Toggle Log' -Action {
+      $UI.LogPanel.Visible = -not $UI.LogPanel.Visible
+      if ($UI.LogPanel.Visible) {
+        $UI.LogPanel.Height = 150
+        $UI.BtnToggleLog.Text = 'Hide Log'
+      }
+      else {
+        $UI.LogPanel.Height = 0
+        $UI.BtnToggleLog.Text = 'Show Log'
+      }
+    }
+  }).GetNewClosure())
+
+  $UI.BtnStop.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Stop' -Action {
+      [System.Windows.Forms.MessageBox]::Show('Stop is not available in this integrated mode.', 'Info') | Out-Null
+    }
+  }).GetNewClosure())
+
+  $UI.BtnStart.Add_Click(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Generate Documents' -Action {
+      $UI.BtnStart.Enabled = $false
+      $UI.BtnDashboard.Enabled = $false
+      try {
+        $UI.LblStatusText.Text = 'Generating documents...'
+        Set-StatusPill -UI $UI -Text 'Running' -State running
+        Append-GenerateLog -UI $UI -Line 'Starting document generation.'
+
+        $result = Generate-PDF -UI $UI
+        if ($result -and $result.ok -eq $true) {
+          $UI.LblStatusText.Text = 'Generation complete.'
+          Set-StatusPill -UI $UI -Text 'Done' -State done
+          $msg = if ($result.message) { "" + $result.message } else { 'Documents generated successfully.' }
+          Append-GenerateLog -UI $UI -Line $msg
+          if ($result.outputPath) { $UI.OutputPath = ("" + $result.outputPath).Trim() }
+          Update-OutputButton -UI $UI
+          Update-Grid -UI $UI -Rows @([pscustomobject]@{
+              Row = ''
+              Ticket = ''
+              User = ''
+              File = $UI.OutputPath
+              Status = 'Done'
+              Message = $msg
+              Progress = '100%'
+            })
+          $UI.LblMetrics.Text = 'Total: 1 | Saved: 1 | Skipped: 0 | Errors: 0'
+        }
+        else {
+          $msg = if ($result -and $result.message) { "" + $result.message } else { 'Unknown error.' }
+          $UI.LblStatusText.Text = 'Generation failed.'
+          Set-StatusPill -UI $UI -Text 'Error' -State error
+          Append-GenerateLog -UI $UI -Line $msg
+          $UI.LblMetrics.Text = 'Total: 1 | Saved: 0 | Skipped: 0 | Errors: 1'
+        }
+      }
+      catch {
+        $UI.LblStatusText.Text = 'Generation failed.'
+        Set-StatusPill -UI $UI -Text 'Error' -State error
+        Append-GenerateLog -UI $UI -Line ("ERROR: " + $_.Exception.Message)
+        $UI.LblMetrics.Text = 'Total: 1 | Saved: 0 | Skipped: 0 | Errors: 1'
+        Show-UiError -Context 'Generate-PDF' -ErrorRecord $_
+      }
+      finally {
+        $UI.BtnStart.Enabled = $true
+        $UI.BtnDashboard.Enabled = $true
+      }
+    }
+  }).GetNewClosure())
+
+  $UI.ChkDark.Add_CheckedChanged(({
+    param($sender, $args)
+    Invoke-UiSafe -UI $UI -Context 'Apply Theme' -Action {
+      Set-GenerateUiTheme -UI $UI
+      Set-StatusPill -UI $UI -Text $UI.LblStatusPill.Text -State idle
+    }
+  }).GetNewClosure())
+}
+
+function New-GeneratePdfUI {
+  param(
+    [string]$ExcelPath = '',
+    [string]$SheetName = 'BRU',
+    [string]$TemplatePath = '',
+    [string]$OutputPath = '',
+    [scriptblock]$OnOpenDashboard = $null,
+    [scriptblock]$OnGenerate = $null
+  )
+
+  $UI = New-UI -ExcelPath $ExcelPath -SheetName $SheetName -TemplatePath $TemplatePath -OutputPath $OutputPath -OnOpenDashboard $OnOpenDashboard -OnGenerate $OnGenerate
+  $null = Initialize-Controls -UI $UI
+  Register-GenerateHandlers -UI $UI
+  Set-GenerateUiTheme -UI $UI
+  Set-StatusPill -UI $UI -Text 'Idle' -State idle
+  Update-OutputButton -UI $UI
+
+  try {
+    $rows = @(Export-Excel -UI $UI)
+    Update-Grid -UI $UI -Rows $rows
+    $total = $rows.Count
+    $UI.LblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
+    if ($total -gt 0) {
+      $UI.LblStatusText.Text = "Ready. Preloaded $total rows from Excel."
+      Append-GenerateLog -UI $UI -Line "Preloaded $total rows from Excel."
+    }
+  }
+  catch {
+    Show-UiError -Context 'Load-Data' -ErrorRecord $_
+  }
+
+  return $UI.Form
 }

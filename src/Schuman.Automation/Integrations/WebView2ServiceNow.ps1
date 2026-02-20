@@ -28,7 +28,7 @@ function Initialize-WebView2Runtime {
   Add-Type -Path (Join-Path $dir.FullName "$arch\Microsoft.Web.WebView2.Core.dll")
 }
 
-function New-ServiceNowSession {
+function global:New-ServiceNowSession {
   param(
     [Parameter(Mandatory = $true)][hashtable]$Config,
     [Parameter(Mandatory = $true)][hashtable]$RunContext,
@@ -596,7 +596,8 @@ function Get-ServiceNowTicket {
   param(
     [Parameter(Mandatory = $true)]$Session,
     [Parameter(Mandatory = $true)][string]$Ticket,
-    [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')][string]$PiSearchMode = 'Auto'
+    [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')][string]$PiSearchMode = 'Auto',
+    [switch]$SkipLegalNameFallback
   )
 
   $ticketId = ("" + $Ticket).Trim().ToUpperInvariant()
@@ -695,11 +696,11 @@ function Get-ServiceNowTicket {
     }
 
     $needsLegalFallback = (Test-InvalidUserDisplay -Name $user)
-    if ($needsLegalFallback -and -not $legalName -and $sysId) {
+    if (-not $SkipLegalNameFallback -and $needsLegalFallback -and -not $legalName -and $sysId) {
       $catalogUser = Get-RitmCatalogFallbackUser -Session $Session -RitmSysId $sysId
       if ($catalogUser) { $legalName = $catalogUser }
     }
-    if (-not $legalName -and $needsLegalFallback -and $sysId) {
+    if (-not $SkipLegalNameFallback -and -not $legalName -and $needsLegalFallback -and $sysId) {
       $legalFromForm = Get-LegalNameFromUiForm -Session $Session -RecordSysId $sysId -Table 'sc_req_item'
       if ($legalFromForm) { $legalName = $legalFromForm }
     }
@@ -731,7 +732,7 @@ function Get-ServiceNowTicket {
   }
 }
 
-function Set-ServiceNowTaskState {
+function global:Set-ServiceNowTaskState {
   param(
     [Parameter(Mandatory = $true)]$Session,
     [Parameter(Mandatory = $true)][string]$TaskSysId,
@@ -812,7 +813,7 @@ function Set-ServiceNowTaskState {
   return $false
 }
 
-function Get-ServiceNowTasksForRitm {
+function global:Get-ServiceNowTasksForRitm {
   param(
     [Parameter(Mandatory = $true)]$Session,
     [Parameter(Mandatory = $true)][string]$RitmNumber
