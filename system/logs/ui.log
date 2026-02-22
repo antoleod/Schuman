@@ -174,3 +174,47 @@ Cannot convert value "128161" to type "System.Char". Error: "Value was either to
 [2026-02-22 17:09:42] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
 [2026-02-22 17:09:42] [INFO] Startup initialization started.
 [2026-02-22 17:09:42] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 17:23:14] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 17:23:16] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 17:23:16] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 17:23:16] [INFO] Startup initialization started.
+[2026-02-22 17:23:16] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 19:13:26] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 19:13:28] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 19:13:28] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 19:13:28] [INFO] Startup initialization started.
+[2026-02-22 19:13:28] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 19:14:26] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 19:15:29] [ERROR] ThreadException: The term 'Invoke-UiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 19:30:16] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 19:30:19] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 19:30:19] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 19:30:19] [INFO] Startup initialization started.
+[2026-02-22 19:30:19] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 19:31:57] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 19:38:45] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 19:38:48] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 19:38:48] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 19:38:48] [INFO] Startup initialization started.
+[2026-02-22 19:38:48] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 19:41:14] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 19:44:41] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 19:44:45] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 19:44:45] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 19:44:45] [INFO] Startup initialization started.
+[2026-02-22 19:44:45] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 19:46:19] [ERROR] Clean Temp Files: A parameter with the name 'WhatIf' was defined multiple times for the command.
+[2026-02-22 19:46:19] [ERROR] UI: UI failed.
+[2026-02-22 19:46:22] [ERROR] Clean Temp Files: A parameter with the name 'WhatIf' was defined multiple times for the command.
+[2026-02-22 19:46:22] [ERROR] UI: UI failed.
+[2026-02-22 20:05:20] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 20:05:22] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 20:05:22] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 20:05:22] [INFO] Startup initialization started.
+[2026-02-22 20:05:22] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 20:17:08] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 20:17:19] [ERROR] ThreadException: The term 'Invoke-UiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:17:53] [ERROR] ThreadException: The term 'Invoke-UiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:18:10] [ERROR] ThreadException: The term 'Invoke-UiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:18:37] [ERROR] Clean Temp Files: A parameter with the name 'WhatIf' was defined multiple times for the command.
+[2026-02-22 20:18:37] [ERROR] UI: UI failed.

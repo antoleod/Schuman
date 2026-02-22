@@ -56,7 +56,10 @@ function Invoke-TicketExportWorkflow {
       if ($res.ok -eq $false) {
         Write-RunLog -RunContext $RunContext -Level WARN -Message ("{0} extraction failed: {1}" -f $ticket, $res.reason)
       } else {
-        Write-RunLog -RunContext $RunContext -Level INFO -Message ("{0} status='{1}' open_tasks={2}" -f $ticket, $res.status, $res.open_tasks)
+        $piValue = if ($res.PSObject.Properties['detected_pi_machine']) { ("" + $res.detected_pi_machine).Trim() } else { '' }
+        $piSource = if ($res.PSObject.Properties['pi_source']) { ("" + $res.pi_source).Trim() } else { 'none' }
+        if (-not $piSource) { $piSource = 'none' }
+        Write-RunLog -RunContext $RunContext -Level INFO -Message ("{0} status='{1}' open_tasks={2} pi_source='{3}' pi='{4}'" -f $ticket, $res.status, $res.open_tasks, $piSource, $piValue)
       }
 
       [void]$results.Add($res)

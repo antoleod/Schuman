@@ -25,8 +25,8 @@ function Test-InvalidUserCellValue {
   $v = ("" + $Value).Trim()
   if (-not $v) { return $true }
   if ($v -match '^[0-9a-fA-F]{32}$') { return $true }
-  if ($v -match '(?i)\bnew\b.*\bep\b.*\buser\b') { return $true }
-  if ($v -match '(?i)^new\b.*\buser\b') { return $true }
+  if ($v -match '(?i)\bnew\b.*\bep\b.*\busers?\b') { return $true }
+  if ($v -match '(?i)^new\b.*\busers?\b') { return $true }
   if ($v -match '(?i)^unknown$|^n/?a$|^null$') { return $true }
   return $false
 }
@@ -199,6 +199,9 @@ function Write-TicketResultsToExcel {
     param($excel, $wb)
 
     $ws = $null
+    $debugLogPath = Join-Path $env:TEMP 'Schuman\pi-transplant-debug.log'
+    try { New-Item -ItemType Directory -Force -Path (Split-Path -Parent $debugLogPath) | Out-Null } catch {}
+    $debugCount = 0
     try {
       $ws = $wb.Worksheets.Item($SheetName)
       $map = Get-ExcelHeaderMap -Worksheet $ws
@@ -254,11 +257,21 @@ function Write-TicketResultsToExcel {
         }
 
         $detectedPi = if ($res.PSObject.Properties['detected_pi_machine']) { ("" + $res.detected_pi_machine).Trim() } else { '' }
+        $piSource = if ($res.PSObject.Properties['pi_source']) { ("" + $res.pi_source).Trim() } else { 'none' }
+        if (-not $piSource) { $piSource = 'none' }
         if ($detectedPi) {
           $current = ("" + $ws.Cells.Item($r, $phoneCol).Text).Trim()
           if ([string]::IsNullOrWhiteSpace($current) -or $current -eq $ticket) {
             $ws.Cells.Item($r, $phoneCol) = $detectedPi
           }
+        }
+        if ($debugCount -lt 10) {
+          $debugCount++
+          $line = "[{0}] ticket={1} row={2} col={3} pi='{4}' source='{5}'" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $ticket, $r, $phoneCol, $detectedPi, $piSource
+          if (-not $detectedPi) {
+            $line += " empty_reason='pi_source:" + $piSource + "'"
+          }
+          try { Add-Content -Path $debugLogPath -Value $line -Encoding UTF8 } catch {}
         }
 
         $completion = if ($res.PSObject.Properties['completion_status']) { ("" + $res.completion_status).Trim() } else { 'Pending' }

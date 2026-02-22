@@ -784,16 +784,16 @@ function global:Show-ForceUpdateOptionsDialog {
   }
 
   $scopeChoices = @(
-    (& $newChoice 'RITM only (fastest)' 'RitmOnly' $true),
-    (& $newChoice 'INC + RITM' 'IncAndRitm' $false),
+    (& $newChoice 'RITM only (fastest)' 'RitmOnly' $false),
+    (& $newChoice 'INC + RITM' 'IncAndRitm' $true),
     (& $newChoice 'All tickets' 'All' $false)
   )
   foreach ($c in $scopeChoices) { [void]$scopeGroup.Flow.Controls.Add($c) }
 
   $piChoices = @(
-    (& $newChoice 'Configuration Item only (fastest)' 'ConfigurationItemOnly' $true),
+    (& $newChoice 'Configuration Item only (fastest)' 'ConfigurationItemOnly' $false),
     (& $newChoice 'Comments only' 'CommentsOnly' $false),
-    (& $newChoice 'Comments + Configuration Item' 'CommentsAndCI' $false),
+    (& $newChoice 'Comments + Configuration Item' 'CommentsAndCI' $true),
     (& $newChoice 'Auto' 'Auto' $false)
   )
   foreach ($c in $piChoices) { [void]$piGroup.Flow.Controls.Add($c) }
@@ -831,7 +831,7 @@ function global:Show-ForceUpdateOptionsDialog {
   $chkFastMode = New-Object System.Windows.Forms.CheckBox
   $chkFastMode.Text = 'Fast mode (skip deep legal name fallback)'
   $chkFastMode.AutoSize = $true
-  $chkFastMode.Checked = $true
+  $chkFastMode.Checked = $false
   $chkFastMode.ForeColor = [System.Drawing.Color]::FromArgb(230, 230, 230)
   $chkFastMode.Location = New-Object System.Drawing.Point(0, 30)
   $perfPanel.Controls.Add($chkFastMode)
@@ -904,10 +904,10 @@ function global:Show-ForceUpdateOptionsDialog {
     }
 
     $scope = @($scopeChoices | Where-Object { $_.Checked } | Select-Object -First 1)
-    $scopeValue = if ($scope.Count -gt 0) { "" + $scope[0].Tag } else { 'RitmOnly' }
+    $scopeValue = if ($scope.Count -gt 0) { "" + $scope[0].Tag } else { 'IncAndRitm' }
 
     $pi = @($piChoices | Where-Object { $_.Checked } | Select-Object -First 1)
-    $piValue = if ($pi.Count -gt 0) { "" + $pi[0].Tag } else { 'ConfigurationItemOnly' }
+    $piValue = if ($pi.Count -gt 0) { "" + $pi[0].Tag } else { 'CommentsAndCI' }
 
     return [pscustomobject]@{
       ok              = $true
@@ -963,7 +963,7 @@ function global:New-FallbackForceUpdateOptionsDialog {
   $cmbScope = New-Object System.Windows.Forms.ComboBox
   $cmbScope.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
   [void]$cmbScope.Items.AddRange(@('RitmOnly', 'IncAndRitm', 'All'))
-  $cmbScope.SelectedItem = 'RitmOnly'
+  $cmbScope.SelectedItem = 'IncAndRitm'
   $cmbScope.Dock = [System.Windows.Forms.DockStyle]::Fill
   $root.Controls.Add($cmbScope, 1, 0)
 
@@ -975,13 +975,13 @@ function global:New-FallbackForceUpdateOptionsDialog {
   $cmbPi = New-Object System.Windows.Forms.ComboBox
   $cmbPi.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
   [void]$cmbPi.Items.AddRange(@('ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI', 'Auto'))
-  $cmbPi.SelectedItem = 'ConfigurationItemOnly'
+  $cmbPi.SelectedItem = 'CommentsAndCI'
   $cmbPi.Dock = [System.Windows.Forms.DockStyle]::Fill
   $root.Controls.Add($cmbPi, 1, 1)
 
   $chkFast = New-Object System.Windows.Forms.CheckBox
   $chkFast.Text = 'Fast mode'
-  $chkFast.Checked = $true
+  $chkFast.Checked = $false
   $chkFast.AutoSize = $true
   $root.Controls.Add($chkFast, 1, 2)
 
@@ -3066,6 +3066,7 @@ $updateMainExcelDependentControlsHandler = ${function:Update-MainExcelDependentC
 $startSchumanExcelRefreshAsyncHandler = ${function:Start-SchumanExcelRefreshAsync}
 $saveMainExcelPathPreferenceHandler = ${function:Save-MainExcelPathPreference}
 $showExcelLoadErrorOnceHandler = ${function:Show-ExcelLoadErrorOnce}
+$clearSchumanTempFilesHandler = ${function:Clear-SchumanTempFiles}
 if (-not $startSchumanStartupInitHandler) { throw 'Startup initialization handler is not available.' }
 if (-not $updateMainExcelDependentControlsHandler) { throw 'Excel readiness handler is not available.' }
 if (-not $startSchumanExcelRefreshAsyncHandler) { throw 'Excel refresh handler is not available.' }
@@ -3222,7 +3223,30 @@ $btnCleanTemp.Add_Click(({
       $cleanTempAction = {
         Set-MainBusyState -IsBusy $true -Text 'Cleaning temp files...'
         try {
-          $r = Clear-SchumanTempFiles -ProjectRoot $projectRoot -WhatIf:$false
+          $r = $null
+          if ($clearSchumanTempFilesHandler) {
+            $r = & $clearSchumanTempFilesHandler -ProjectRoot $projectRoot -WhatIf:$false
+          }
+          else {
+            $cleanupRoot = Join-Path $env:TEMP 'Schuman'
+            $deletedFiles = 0
+            $deletedFolders = 0
+            if (Test-Path -LiteralPath $cleanupRoot) {
+              foreach ($child in @(Get-ChildItem -LiteralPath $cleanupRoot -Force -ErrorAction SilentlyContinue)) {
+                try {
+                  if ($child.PSIsContainer) { Remove-Item -LiteralPath $child.FullName -Recurse -Force -ErrorAction Stop; $deletedFolders++ }
+                  else { Remove-Item -LiteralPath $child.FullName -Force -ErrorAction Stop; $deletedFiles++ }
+                } catch {}
+              }
+            }
+            $r = [pscustomobject]@{
+              DeletedFiles = $deletedFiles
+              DeletedFolders = $deletedFolders
+              FreedBytes = 0
+              Skipped = 0
+              Errors = @()
+            }
+          }
           $kbFreed = [math]::Round($r.FreedBytes / 1KB, 1)
           $summary = "Deleted: $($r.DeletedFiles) files, $($r.DeletedFolders) folders. Freed: ${kbFreed} KB. Skipped: $($r.Skipped)."
           if ($r.Errors.Count -gt 0) {
