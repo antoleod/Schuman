@@ -89,3 +89,88 @@ The term 'Set-UiControlRole' is not recognized as the name of a cmdlet, function
 [2026-02-21 00:52:10] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
 [2026-02-21 00:52:13] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
 [2026-02-21 00:52:13] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:19:41] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-22 15:19:41] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:24:20] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-22 15:24:20] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:30:40] [ERROR] Open Settings failed.
+
+Cannot convert value "128161" to type "System.Char". Error: "Value was either too large or too small for a character."
+[2026-02-22 15:30:50] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-22 15:30:50] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:36:12] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 15:36:15] [INFO] Theme apply 'Dark/Red' on 1 open form(s).
+[2026-02-22 15:36:15] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:42:00] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 15:42:03] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 15:42:03] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:45:19] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 15:45:22] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 15:45:22] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 15:49:17] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 15:50:32] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 15:51:09] [ERROR] ThreadException: The term 'Invoke-UiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 16:01:01] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 16:01:04] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:01:04] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:01:04] [ERROR] StartupInit: The term 'Start-SchumanStartupInit' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 16:01:04] [ERROR] UI: Unknown error.
+[2026-02-22 16:01:17] [ERROR] Load Excel: Exception setting "Text": "The term 'Update-MainExcelDependentControls' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+[2026-02-22 16:01:17] [ERROR] UI: Unknown error.
+[2026-02-22 16:27:45] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:27:45] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:27:45] [ERROR] StartupInit: The term 'Start-SchumanStartupInit' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 16:27:45] [ERROR] UI: UI failed.
+[2026-02-22 16:29:43] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:29:43] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:29:44] [ERROR] StartupInit: The property 'Tag' cannot be found on this object. Verify that the property exists and can be set.
+[2026-02-22 16:29:44] [ERROR] UI: UI failed.
+[2026-02-22 16:30:39] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:30:39] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:31:17] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 16:31:20] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:31:20] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:34:16] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:34:16] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:38:32] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 16:38:34] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:38:34] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:38:34] [INFO] Startup initialization started.
+[2026-02-22 16:38:34] [INFO] Excel refresh queued. Startup=True; Reason='Refreshing Excel...'
+[2026-02-22 16:41:08] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:41:08] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:41:09] [INFO] Startup initialization started.
+[2026-02-22 16:41:09] [INFO] Excel refresh queued. Startup=True; Reason='Refreshing Excel...'
+[2026-02-22 16:44:07] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:44:07] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:44:07] [INFO] Startup initialization started.
+[2026-02-22 16:44:07] [INFO] Excel refresh queued. Startup=True; Reason='Refreshing Excel...'
+[2026-02-22 16:44:07] [INFO] Excel refresh RunWorkerAsync starting. RunId=1; TimeoutSec=120
+[2026-02-22 16:44:07] [INFO] Excel refresh RunWorkerAsync dispatched. RunId=1
+[2026-02-22 16:47:15] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:47:15] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:47:15] [INFO] Startup initialization started.
+[2026-02-22 16:47:15] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 16:48:05] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 16:48:07] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:48:07] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:48:07] [INFO] Startup initialization started.
+[2026-02-22 16:48:07] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 16:48:33] [INFO] Excel refresh queued. Startup=False; Reason='Refreshing Excel (All/ConfigurationItemOnly)...'
+[2026-02-22 16:48:33] [INFO] Excel refresh RunWorkerAsync starting. RunId=1; TimeoutSec=300
+[2026-02-22 16:48:33] [INFO] Excel refresh RunWorkerAsync dispatched. RunId=1
+[2026-02-22 16:50:57] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 16:50:58] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 16:50:58] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 16:50:58] [INFO] Startup initialization started.
+[2026-02-22 16:50:58] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 16:52:31] [INFO] Preloaded 24 rows from Excel.
+[2026-02-22 17:05:27] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 17:05:27] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 17:05:27] [INFO] Startup initialization started.
+[2026-02-22 17:05:27] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 17:09:40] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 17:09:42] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 17:09:42] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 17:09:42] [INFO] Startup initialization started.
+[2026-02-22 17:09:42] [INFO] Startup initialization completed successfully (quick Excel validation mode).

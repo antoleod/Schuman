@@ -129,7 +129,7 @@ function global:Invoke-UiEmergencyClose {
   $modeResolved = $Mode
   $labelText = ("" + $ActionLabel).Trim().ToLowerInvariant()
   if ($modeResolved -eq 'All') {
-    if ($labelText -match 'codigo') { $modeResolved = 'Code' }
+    if ($labelText -match 'code') { $modeResolved = 'Code' }
     elseif ($labelText -match 'document') { $modeResolved = 'Documents' }
   }
 
@@ -220,3 +220,4 @@ function global:New-CardContainer {
 
   return [pscustomobject]@{ Border = $border; Content = $content }
 }
+

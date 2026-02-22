@@ -1,34 +1,34 @@
-﻿# Guia Rapida Schuman
+﻿# Quick Guide (Schuman)
 
-## 1) Inicio UI
+## 1) Start UI
 ```powershell
 .\Start-Schuman.ps1
 ```
-- El login/verificacion SSO de ServiceNow es obligatorio al iniciar.
-- La sesion/token se reutiliza durante la app para evitar pedir login repetido.
+- ServiceNow SSO login/verification is required at startup.
+- The session/token is reused across the app to avoid repeated login prompts.
 
-## 2) Main
-- `Dashboard`: abre el dashboard operativo.
-- `Generate`: abre modulo de documentos.
-- `Cerrar codigo`: cierra procesos `Code`/`Code Insiders`/`Cursor` si se congelan.
-- `Cerrar documentos`: cierra procesos `Word` y `Excel` para liberar archivos bloqueados.
+## 2) Main Window
+- `Dashboard`: opens the operational dashboard.
+- `Generate`: opens document generation.
+- `Close Code Apps`: closes `Code` / `Code Insiders` / `Cursor` if frozen.
+- `Close Documents`: closes `Word` and `Excel` to release locked files.
 
 ## 3) Dashboard
-- Filtro live al escribir.
-- Click fila: abre ServiceNow.
-- Doble click: seleccionar tarea + Check-In/Check-Out.
-- Actualiza ServiceNow y Excel.
-- Botones de emergencia: `Cerrar codigo` y `Cerrar documentos`.
+- Live filtering while typing.
+- Row click opens ServiceNow.
+- Double-click runs task selection + Check-In/Check-Out.
+- Updates both ServiceNow and Excel.
+- Emergency buttons: `Close Code Apps` and `Close Documents`.
 
 ## 4) Generate
-- Footer limpio:
+- Footer buttons:
   - `Generate Documents`
   - `Dashboard (Check-in / Check-out)`
   - `Open Output Folder`
-  - `Cerrar codigo`
-  - `Cerrar documentos`
+  - `Close Code Apps`
+  - `Close Documents`
   - `Show Log`
-- `Generate Documents` ejecuta `DocsGenerate` real.
+- `Generate Documents` executes real `DocsGenerate` workflow.
 
 ## 5) CLI
 ```powershell
@@ -37,7 +37,7 @@
 
 ## 6) Logs
 - Runs: `system/runs/<operation_timestamp>/`
-- Historico: `system/logs/history.log`
+- History: `system/logs/history.log`
 
-## 7) Documentacion por componente
-Ver `docs/CODIGO/`.
+## 7) Component Docs
+See `docs/CODIGO/`.

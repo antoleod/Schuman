@@ -191,7 +191,7 @@ function Write-TicketResultsToExcel {
     [Parameter(Mandatory = $true)]$ResultByTicket,
     [string]$NameHeader = 'Name',
     [string]$PhoneHeader = 'PI',
-    [string]$ActionHeader = 'Estado de RITM',
+    [string]$ActionHeader = 'RITM State',
     [string]$SCTasksHeader = 'SCTasks'
   )
 
@@ -307,7 +307,7 @@ function global:Search-DashboardRows {
     if (-not $ritmCol) { throw 'Dashboard requires a RITM/Number column.' }
 
     $statusCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Dashboard Status')
-    $ritmStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Estado de RITM', 'RITM State', 'RITM Status', 'State', 'Status')
+    $ritmStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('RITM State', 'RITM Status', 'State', 'Status')
     $taskStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('SCTASK State', 'SCTASK Status', 'SC Task State', 'Task State')
     $presentCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Present Time')
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Closed Time')

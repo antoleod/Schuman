@@ -1,16 +1,16 @@
-﻿# Configuracion
+﻿# Configuration
 
 ## `configs/appsettings.json`
 - `ServiceNow`:
-  - `BaseUrl`, `LoginUrl`, `WebViewProfileRoot`, timeouts y retries.
+  - `BaseUrl`, `LoginUrl`, `WebViewProfileRoot`, timeouts, retries.
 - `Excel`:
-  - archivo/sheet por defecto y limites de escaneo.
+  - default file/sheet and scan limits.
 - `Output`:
-  - raiz `system`, subcarpetas `runs/logs/db`.
+  - root `system`, subfolders `runs/logs/db`.
 - `Documents`:
-  - plantilla y carpeta de salida por defecto.
+  - default template and output folder.
 
-## Recomendaciones
-- No hardcodear rutas en scripts; usar config.
-- Mantener `Schuman List.xlsx` como fuente unica.
-- Mantener `Reception_ITequipment.docx` en raiz o actualizar config.
+## Recommendations
+- Do not hardcode paths in scripts; use config.
+- Keep `Schuman List.xlsx` as the single source of truth.
+- Keep `Reception_ITequipment.docx` in root or update config accordingly.

@@ -26,6 +26,34 @@ foreach ($p in @($invokeScript, $importModulesPath, $themePath, $dashboardUiPath
 . $dashboardUiPath
 . $generateUiPath
 
+$script:UiLogPath = Join-Path (Join-Path $env:TEMP 'Schuman') 'schuman-ui.log'
+$script:LogPath = $script:UiLogPath
+try {
+  $uiLogDir = Split-Path -Parent $script:UiLogPath
+  if ($uiLogDir -and -not (Test-Path -LiteralPath $uiLogDir)) {
+    New-Item -ItemType Directory -Path $uiLogDir -Force | Out-Null
+  }
+}
+catch {}
+
+function Write-UiTrace {
+  param(
+    [string]$Level = 'INFO',
+    [string]$Message = ''
+  )
+  $lvl = ("" + $Level).Trim().ToUpperInvariant()
+  $msg = ("" + $Message).Trim()
+  if (-not $msg) { return }
+  $line = "[{0}] [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'), $lvl, $msg
+  try { Add-Content -LiteralPath $script:UiLogPath -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue } catch {}
+  try {
+    if (Get-Command -Name Write-Log -ErrorAction SilentlyContinue) {
+      Write-Log -Level $lvl -Message $msg
+    }
+  }
+  catch {}
+}
+
 Initialize-SchumanRuntime -RevalidateOnly
 Assert-SchumanRuntime -RequiredCommands @(
   'Get-UiFontName',
@@ -104,11 +132,11 @@ function global:Register-SchumanOwnedComResource {
   )
   if ($null -eq $Object) { return $null }
   $entry = [pscustomobject]@{
-    Kind = ("" + $Kind).Trim()
-    Object = $Object
-    Tag = ("" + $Tag).Trim()
+    Kind    = ("" + $Kind).Trim()
+    Object  = $Object
+    Tag     = ("" + $Tag).Trim()
     AddedAt = [DateTime]::UtcNow
-    Id = [Guid]::NewGuid().ToString('N')
+    Id      = [Guid]::NewGuid().ToString('N')
   }
   [void]$script:SchumanOwnedComResources.Add($entry)
   return $entry
@@ -133,13 +161,14 @@ function global:Register-SchumanOwnedProcess {
   if (-not $Process) { return }
   try {
     $script:SchumanOwnedProcesses[[string]$Process.Id] = [pscustomobject]@{
-      Id = [int]$Process.Id
-      Name = ("" + $Process.ProcessName).Trim()
+      Id      = [int]$Process.Id
+      Name    = ("" + $Process.ProcessName).Trim()
       Process = $Process
-      Tag = ("" + $Tag).Trim()
+      Tag     = ("" + $Tag).Trim()
       AddedAt = [DateTime]::UtcNow
     }
-  } catch {}
+  }
+  catch {}
 }
 
 function global:Unregister-SchumanOwnedProcess {
@@ -152,7 +181,7 @@ function global:Unregister-SchumanOwnedProcess {
 
 function global:Stop-SchumanOwnedResources {
   param(
-    [ValidateSet('Code','Documents','All')][string]$Mode = 'All'
+    [ValidateSet('Code', 'Documents', 'All')][string]$Mode = 'All'
   )
 
   $comClosed = 0
@@ -172,7 +201,8 @@ function global:Stop-SchumanOwnedResources {
       elseif ($kind -like '*word*' -or $kind -like '*excel*') {
         try { $obj.Quit() | Out-Null } catch {}
       }
-    } catch {}
+    }
+    catch {}
     try { Release-ComObjectSafe $obj } catch {}
     $script:SchumanOwnedComResources.Remove($entry) | Out-Null
     $comClosed++
@@ -205,12 +235,13 @@ function global:Stop-SchumanOwnedResources {
         }
       }
       else { $procClosed++ }
-    } catch { $procFailed++ }
+    }
+    catch { $procFailed++ }
     Unregister-SchumanOwnedProcess -ProcessId $p.Id
   }
 
   return [pscustomobject]@{
-    ComClosedCount = [int]$comClosed
+    ComClosedCount     = [int]$comClosed
     ProcessClosedCount = [int]$procClosed
     ProcessFailedCount = [int]$procFailed
   }
@@ -221,7 +252,7 @@ function global:Invoke-UiEmergencyClose {
     [string]$ActionLabel = '',
     [string[]]$ExecutableNames = @(),
     [System.Windows.Forms.IWin32Window]$Owner = $null,
-    [ValidateSet('Code','Documents','All')][string]$Mode = 'All',
+    [ValidateSet('Code', 'Documents', 'All')][string]$Mode = 'All',
     [System.Windows.Forms.Form]$MainForm = $null,
     [string]$BaseDir = ''
   )
@@ -238,7 +269,7 @@ function global:Invoke-UiEmergencyClose {
   $labelText = ("" + $ActionLabel).Trim().ToLowerInvariant()
   $modeResolved = $Mode
   $modeWasExplicit = ($PSBoundParameters.ContainsKey('Mode') -and $Mode -ne 'All')
-  if (-not $modeWasExplicit -and $labelText -match 'codigo') { $modeResolved = 'Code' }
+  if (-not $modeWasExplicit -and $labelText -match 'code') { $modeResolved = 'Code' }
   elseif (-not $modeWasExplicit -and $labelText -match 'document') { $modeResolved = 'Documents' }
   elseif (-not $modeWasExplicit -and $ExecutableNames -and @($ExecutableNames).Count -gt 0) {
     $joined = ("" + ($ExecutableNames -join ' ')).ToLowerInvariant()
@@ -262,10 +293,10 @@ function global:Invoke-UiEmergencyClose {
   }
 
   return [pscustomobject]@{
-    Cancelled = $false
+    Cancelled   = $false
     KilledCount = [int]$cleanup.ProcessClosedCount
     FailedCount = [int]$cleanup.ProcessFailedCount
-    Message = ("Cleanup done (COM={0}, ProcClosed={1}, ProcFailed={2})" -f $cleanup.ComClosedCount, $cleanup.ProcessClosedCount, $cleanup.ProcessFailedCount)
+    Message     = ("Cleanup done (COM={0}, ProcClosed={1}, ProcFailed={2})" -f $cleanup.ComClosedCount, $cleanup.ProcessClosedCount, $cleanup.ProcessFailedCount)
   }
 }
 
@@ -284,28 +315,118 @@ function global:Show-UiError {
     $safeMessage = "$Context failed."
   }
   if ([string]::IsNullOrWhiteSpace($safeMessage)) {
-    $safeMessage = 'An unexpected error occurred.'
+    $safeMessage = 'An unexpected UI error occurred.'
   }
 
-  $detail = ''
+  $ex = $null
+  if ($Exception) { $ex = $Exception }
+  elseif ($ErrorRecord -and $ErrorRecord.Exception) { $ex = $ErrorRecord.Exception }
+
+  $detail = @()
   try {
-    if ($Exception) {
-      $detail = ("" + $Exception.Message).Trim()
-    }
-    elseif ($ErrorRecord -and $ErrorRecord.Exception) {
-      $detail = ("" + $ErrorRecord.Exception.Message).Trim()
+    if ($ex) {
+      $detail += ("Type: " + $ex.GetType().FullName)
+      $detail += ("Message: " + ("" + $ex.Message).Trim())
+      if ($ex.InnerException) {
+        $detail += ("Inner Type: " + $ex.InnerException.GetType().FullName)
+        $detail += ("Inner Message: " + ("" + $ex.InnerException.Message).Trim())
+      }
+      $stack = ("" + $ex.StackTrace).Trim()
+      if ($stack) {
+        $detail += 'StackTrace:'
+        $detail += $stack
+      }
     }
   }
   catch {}
 
-  $full = if ($detail) { "$safeMessage`r`n`r`n$detail" } else { $safeMessage }
-  try { [System.Windows.Forms.MessageBox]::Show($full, $safeTitle, [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null } catch {}
+  $detailText = if ($detail.Count -gt 0) { ($detail -join "`r`n") } else { 'No exception details were captured.' }
+  $summary = "$safeMessage`r`n`r`nSee details for diagnostic information."
+  Write-UiTrace -Level 'ERROR' -Message ("{0} | {1} | {2}" -f $safeTitle, $safeMessage, $detailText)
+
+  $dlg = $null
   try {
-    if (Get-Command -Name Write-Log -ErrorAction SilentlyContinue) {
-      Write-Log -Level ERROR -Message $full
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text = $safeTitle
+    $dlg.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
+    $dlg.Size = New-Object System.Drawing.Size(840, 520)
+    $dlg.MinimumSize = New-Object System.Drawing.Size(760, 420)
+    $dlg.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::Sizable
+    $dlg.MaximizeBox = $true
+    $dlg.MinimizeBox = $false
+    $dlg.TopMost = $true
+
+    $layout = New-Object System.Windows.Forms.TableLayoutPanel
+    $layout.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $layout.ColumnCount = 1
+    $layout.RowCount = 3
+    [void]$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+    [void]$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+    [void]$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+    $layout.Padding = New-Object System.Windows.Forms.Padding(12)
+    $dlg.Controls.Add($layout)
+
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.AutoSize = $true
+    $lbl.Text = $summary
+    $layout.Controls.Add($lbl, 0, 0)
+
+    $txt = New-Object System.Windows.Forms.TextBox
+    $txt.Multiline = $true
+    $txt.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+    $txt.ReadOnly = $true
+    $txt.WordWrap = $false
+    $txt.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $txt.Font = New-Object System.Drawing.Font('Consolas', 9)
+    $txt.Text = $detailText
+    $layout.Controls.Add($txt, 0, 1)
+
+    $btnBar = New-Object System.Windows.Forms.FlowLayoutPanel
+    $btnBar.FlowDirection = [System.Windows.Forms.FlowDirection]::RightToLeft
+    $btnBar.AutoSize = $true
+    $btnBar.Dock = [System.Windows.Forms.DockStyle]::Fill
+    $layout.Controls.Add($btnBar, 0, 2)
+
+    $btnClose = New-Object System.Windows.Forms.Button
+    $btnClose.Text = 'Close'
+    $btnClose.Width = 90
+    $btnClose.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    [void]$btnBar.Controls.Add($btnClose)
+
+    $btnCopy = New-Object System.Windows.Forms.Button
+    $btnCopy.Text = 'Copy Details'
+    $btnCopy.Width = 120
+    $btnCopy.Add_Click(({
+          try { [System.Windows.Forms.Clipboard]::SetText($txt.Text) } catch {}
+        }).GetNewClosure())
+    [void]$btnBar.Controls.Add($btnCopy)
+
+    $dlg.AcceptButton = $btnClose
+    try {
+      $themeForDialog = $script:CurrentMainTheme
+      if (-not $themeForDialog -and $global:CurrentMainTheme) { $themeForDialog = $global:CurrentMainTheme }
+      $scaleForDialog = 1.0
+      try {
+        if ($script:CurrentMainFontScale) { $scaleForDialog = [double]$script:CurrentMainFontScale }
+        elseif ($global:CurrentMainFontScale) { $scaleForDialog = [double]$global:CurrentMainFontScale }
+      }
+      catch { $scaleForDialog = 1.0 }
+      if ($themeForDialog) {
+        Set-UiControlRole -Control $lbl -Role 'MutedLabel'
+        Set-UiControlRole -Control $btnClose -Role 'PrimaryButton'
+        Set-UiControlRole -Control $btnCopy -Role 'SecondaryButton'
+        Apply-SchumanTheme -RootControl $dlg -Theme $themeForDialog -FontScale $scaleForDialog
+      }
     }
+    catch {}
+    [void]$dlg.ShowDialog()
   }
-  catch {}
+  catch {
+    try { [System.Windows.Forms.MessageBox]::Show("$safeMessage`r`n`r`n$detailText", $safeTitle, [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null } catch {}
+  }
+  finally {
+    try { if ($dlg -and -not $dlg.IsDisposed) { $dlg.Dispose() } } catch {}
+  }
 }
 
 function global:Show-UiInfo {
@@ -331,15 +452,33 @@ function global:Invoke-SafeUiAction {
   }
   catch {
     $errText = ("" + $_.Exception.Message).Trim()
-    if (-not $errText) { $errText = 'Unknown UI error.' }
-    try {
-      if (Get-Command -Name Write-Log -ErrorAction SilentlyContinue) {
-        Write-Log -Level ERROR -Message ("{0}: {1}" -f $ActionName, $errText)
-      }
-    }
-    catch {}
+    if (-not $errText) { $errText = 'Unhandled UI exception.' }
+    Write-UiTrace -Level 'ERROR' -Message ("{0}: {1}" -f $ActionName, $errText)
     Show-UiError -Title 'Schuman' -Message ("{0} failed." -f $ActionName) -Exception $_.Exception
     return $null
+  }
+}
+
+function global:Invoke-OnUiThread {
+  param(
+    [System.Windows.Forms.Control]$Control,
+    [scriptblock]$Action
+  )
+  if (-not $Control -or $Control.IsDisposed) { return }
+  if (-not $Action) { return }
+  try {
+    if ($Control.InvokeRequired) {
+      $safeAction = $Action.GetNewClosure()
+      [void]$Control.BeginInvoke(([System.Windows.Forms.MethodInvoker]{
+            try { & $safeAction } catch { Write-UiTrace -Level 'WARN' -Message ("Invoke-OnUiThread async callback failed: " + $_.Exception.Message) }
+          }).GetNewClosure())
+    }
+    else {
+      & $Action
+    }
+  }
+  catch {
+    Write-UiTrace -Level 'WARN' -Message ("Invoke-OnUiThread failed: " + $_.Exception.Message)
   }
 }
 
@@ -359,7 +498,7 @@ function Register-WinFormsGlobalExceptionHandling {
     Write-Log -Level WARN -Message ("SetUnhandledExceptionMode failed: " + $_.Exception.Message)
   }
 
-  $script:ThreadExceptionHandler = [System.Threading.ThreadExceptionEventHandler]{
+  $script:ThreadExceptionHandler = [System.Threading.ThreadExceptionEventHandler] {
     param($sender, $eventArgs)
     try {
       $ex = $null
@@ -371,7 +510,7 @@ function Register-WinFormsGlobalExceptionHandling {
   }
   [System.Windows.Forms.Application]::add_ThreadException($script:ThreadExceptionHandler)
 
-  $script:DomainExceptionHandler = [System.UnhandledExceptionEventHandler]{
+  $script:DomainExceptionHandler = [System.UnhandledExceptionEventHandler] {
     param($sender, $eventArgs)
     try {
       $ex = $eventArgs.ExceptionObject -as [System.Exception]
@@ -420,8 +559,9 @@ function Convert-ToArgumentString {
     $text = if ($null -eq $token) { '' } else { [string]$token }
     if ($text -match '^[A-Za-z0-9_:\\\.\-]+$') {
       [void]$parts.Add($text)
-    } else {
-      [void]$parts.Add('"' + ($text -replace '"','\"') + '"')
+    }
+    else {
+      [void]$parts.Add('"' + ($text -replace '"', '\"') + '"')
     }
   }
   return ($parts -join ' ')
@@ -429,7 +569,7 @@ function Convert-ToArgumentString {
 
 function Get-RunningSchumanOperationProcesses {
   param(
-    [string[]]$Operations = @('Export','DocsGenerate')
+    [string[]]$Operations = @('Export', 'DocsGenerate')
   )
 
   $ops = @($Operations | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.Trim().ToLowerInvariant() })
@@ -446,8 +586,8 @@ function Get-RunningSchumanOperationProcesses {
       foreach ($op in $ops) {
         if ($cmd -match ("(?i)-Operation\s+{0}(\s|$)" -f [Regex]::Escape($op))) {
           $matches.Add([pscustomobject]@{
-              ProcessId = [int]$p.ProcessId
-              Operation = $op
+              ProcessId   = [int]$p.ProcessId
+              Operation   = $op
               CommandLine = $cmd
             }) | Out-Null
           break
@@ -519,8 +659,8 @@ function Update-UiMetricDuration {
   $m = Get-UiMetrics -Config $Config
   if (-not $m.ContainsKey($OperationKey)) {
     $m[$OperationKey] = @{
-      avg_seconds = [double]$DurationSeconds
-      samples = 1
+      avg_seconds  = [double]$DurationSeconds
+      samples      = 1
       last_seconds = [int]$DurationSeconds
     }
   }
@@ -534,8 +674,8 @@ function Update-UiMetricDuration {
     $newSamples = [Math]::Min($samples + 1, 50)
     $newAvg = (($avg * [Math]::Max($samples, 1)) + [double]$DurationSeconds) / [double]([Math]::Max($samples, 1) + 1)
     $m[$OperationKey] = @{
-      avg_seconds = [double]$newAvg
-      samples = [int]$newSamples
+      avg_seconds  = [double]$newAvg
+      samples      = [int]$newSamples
       last_seconds = [int]$DurationSeconds
     }
   }
@@ -543,59 +683,16 @@ function Update-UiMetricDuration {
   Save-UiMetrics -Config $Config -Metrics $m
 }
 
-function Get-MainUiPrefsPath {
-  param([hashtable]$Config)
-  return (Join-Path (Join-Path $Config.Output.SystemRoot $Config.Output.DbSubdir) 'ui-preferences.json')
-}
-
-function Get-MainUiPrefs {
-  param([hashtable]$Config)
-
-  $defaults = @{
-    theme = 'Dark'
-    accent = 'Blue'
-    fontScale = 100
-    compact = $false
-  }
-
-  $path = Get-MainUiPrefsPath -Config $Config
-  if (-not (Test-Path -LiteralPath $path)) { return $defaults }
-  try {
-    $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -ErrorAction Stop
-    if ($json) {
-      $theme = ("" + $json.theme).Trim()
-      $accent = ("" + $json.accent).Trim()
-      $fontScale = 100
-      try { $fontScale = [int]$json.fontScale } catch {}
-      $compact = $false
-      try { $compact = [bool]$json.compact } catch {}
-      return @{
-        theme = if ($theme) { $theme } else { $defaults.theme }
-        accent = if ($accent) { $accent } else { $defaults.accent }
-        fontScale = [Math]::Min(130, [Math]::Max(90, $fontScale))
-        compact = $compact
-      }
-    }
-  }
-  catch {}
-
-  return $defaults
-}
-
-function Save-MainUiPrefs {
-  param(
-    [hashtable]$Config,
-    [hashtable]$Prefs
-  )
-  $path = Get-MainUiPrefsPath -Config $Config
-  Ensure-Directory -Path (Split-Path -Parent $path) | Out-Null
-  ($Prefs | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath $path -Encoding UTF8
-}
-
 function global:Show-ForceUpdateOptionsDialog {
   param(
     [System.Windows.Forms.IWin32Window]$Owner = $null
   )
+
+  $theme = $script:CurrentMainTheme
+  if (-not $theme -and $global:CurrentMainTheme) { $theme = $global:CurrentMainTheme }
+  $scale = 1.0
+  try { if ($script:CurrentMainFontScale) { $scale = [double]$script:CurrentMainFontScale } } catch {}
+  if ($scale -le 0) { $scale = 1.0 }
 
   $dlg = New-Object System.Windows.Forms.Form
   $dlg.Text = 'Force Update Options'
@@ -604,8 +701,8 @@ function global:Show-ForceUpdateOptionsDialog {
   $dlg.MaximizeBox = $false
   $dlg.MinimizeBox = $false
   $dlg.Size = New-Object System.Drawing.Size(700, 520)
-  $dlg.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
-  $dlg.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $dlg.BackColor = [System.Drawing.Color]::FromArgb(24, 24, 26)
+  $dlg.ForeColor = [System.Drawing.Color]::FromArgb(230, 230, 230)
   $dlg.Font = New-Object System.Drawing.Font('Segoe UI', 10)
 
   $layout = New-Object System.Windows.Forms.TableLayoutPanel
@@ -642,13 +739,13 @@ function global:Show-ForceUpdateOptionsDialog {
     $p.Dock = [System.Windows.Forms.DockStyle]::Fill
     $p.Padding = New-Object System.Windows.Forms.Padding(12)
     $p.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
-    $p.BackColor = [System.Drawing.Color]::FromArgb(32,32,34)
+    $p.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 34)
 
     $t = New-Object System.Windows.Forms.Label
     $t.Text = $Title
     $t.AutoSize = $true
     $t.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 10)
-    $t.ForeColor = [System.Drawing.Color]::FromArgb(170,170,175)
+    $t.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 175)
     $p.Controls.Add($t)
 
     $f = New-Object System.Windows.Forms.FlowLayoutPanel
@@ -663,11 +760,11 @@ function global:Show-ForceUpdateOptionsDialog {
   }
 
   $scopeGroup = & $newGroupPanel 'Ticket Scope'
-  $scopeGroup.Panel.Margin = New-Object System.Windows.Forms.Padding(0,0,8,0)
+  $scopeGroup.Panel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
   [void]$body.Controls.Add($scopeGroup.Panel, 0, 0)
 
   $piGroup = & $newGroupPanel 'PI Search Mode'
-  $piGroup.Panel.Margin = New-Object System.Windows.Forms.Padding(8,0,0,0)
+  $piGroup.Panel.Margin = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
   [void]$body.Controls.Add($piGroup.Panel, 1, 0)
 
   $newChoice = {
@@ -681,7 +778,7 @@ function global:Show-ForceUpdateOptionsDialog {
     $chk.Tag = $TagValue
     $chk.AutoSize = $true
     $chk.Checked = $Checked
-    $chk.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+    $chk.ForeColor = [System.Drawing.Color]::FromArgb(230, 230, 230)
     $chk.Margin = New-Object System.Windows.Forms.Padding(0, 6, 0, 0)
     return $chk
   }
@@ -705,12 +802,12 @@ function global:Show-ForceUpdateOptionsDialog {
     param([System.Windows.Forms.CheckBox[]]$Boxes)
     foreach ($box in $Boxes) {
       $box.Add_CheckedChanged(({
-        param($sender, $eventArgs)
-        if (-not $sender.Checked) { return }
-        foreach ($other in $Boxes) {
-          if ($other -ne $sender) { $other.Checked = $false }
-        }
-      }).GetNewClosure())
+            param($sender, $eventArgs)
+            if (-not $sender.Checked) { return }
+            foreach ($other in $Boxes) {
+              if ($other -ne $sender) { $other.Checked = $false }
+            }
+          }).GetNewClosure())
     }
   }
   & $bindSingleSelect $scopeChoices
@@ -719,7 +816,7 @@ function global:Show-ForceUpdateOptionsDialog {
   $perfPanel = New-Object System.Windows.Forms.Panel
   $perfPanel.Dock = [System.Windows.Forms.DockStyle]::Top
   $perfPanel.Height = 96
-  $perfPanel.BackColor = [System.Drawing.Color]::FromArgb(32,32,34)
+  $perfPanel.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 34)
   $perfPanel.Padding = New-Object System.Windows.Forms.Padding(12)
   $perfPanel.Margin = New-Object System.Windows.Forms.Padding(0, 2, 0, 2)
   [void]$layout.Controls.Add($perfPanel, 0, 2)
@@ -728,21 +825,21 @@ function global:Show-ForceUpdateOptionsDialog {
   $lblPerf.Text = 'Performance'
   $lblPerf.AutoSize = $true
   $lblPerf.Font = New-Object System.Drawing.Font('Segoe UI Semibold', 10)
-  $lblPerf.ForeColor = [System.Drawing.Color]::FromArgb(170,170,175)
+  $lblPerf.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 175)
   $perfPanel.Controls.Add($lblPerf)
 
   $chkFastMode = New-Object System.Windows.Forms.CheckBox
   $chkFastMode.Text = 'Fast mode (skip deep legal name fallback)'
   $chkFastMode.AutoSize = $true
   $chkFastMode.Checked = $true
-  $chkFastMode.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $chkFastMode.ForeColor = [System.Drawing.Color]::FromArgb(230, 230, 230)
   $chkFastMode.Location = New-Object System.Drawing.Point(0, 30)
   $perfPanel.Controls.Add($chkFastMode)
 
   $lblMax = New-Object System.Windows.Forms.Label
   $lblMax.Text = 'Max tickets (0 = all)'
   $lblMax.AutoSize = $true
-  $lblMax.ForeColor = [System.Drawing.Color]::FromArgb(180,180,184)
+  $lblMax.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 184)
   $lblMax.Location = New-Object System.Drawing.Point(0, 58)
   $perfPanel.Controls.Add($lblMax)
 
@@ -752,14 +849,14 @@ function global:Show-ForceUpdateOptionsDialog {
   $numMaxTickets.Value = 0
   $numMaxTickets.Width = 100
   $numMaxTickets.Location = New-Object System.Drawing.Point(170, 56)
-  $numMaxTickets.BackColor = [System.Drawing.Color]::FromArgb(24,24,26)
-  $numMaxTickets.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
+  $numMaxTickets.BackColor = [System.Drawing.Color]::FromArgb(24, 24, 26)
+  $numMaxTickets.ForeColor = [System.Drawing.Color]::FromArgb(230, 230, 230)
   $perfPanel.Controls.Add($numMaxTickets)
 
   $hint = New-Object System.Windows.Forms.Label
   $hint.Text = 'Tip: RITM only + Configuration Item only is usually the fastest combination.'
   $hint.AutoSize = $true
-  $hint.ForeColor = [System.Drawing.Color]::FromArgb(120,120,126)
+  $hint.ForeColor = [System.Drawing.Color]::FromArgb(120, 120, 126)
   $hint.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
   [void]$layout.Controls.Add($hint, 0, 3)
 
@@ -774,9 +871,9 @@ function global:Show-ForceUpdateOptionsDialog {
   $btnOk.Width = 100
   $btnOk.Height = 32
   $btnOk.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  $btnOk.BackColor = [System.Drawing.Color]::FromArgb(0,122,255)
+  $btnOk.BackColor = [System.Drawing.Color]::FromArgb(0, 122, 255)
   $btnOk.ForeColor = [System.Drawing.Color]::White
-  $btnOk.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(0,122,255)
+  $btnOk.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(0, 122, 255)
   $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
   [void]$buttons.Controls.Add($btnOk)
 
@@ -785,32 +882,43 @@ function global:Show-ForceUpdateOptionsDialog {
   $btnCancel.Width = 100
   $btnCancel.Height = 32
   $btnCancel.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  $btnCancel.BackColor = [System.Drawing.Color]::FromArgb(36,36,38)
-  $btnCancel.ForeColor = [System.Drawing.Color]::FromArgb(230,230,230)
-  $btnCancel.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(58,58,62)
+  $btnCancel.BackColor = [System.Drawing.Color]::FromArgb(36, 36, 38)
+  $btnCancel.ForeColor = [System.Drawing.Color]::FromArgb(230, 230, 230)
+  $btnCancel.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(58, 58, 62)
   $btnCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
   [void]$buttons.Controls.Add($btnCancel)
 
   $dlg.AcceptButton = $btnOk
   $dlg.CancelButton = $btnCancel
+  try {
+    if ($theme) {
+      Set-UiControlRole -Control $btnOk -Role 'PrimaryButton'
+      Set-UiControlRole -Control $btnCancel -Role 'SecondaryButton'
+      Set-UiControlRole -Control $lblPerf -Role 'MutedLabel'
+      Set-UiControlRole -Control $hint -Role 'MutedLabel'
+      Apply-SchumanTheme -RootControl $dlg -Theme $theme -FontScale $scale
+    }
+    $res = if ($Owner) { $dlg.ShowDialog($Owner) } else { $dlg.ShowDialog() }
+    if ($res -ne [System.Windows.Forms.DialogResult]::OK) {
+      return [pscustomobject]@{ ok = $false }
+    }
 
-  $res = if ($Owner) { $dlg.ShowDialog($Owner) } else { $dlg.ShowDialog() }
-  if ($res -ne [System.Windows.Forms.DialogResult]::OK) {
-    return [pscustomobject]@{ ok = $false }
+    $scope = @($scopeChoices | Where-Object { $_.Checked } | Select-Object -First 1)
+    $scopeValue = if ($scope.Count -gt 0) { "" + $scope[0].Tag } else { 'RitmOnly' }
+
+    $pi = @($piChoices | Where-Object { $_.Checked } | Select-Object -First 1)
+    $piValue = if ($pi.Count -gt 0) { "" + $pi[0].Tag } else { 'ConfigurationItemOnly' }
+
+    return [pscustomobject]@{
+      ok              = $true
+      processingScope = $scopeValue
+      piSearchMode    = $piValue
+      fastMode        = [bool]$chkFastMode.Checked
+      maxTickets      = [int]$numMaxTickets.Value
+    }
   }
-
-  $scope = @($scopeChoices | Where-Object { $_.Checked } | Select-Object -First 1)
-  $scopeValue = if ($scope.Count -gt 0) { "" + $scope[0].Tag } else { 'RitmOnly' }
-
-  $pi = @($piChoices | Where-Object { $_.Checked } | Select-Object -First 1)
-  $piValue = if ($pi.Count -gt 0) { "" + $pi[0].Tag } else { 'ConfigurationItemOnly' }
-
-  return [pscustomobject]@{
-    ok = $true
-    processingScope = $scopeValue
-    piSearchMode = $piValue
-    fastMode = [bool]$chkFastMode.Checked
-    maxTickets = [int]$numMaxTickets.Value
+  finally {
+    try { if ($dlg -and -not $dlg.IsDisposed) { $dlg.Dispose() } } catch {}
   }
 }
 
@@ -818,6 +926,12 @@ function global:New-FallbackForceUpdateOptionsDialog {
   param(
     [System.Windows.Forms.IWin32Window]$Owner = $null
   )
+
+  $theme = $script:CurrentMainTheme
+  if (-not $theme -and $global:CurrentMainTheme) { $theme = $global:CurrentMainTheme }
+  $scale = 1.0
+  try { if ($script:CurrentMainFontScale) { $scale = [double]$script:CurrentMainFontScale } } catch {}
+  if ($scale -le 0) { $scale = 1.0 }
 
   $dlg = New-Object System.Windows.Forms.Form
   $dlg.Text = 'Force Update Options'
@@ -848,7 +962,7 @@ function global:New-FallbackForceUpdateOptionsDialog {
 
   $cmbScope = New-Object System.Windows.Forms.ComboBox
   $cmbScope.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$cmbScope.Items.AddRange(@('RitmOnly','IncAndRitm','All'))
+  [void]$cmbScope.Items.AddRange(@('RitmOnly', 'IncAndRitm', 'All'))
   $cmbScope.SelectedItem = 'RitmOnly'
   $cmbScope.Dock = [System.Windows.Forms.DockStyle]::Fill
   $root.Controls.Add($cmbScope, 1, 0)
@@ -860,7 +974,7 @@ function global:New-FallbackForceUpdateOptionsDialog {
 
   $cmbPi = New-Object System.Windows.Forms.ComboBox
   $cmbPi.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$cmbPi.Items.AddRange(@('ConfigurationItemOnly','CommentsOnly','CommentsAndCI','Auto'))
+  [void]$cmbPi.Items.AddRange(@('ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI', 'Auto'))
   $cmbPi.SelectedItem = 'ConfigurationItemOnly'
   $cmbPi.Dock = [System.Windows.Forms.DockStyle]::Fill
   $root.Controls.Add($cmbPi, 1, 1)
@@ -893,15 +1007,27 @@ function global:New-FallbackForceUpdateOptionsDialog {
 
   $dlg.AcceptButton = $btnRun
   $dlg.CancelButton = $btnCancel
-  $res = if ($Owner) { $dlg.ShowDialog($Owner) } else { $dlg.ShowDialog() }
-  if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
+  try {
+    if ($theme) {
+      Set-UiControlRole -Control $btnRun -Role 'PrimaryButton'
+      Set-UiControlRole -Control $btnCancel -Role 'SecondaryButton'
+      Set-UiControlRole -Control $lblScope -Role 'MutedLabel'
+      Set-UiControlRole -Control $lblPi -Role 'MutedLabel'
+      Apply-SchumanTheme -RootControl $dlg -Theme $theme -FontScale $scale
+    }
+    $res = if ($Owner) { $dlg.ShowDialog($Owner) } else { $dlg.ShowDialog() }
+    if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return $null }
 
-  return @{
-    ok = $true
-    processingScope = ("" + $cmbScope.SelectedItem)
-    piSearchMode = ("" + $cmbPi.SelectedItem)
-    fastMode = [bool]$chkFast.Checked
-    maxTickets = 0
+    return @{
+      ok              = $true
+      processingScope = ("" + $cmbScope.SelectedItem)
+      piSearchMode    = ("" + $cmbPi.SelectedItem)
+      fastMode        = [bool]$chkFast.Checked
+      maxTickets      = 0
+    }
+  }
+  finally {
+    try { if ($dlg -and -not $dlg.IsDisposed) { $dlg.Dispose() } } catch {}
   }
 }
 
@@ -928,7 +1054,7 @@ function Invoke-PreloadExport {
   $loading.ControlBox = $false
   $loading.Size = New-Object System.Drawing.Size(520, 180)
   $loading.TopMost = $true
-  $loading.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+  $loading.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 247)
 
   $layout = New-Object System.Windows.Forms.TableLayoutPanel
   $layout.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -946,39 +1072,39 @@ function Invoke-PreloadExport {
   $status = New-Object System.Windows.Forms.Label
   $status.Text = 'Running export...'
   $status.AutoSize = $true
-  $status.ForeColor = [System.Drawing.Color]::FromArgb(110,110,115)
+  $status.ForeColor = [System.Drawing.Color]::FromArgb(110, 110, 115)
   $status.Margin = New-Object System.Windows.Forms.Padding(0, 4, 0, 12)
   $layout.Controls.Add($status, 0, 1)
 
   $barHost = New-Object System.Windows.Forms.Panel
   $barHost.Dock = [System.Windows.Forms.DockStyle]::Top
   $barHost.Height = 14
-  $barHost.BackColor = [System.Drawing.Color]::FromArgb(220,220,225)
+  $barHost.BackColor = [System.Drawing.Color]::FromArgb(220, 220, 225)
   $barHost.Padding = New-Object System.Windows.Forms.Padding(1)
   $layout.Controls.Add($barHost, 0, 2)
 
   $barTrack = New-Object System.Windows.Forms.Panel
   $barTrack.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $barTrack.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+  $barTrack.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 247)
   $barHost.Controls.Add($barTrack)
 
   $barFill = New-Object System.Windows.Forms.Panel
   $barFill.Size = New-Object System.Drawing.Size(90, 12)
   $barFill.Location = New-Object System.Drawing.Point(0, 0)
-  $barFill.BackColor = [System.Drawing.Color]::FromArgb(0,122,255)
+  $barFill.BackColor = [System.Drawing.Color]::FromArgb(0, 122, 255)
   $barTrack.Controls.Add($barFill)
 
   $animTimer = New-Object System.Windows.Forms.Timer
   $animTimer.Interval = 180
 
   $args = @(
-    '-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
-    '-File',$invokeScript,
-    '-Operation','Export',
-    '-ExcelPath',$Excel,
-    '-SheetName',$Sheet,
-    '-ProcessingScope','RitmOnly',
-    '-MaxTickets','40',
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', $invokeScript,
+    '-Operation', 'Export',
+    '-ExcelPath', $Excel,
+    '-SheetName', $Sheet,
+    '-ProcessingScope', 'RitmOnly',
+    '-MaxTickets', '40',
     '-NoWriteBack',
     '-NoPopups'
   )
@@ -994,49 +1120,49 @@ function Invoke-PreloadExport {
   $proc.StartInfo = $psi
 
   $state = @{
-    Tick = 0
-    Ok = $false
-    Proc = $proc
+    Tick        = 0
+    Ok          = $false
+    Proc        = $proc
     StatusLabel = $status
   }
   $loading.Tag = $state
 
   $animTimer.Add_Tick({
-    param($sender, $eventArgs)
-    $st = $loading.Tag
-    if (-not $st) { return }
-    $st.Tick = [int]$st.Tick + 1
-    $dots = '.' * (([int]$st.Tick % 3) + 1)
-    $st.StatusLabel.Text = 'Running export' + $dots
-    $maxX = [Math]::Max(1, $barTrack.ClientSize.Width - $barFill.Width)
-    $barFill.Left = ([int]$st.Tick * 14) % $maxX
-  })
+      param($sender, $eventArgs)
+      $st = $loading.Tag
+      if (-not $st) { return }
+      $st.Tick = [int]$st.Tick + 1
+      $dots = '.' * (([int]$st.Tick % 3) + 1)
+      $st.StatusLabel.Text = 'Running export' + $dots
+      $maxX = [Math]::Max(1, $barTrack.ClientSize.Width - $barFill.Width)
+      $barFill.Left = ([int]$st.Tick * 14) % $maxX
+    })
 
   $watchTimer = New-Object System.Windows.Forms.Timer
   $watchTimer.Interval = 250
   $watchTimer.Add_Tick({
-    param($sender, $eventArgs)
-    $st = $loading.Tag
-    if (-not $st -or -not $st.Proc) { return }
-    if ($st.Proc.HasExited) {
-      $st.Ok = ($st.Proc.ExitCode -eq 0)
-      $loading.Close()
-    }
-  })
+      param($sender, $eventArgs)
+      $st = $loading.Tag
+      if (-not $st -or -not $st.Proc) { return }
+      if ($st.Proc.HasExited) {
+        $st.Ok = ($st.Proc.ExitCode -eq 0)
+        $loading.Close()
+      }
+    })
 
   $loading.add_Shown({
-    try {
-      $st = $loading.Tag
-      [void]$st.Proc.Start()
-      Register-SchumanOwnedProcess -Process $st.Proc -Tag 'export'
-      $animTimer.Start()
-      $watchTimer.Start()
-    }
-    catch {
-      $loading.Tag.Ok = $false
-      $loading.Close()
-    }
-  })
+      try {
+        $st = $loading.Tag
+        [void]$st.Proc.Start()
+        Register-SchumanOwnedProcess -Process $st.Proc -Tag 'export'
+        $animTimer.Start()
+        $watchTimer.Start()
+      }
+      catch {
+        $loading.Tag.Ok = $false
+        $loading.Close()
+      }
+    })
 
   $ok = $false
   try {
@@ -1084,7 +1210,7 @@ function Invoke-DocsGenerate {
   $loading.ControlBox = $false
   $loading.Size = New-Object System.Drawing.Size(560, 190)
   $loading.TopMost = $true
-  $loading.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+  $loading.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 247)
 
   $layout = New-Object System.Windows.Forms.TableLayoutPanel
   $layout.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -1102,36 +1228,36 @@ function Invoke-DocsGenerate {
   $status = New-Object System.Windows.Forms.Label
   $status.Text = 'Working...'
   $status.AutoSize = $true
-  $status.ForeColor = [System.Drawing.Color]::FromArgb(110,110,115)
+  $status.ForeColor = [System.Drawing.Color]::FromArgb(110, 110, 115)
   $status.Margin = New-Object System.Windows.Forms.Padding(0, 4, 0, 12)
   $layout.Controls.Add($status, 0, 1)
 
   $barHost = New-Object System.Windows.Forms.Panel
   $barHost.Dock = [System.Windows.Forms.DockStyle]::Top
   $barHost.Height = 14
-  $barHost.BackColor = [System.Drawing.Color]::FromArgb(220,220,225)
+  $barHost.BackColor = [System.Drawing.Color]::FromArgb(220, 220, 225)
   $barHost.Padding = New-Object System.Windows.Forms.Padding(1)
   $layout.Controls.Add($barHost, 0, 2)
 
   $barTrack = New-Object System.Windows.Forms.Panel
   $barTrack.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $barTrack.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+  $barTrack.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 247)
   $barHost.Controls.Add($barTrack)
 
   $barFill = New-Object System.Windows.Forms.Panel
   $barFill.Size = New-Object System.Drawing.Size(90, 12)
   $barFill.Location = New-Object System.Drawing.Point(0, 0)
-  $barFill.BackColor = [System.Drawing.Color]::FromArgb(0,122,255)
+  $barFill.BackColor = [System.Drawing.Color]::FromArgb(0, 122, 255)
   $barTrack.Controls.Add($barFill)
 
   $args = @(
-    '-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
-    '-File',$invokeScript,
-    '-Operation','DocsGenerate',
-    '-ExcelPath',$Excel,
-    '-SheetName',$Sheet,
-    '-TemplatePath',$Template,
-    '-OutputDirectory',$Output,
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', $invokeScript,
+    '-Operation', 'DocsGenerate',
+    '-ExcelPath', $Excel,
+    '-SheetName', $Sheet,
+    '-TemplatePath', $Template,
+    '-OutputDirectory', $Output,
     '-NoPopups'
   )
   if ($ExportPdf) { $args += '-ExportPdf' }
@@ -1152,41 +1278,42 @@ function Invoke-DocsGenerate {
   $watchTimer.Interval = 250
 
   $state = @{
-    Tick = 0
-    Ok = $false
-    Proc = $proc
+    Tick        = 0
+    Ok          = $false
+    Proc        = $proc
     StatusLabel = $status
   }
   $loading.Tag = $state
 
   $animTimer.Add_Tick({
-    $st = $loading.Tag
-    if (-not $st) { return }
-    $st.Tick = [int]$st.Tick + 1
-    $st.StatusLabel.Text = 'Working' + ('.' * (([int]$st.Tick % 3) + 1))
-    $maxX = [Math]::Max(1, $barTrack.ClientSize.Width - $barFill.Width)
-    $barFill.Left = ([int]$st.Tick * 14) % $maxX
-  })
+      $st = $loading.Tag
+      if (-not $st) { return }
+      $st.Tick = [int]$st.Tick + 1
+      $st.StatusLabel.Text = 'Working' + ('.' * (([int]$st.Tick % 3) + 1))
+      $maxX = [Math]::Max(1, $barTrack.ClientSize.Width - $barFill.Width)
+      $barFill.Left = ([int]$st.Tick * 14) % $maxX
+    })
   $watchTimer.Add_Tick({
-    $st = $loading.Tag
-    if (-not $st -or -not $st.Proc) { return }
-    if ($st.Proc.HasExited) {
-      $st.Ok = ($st.Proc.ExitCode -eq 0)
-      $loading.Close()
-    }
-  })
+      $st = $loading.Tag
+      if (-not $st -or -not $st.Proc) { return }
+      if ($st.Proc.HasExited) {
+        $st.Ok = ($st.Proc.ExitCode -eq 0)
+        $loading.Close()
+      }
+    })
 
   $loading.add_Shown({
-    try {
-      [void]$loading.Tag.Proc.Start()
-      Register-SchumanOwnedProcess -Process $loading.Tag.Proc -Tag 'docsgenerate'
-      $animTimer.Start()
-      $watchTimer.Start()
-    } catch {
-      $loading.Tag.Ok = $false
-      $loading.Close()
-    }
-  })
+      try {
+        [void]$loading.Tag.Proc.Start()
+        Register-SchumanOwnedProcess -Process $loading.Tag.Proc -Tag 'docsgenerate'
+        $animTimer.Start()
+        $watchTimer.Start()
+      }
+      catch {
+        $loading.Tag.Ok = $false
+        $loading.Close()
+      }
+    })
 
   $ok = $false
   try {
@@ -1205,11 +1332,34 @@ function Invoke-DocsGenerate {
 }
 
 function Invoke-ForceExcelUpdate {
+  <#
+  .SYNOPSIS
+  Runs the Force Update export pipeline with a responsive progress dialog.
+  .DESCRIPTION
+  Launches the Export operation in a child PowerShell process, monitors run logs for
+  per-ticket progress, shows live activity history, and allows cancellation.
+  .PARAMETER Excel
+  Excel workbook path.
+  .PARAMETER Sheet
+  Worksheet name.
+  .PARAMETER ProcessingScope
+  Ticket scope filter.
+  .PARAMETER PiSearchMode
+  PI search strategy.
+  .PARAMETER MaxTickets
+  Max ticket cap; 0 means all.
+  .PARAMETER FastMode
+  Enables optimized extraction path.
+  .OUTPUTS
+  PSCustomObject with ok/durationSec/ticketCount/estimatedSec/errorMessage/cancelled.
+  .NOTES
+  UI timer callbacks run on UI thread. Child process cancellation is cooperative via kill.
+  #>
   param(
     [string]$Excel,
     [string]$Sheet,
-    [ValidateSet('Auto','RitmOnly','IncAndRitm','All')][string]$ProcessingScope = 'All',
-    [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')][string]$PiSearchMode = 'Auto',
+    [ValidateSet('Auto', 'RitmOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
+    [ValidateSet('Auto', 'ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI')][string]$PiSearchMode = 'Auto',
     [int]$MaxTickets = 0,
     [bool]$FastMode = $true
   )
@@ -1222,9 +1372,9 @@ function Invoke-ForceExcelUpdate {
       'Schuman'
     ) | Out-Null
     return [pscustomobject]@{
-      ok = $false
-      durationSec = 0
-      ticketCount = 0
+      ok           = $false
+      durationSec  = 0
+      ticketCount  = 0
       estimatedSec = 0
       errorMessage = 'Another export process is already running.'
     }
@@ -1249,14 +1399,14 @@ function Invoke-ForceExcelUpdate {
   $loading.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
   $loading.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
   $loading.ControlBox = $false
-  $loading.Size = New-Object System.Drawing.Size(620, 240)
+  $loading.Size = New-Object System.Drawing.Size(760, 460)
   $loading.TopMost = $true
-  $loading.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+  $loading.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 247)
 
   $layout = New-Object System.Windows.Forms.TableLayoutPanel
   $layout.Dock = [System.Windows.Forms.DockStyle]::Fill
   $layout.ColumnCount = 1
-  $layout.RowCount = 5
+  $layout.RowCount = 8
   $layout.Padding = New-Object System.Windows.Forms.Padding(20)
   $loading.Controls.Add($layout)
 
@@ -1269,51 +1419,84 @@ function Invoke-ForceExcelUpdate {
   $status = New-Object System.Windows.Forms.Label
   $status.Text = "Scanning tickets$([string]::Concat(''))..."
   $status.AutoSize = $true
-  $status.ForeColor = [System.Drawing.Color]::FromArgb(110,110,115)
+  $status.ForeColor = [System.Drawing.Color]::FromArgb(110, 110, 115)
   $status.Margin = New-Object System.Windows.Forms.Padding(0, 4, 0, 6)
   $layout.Controls.Add($status, 0, 1)
+
+  $currentTicket = New-Object System.Windows.Forms.Label
+  $currentTicket.Text = 'Current ticket: --'
+  $currentTicket.AutoSize = $true
+  $currentTicket.ForeColor = [System.Drawing.Color]::FromArgb(75, 95, 130)
+  $currentTicket.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 4)
+  $layout.Controls.Add($currentTicket, 0, 2)
 
   $timing = New-Object System.Windows.Forms.Label
   $timing.Text = ("Tickets: {0} | ETA: ~{1:mm\:ss} | Elapsed: 00:00" -f $ticketCount, [TimeSpan]::FromSeconds($estimatedSeconds))
   $timing.AutoSize = $true
-  $timing.ForeColor = [System.Drawing.Color]::FromArgb(90,90,96)
+  $timing.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 96)
   $timing.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
-  $layout.Controls.Add($timing, 0, 2)
+  $layout.Controls.Add($timing, 0, 3)
 
   $barHost = New-Object System.Windows.Forms.Panel
   $barHost.Dock = [System.Windows.Forms.DockStyle]::Top
   $barHost.Height = 14
-  $barHost.BackColor = [System.Drawing.Color]::FromArgb(220,220,225)
+  $barHost.BackColor = [System.Drawing.Color]::FromArgb(220, 220, 225)
   $barHost.Padding = New-Object System.Windows.Forms.Padding(1)
-  $layout.Controls.Add($barHost, 0, 3)
+  $layout.Controls.Add($barHost, 0, 4)
 
   $barTrack = New-Object System.Windows.Forms.Panel
   $barTrack.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $barTrack.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+  $barTrack.BackColor = [System.Drawing.Color]::FromArgb(245, 245, 247)
   $barHost.Controls.Add($barTrack)
 
   $barFill = New-Object System.Windows.Forms.Panel
   $barFill.Size = New-Object System.Drawing.Size(100, 12)
   $barFill.Location = New-Object System.Drawing.Point(0, 0)
-  $barFill.BackColor = [System.Drawing.Color]::FromArgb(0,122,255)
+  $barFill.BackColor = [System.Drawing.Color]::FromArgb(0, 122, 255)
   $barTrack.Controls.Add($barFill)
 
   $note = New-Object System.Windows.Forms.Label
   $note.Text = 'This operation rewrites Name/PI/Status/SCTasks in Excel (full refresh).'
   $note.AutoSize = $true
-  $note.ForeColor = [System.Drawing.Color]::FromArgb(120,120,126)
+  $note.ForeColor = [System.Drawing.Color]::FromArgb(120, 120, 126)
   $note.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 0)
-  $layout.Controls.Add($note, 0, 4)
+  $layout.Controls.Add($note, 0, 5)
+
+  $historyTitle = New-Object System.Windows.Forms.Label
+  $historyTitle.Text = 'Activity / History'
+  $historyTitle.AutoSize = $true
+  $historyTitle.ForeColor = [System.Drawing.Color]::FromArgb(90, 90, 96)
+  $historyTitle.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 4)
+  $layout.Controls.Add($historyTitle, 0, 6)
+
+  $historyBox = New-Object System.Windows.Forms.ListBox
+  $historyBox.Dock = [System.Windows.Forms.DockStyle]::Fill
+  $historyBox.Height = 130
+  $historyBox.HorizontalScrollbar = $true
+  $layout.Controls.Add($historyBox, 0, 7)
+
+  $buttonPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+  $buttonPanel.Dock = [System.Windows.Forms.DockStyle]::Bottom
+  $buttonPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::RightToLeft
+  $buttonPanel.Height = 40
+  $loading.Controls.Add($buttonPanel)
+
+  $btnCancel = New-Object System.Windows.Forms.Button
+  $btnCancel.Text = 'Cancel'
+  $btnCancel.Width = 110
+  $btnCancel.Height = 30
+  $btnCancel.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  $buttonPanel.Controls.Add($btnCancel) | Out-Null
 
   $args = @(
-    '-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
-    '-File',$invokeScript,
-    '-Operation','Export',
-    '-ExcelPath',$Excel,
-    '-SheetName',$Sheet,
-    '-ProcessingScope',$ProcessingScope,
-    '-PiSearchMode',$PiSearchMode,
-    '-MaxTickets',[string]$MaxTickets,
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', $invokeScript,
+    '-Operation', 'Export',
+    '-ExcelPath', $Excel,
+    '-SheetName', $Sheet,
+    '-ProcessingScope', $ProcessingScope,
+    '-PiSearchMode', $PiSearchMode,
+    '-MaxTickets', [string]$MaxTickets,
     '-NoPopups'
   )
   if ($FastMode) { $args += '-SkipLegalNameFallback' }
@@ -1340,17 +1523,19 @@ function Invoke-ForceExcelUpdate {
   $watchTimer.Interval = 250
 
   $state = @{
-    Tick = 0
-    Ok = $false
-    Proc = $proc
-    DurationSec = 0
-    ProgressDone = 0
-    ProgressTotal = 0
-    ProgressPct = 0
-    RunLogPath = ''
-    LastStatusLine = ''
+    Tick             = 0
+    Ok               = $false
+    Proc             = $proc
+    DurationSec      = 0
+    ProgressDone     = 0
+    ProgressTotal    = 0
+    ProgressPct      = 0
+    RunLogPath       = ''
+    LastStatusLine   = ''
     LastLogRefreshMs = -10000
-    ExitCode = -1
+    ExitCode         = -1
+    SeenLogLines     = New-Object 'System.Collections.Generic.HashSet[string]'
+    Cancelled        = $false
   }
   $loading.Tag = $state
 
@@ -1384,7 +1569,15 @@ function Invoke-ForceExcelUpdate {
             $st.ProgressTotal = $t
             $st.ProgressPct = [int][Math]::Min(99, [Math]::Round(($d * 100.0) / $t))
             $st.LastStatusLine = "Processing $($matches[3]) ($d/$t)"
+            $currentTicket.Text = ("Current ticket: {0}" -f $matches[3])
           }
+        }
+        $trimLine = ("" + $line).Trim()
+        if ($trimLine -and $st.SeenLogLines.Add($trimLine)) {
+          $stamp = Get-Date -Format 'HH:mm:ss'
+          [void]$historyBox.Items.Add(("[{0}] {1}" -f $stamp, $trimLine))
+          while ($historyBox.Items.Count -gt 500) { $historyBox.Items.RemoveAt(0) }
+          try { $historyBox.TopIndex = [Math]::Max(0, $historyBox.Items.Count - 1) } catch {}
         }
       }
       if ($tail.Count -gt 0) {
@@ -1396,93 +1589,121 @@ function Invoke-ForceExcelUpdate {
   }
 
   $animTimer.Add_Tick({
-    $st = $loading.Tag
-    if (-not $st) { return }
-    $st.Tick = [int]$st.Tick + 1
-    & $resolveRunLog $st
-    $elapsedMs = [int][Math]::Floor($sw.Elapsed.TotalMilliseconds)
-    if (($elapsedMs - [int]$st.LastLogRefreshMs) -ge 900) {
-      & $updateProgressFromLog $st
-      $st.LastLogRefreshMs = $elapsedMs
-    }
+      $st = $loading.Tag
+      if (-not $st) { return }
+      $st.Tick = [int]$st.Tick + 1
+      & $resolveRunLog $st
+      $elapsedMs = [int][Math]::Floor($sw.Elapsed.TotalMilliseconds)
+      if (($elapsedMs - [int]$st.LastLogRefreshMs) -ge 900) {
+        & $updateProgressFromLog $st
+        $st.LastLogRefreshMs = $elapsedMs
+      }
 
-    $dots = '.' * (([int]$st.Tick % 3) + 1)
-    if ($st.ProgressTotal -gt 0) {
-      $status.Text = "Updating from ServiceNow$dots  [$($st.ProgressDone)/$($st.ProgressTotal)]"
-    } else {
-      $status.Text = 'Updating from ServiceNow' + $dots
-    }
+      $dots = '.' * (([int]$st.Tick % 3) + 1)
+      if ($st.ProgressTotal -gt 0) {
+        $status.Text = "Updating from ServiceNow$dots  [$($st.ProgressDone)/$($st.ProgressTotal)]"
+      }
+      else {
+        $status.Text = 'Updating from ServiceNow' + $dots
+      }
 
-    $elapsed = [int][Math]::Floor($sw.Elapsed.TotalSeconds)
-    $etaSec = [Math]::Max(0, $estimatedSeconds - $elapsed)
-    if ($st.ProgressTotal -gt 0 -and $st.ProgressDone -gt 0) {
-      $rate = $elapsed / [double]$st.ProgressDone
-      $etaFromReal = [int][Math]::Round(($st.ProgressTotal - $st.ProgressDone) * $rate)
-      if ($etaFromReal -ge 0) { $etaSec = $etaFromReal }
-    }
-    if ($elapsed -gt $estimatedSeconds) {
-      $etaSec = [int][Math]::Max(5, [Math]::Round($estimatedSeconds * 0.2))
-    }
-    $pctText = if ($st.ProgressTotal -gt 0) { "$($st.ProgressPct)%" } else { '--%' }
-    $timing.Text = ("Tickets: {0} | Progress: {1} | ETA: ~{2:mm\:ss} | Elapsed: {3:mm\:ss}" -f $ticketCount, $pctText, [TimeSpan]::FromSeconds($etaSec), [TimeSpan]::FromSeconds($elapsed))
+      $elapsed = [int][Math]::Floor($sw.Elapsed.TotalSeconds)
+      $etaSec = [Math]::Max(0, $estimatedSeconds - $elapsed)
+      if ($st.ProgressTotal -gt 0 -and $st.ProgressDone -gt 0) {
+        $rate = $elapsed / [double]$st.ProgressDone
+        $etaFromReal = [int][Math]::Round(($st.ProgressTotal - $st.ProgressDone) * $rate)
+        if ($etaFromReal -ge 0) { $etaSec = $etaFromReal }
+      }
+      if ($elapsed -gt $estimatedSeconds) {
+        $etaSec = [int][Math]::Max(5, [Math]::Round($estimatedSeconds * 0.2))
+      }
+      $pctText = if ($st.ProgressTotal -gt 0) { "$($st.ProgressPct)%" } else { '--%' }
+      $throughput = 0.0
+      if ($elapsed -gt 0 -and $st.ProgressDone -gt 0) {
+        $throughput = [Math]::Round(($st.ProgressDone * 60.0) / [double]$elapsed, 1)
+      }
+      $timing.Text = ("Tickets: {0} | Progress: {1} | Throughput: {2}/min | ETA: ~{3:mm\:ss} | Elapsed: {4:mm\:ss}" -f $ticketCount, $pctText, $throughput, [TimeSpan]::FromSeconds($etaSec), [TimeSpan]::FromSeconds($elapsed))
 
-    if ($st.ProgressTotal -gt 0) {
-      $trackW = [Math]::Max(1, $barTrack.ClientSize.Width)
-      $targetW = [int][Math]::Max(14, [Math]::Round(($trackW * $st.ProgressPct) / 100.0))
-      $barFill.Width = [Math]::Min($trackW, $targetW)
-      $barFill.Left = 0
-    } else {
-      $barFill.Width = 100
-      $maxX = [Math]::Max(1, $barTrack.ClientSize.Width - $barFill.Width)
-      $barFill.Left = ([int]$st.Tick * 16) % $maxX
-    }
-  })
+      if ($st.ProgressTotal -gt 0) {
+        $trackW = [Math]::Max(1, $barTrack.ClientSize.Width)
+        $targetW = [int][Math]::Max(14, [Math]::Round(($trackW * $st.ProgressPct) / 100.0))
+        $barFill.Width = [Math]::Min($trackW, $targetW)
+        $barFill.Left = 0
+      }
+      else {
+        $barFill.Width = 100
+        $maxX = [Math]::Max(1, $barTrack.ClientSize.Width - $barFill.Width)
+        $barFill.Left = ([int]$st.Tick * 16) % $maxX
+      }
+    })
 
   $watchTimer.Add_Tick({
-    $st = $loading.Tag
-    if (-not $st -or -not $st.Proc) { return }
-    if ($st.Proc.HasExited) {
-      $st.ExitCode = [int]$st.Proc.ExitCode
-      $st.Ok = ($st.ExitCode -eq 0)
-      if ($st.Ok) {
-        $st.ProgressPct = 100
-        $st.ProgressDone = [Math]::Max($st.ProgressDone, $st.ProgressTotal)
-      } else {
-        & $resolveRunLog $st
-        & $updateProgressFromLog $st
+      $st = $loading.Tag
+      if (-not $st -or -not $st.Proc) { return }
+      if ($st.Proc.HasExited) {
+        $st.ExitCode = [int]$st.Proc.ExitCode
+        $st.Ok = ($st.ExitCode -eq 0)
+        if ($st.Ok) {
+          $st.ProgressPct = 100
+          $st.ProgressDone = [Math]::Max($st.ProgressDone, $st.ProgressTotal)
+        }
+        else {
+          & $resolveRunLog $st
+          & $updateProgressFromLog $st
+        }
+        $st.DurationSec = [int][Math]::Max(1, [Math]::Round($sw.Elapsed.TotalSeconds))
+        $loading.Close()
       }
-      $st.DurationSec = [int][Math]::Max(1, [Math]::Round($sw.Elapsed.TotalSeconds))
-      $loading.Close()
-    }
-  })
+    })
+
+  $btnCancel.Add_Click({
+      try {
+        $st = $loading.Tag
+        if (-not $st) { return }
+        $st.Cancelled = $true
+        if ($st.Proc -and -not $st.Proc.HasExited) {
+          try { $st.Proc.Kill() } catch {}
+        }
+        $status.Text = 'Cancelling operation...'
+      }
+      catch {}
+    })
 
   $loading.add_Shown({
-    try {
-      [void]$loading.Tag.Proc.Start()
-      Register-SchumanOwnedProcess -Process $loading.Tag.Proc -Tag 'forceupdate'
-      $animTimer.Start()
-      $watchTimer.Start()
-    } catch {
-      $loading.Tag.Ok = $false
-      $loading.Close()
-    }
-  })
+      try {
+        [void]$loading.Tag.Proc.Start()
+        Register-SchumanOwnedProcess -Process $loading.Tag.Proc -Tag 'forceupdate'
+        $animTimer.Start()
+        $watchTimer.Start()
+      }
+      catch {
+        $loading.Tag.Ok = $false
+        $loading.Close()
+      }
+    })
 
   $ok = $false
   $durationSec = 0
   $errorMessage = ''
+  $cancelled = $false
   try {
     [void]$loading.ShowDialog()
     if ($loading.Tag) {
       $ok = [bool]$loading.Tag.Ok
       $durationSec = [int]$loading.Tag.DurationSec
+      $cancelled = [bool]$loading.Tag.Cancelled
       if (-not $ok) {
-        $line = ("" + $loading.Tag.LastStatusLine).Trim()
-        if ($line) {
-          $errorMessage = "Export failed (exit=$($loading.Tag.ExitCode)). Last log: $line"
+        if ($cancelled) {
+          $errorMessage = 'Export cancelled by user.'
         }
         else {
-          $errorMessage = "Export failed (exit=$($loading.Tag.ExitCode))."
+          $line = ("" + $loading.Tag.LastStatusLine).Trim()
+          if ($line) {
+            $errorMessage = "Export failed (exit=$($loading.Tag.ExitCode)). Last log: $line"
+          }
+          else {
+            $errorMessage = "Export failed (exit=$($loading.Tag.ExitCode))."
+          }
         }
       }
     }
@@ -1501,11 +1722,12 @@ function Invoke-ForceExcelUpdate {
   }
 
   return [pscustomobject]@{
-    ok = $ok
-    durationSec = $durationSec
-    ticketCount = $ticketCount
+    ok           = $ok
+    durationSec  = $durationSec
+    ticketCount  = $ticketCount
     estimatedSec = $estimatedSeconds
     errorMessage = $errorMessage
+    cancelled    = $cancelled
   }
 }
 
@@ -1549,21 +1771,157 @@ if (-not $startupSession) {
   return
 }
 
+# ---------------------------------------------------------------------------
+# Clear-SchumanTempFiles
+# Safe cleanup of app-owned temp directories only.
+# Returns: [pscustomobject]@{ DeletedFiles; DeletedFolders; Skipped; FreedBytes; Errors }
+# ---------------------------------------------------------------------------
+function Clear-SchumanTempFiles {
+  [CmdletBinding(SupportsShouldProcess)]
+  param(
+    [string]$ProjectRoot = $projectRoot,
+    [switch]$WhatIf
+  )
+
+  $result = [pscustomobject]@{
+    DeletedFiles   = 0
+    DeletedFolders = 0
+    Skipped        = 0
+    FreedBytes     = [long]0
+    Errors         = [System.Collections.Generic.List[string]]::new()
+  }
+
+  # Allowlist of safe temp folders — ONLY within the app boundary or TEMP\Schuman
+  $tempTargets = @(
+    (Join-Path $env:TEMP 'Schuman'),
+    (Join-Path $ProjectRoot 'Temp'),
+    (Join-Path $ProjectRoot 'Cache'),
+    (Join-Path $ProjectRoot 'system\runs')  # run artefacts, keep last 3 per prefix
+  )
+
+  foreach ($targetDir in $tempTargets) {
+    if (-not $targetDir -or -not (Test-Path -LiteralPath $targetDir -PathType Container)) { continue }
+
+    # For system\runs - keep only newest 3 per prefix to preserve recent logs
+    $isRunsDir = ($targetDir -like '*system*runs*')
+
+    try {
+      $items = @(Get-ChildItem -LiteralPath $targetDir -Force -ErrorAction SilentlyContinue)
+    }
+    catch {
+      $result.Errors.Add("Cannot list '$targetDir': $($_.Exception.Message)")
+      continue
+    }
+
+    if ($isRunsDir) {
+      # Group by prefix (text before the timestamp suffix _YYYYMMDD_HHMMSS)
+      $groups = $items | Group-Object -Property { ($_.Name -replace '_\d{8}_\d{6}$', '').ToLower() }
+      $toDelete = foreach ($g in $groups) {
+        # Sort descending by name (timestamp suffix = chronological), keep latest 3
+        $sorted = @($g.Group | Sort-Object Name -Descending)
+        if ($sorted.Count -gt 3) { $sorted[3..($sorted.Count - 1)] }
+      }
+      $items = @($toDelete)
+    }
+
+    foreach ($item in $items) {
+      try {
+        if ($item -is [System.IO.DirectoryInfo]) {
+          $size = [long]0
+          try {
+            $size = (Get-ChildItem -LiteralPath $item.FullName -Recurse -File -Force -ErrorAction SilentlyContinue |
+              Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
+          }
+          catch {}
+          if (-not $WhatIf) {
+            Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
+          }
+          $result.DeletedFolders++
+          $result.FreedBytes += [long](if ($size) { $size } else { 0 })
+        }
+        else {
+          $size = [long]0
+          try { $size = $item.Length } catch {}
+          if (-not $WhatIf) {
+            Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop
+          }
+          $result.DeletedFiles++
+          $result.FreedBytes += [long](if ($size) { $size } else { 0 })
+        }
+      }
+      catch {
+        $result.Skipped++
+        $result.Errors.Add("Skipped '$($item.FullName)': $($_.Exception.Message)")
+      }
+    }
+  }
+
+  return $result
+}
+
+function Get-MainExcelPreferencePath {
+  try {
+    if ($globalConfig -and $globalConfig.Output -and $globalConfig.Output.SystemRoot -and $globalConfig.Output.DbSubdir) {
+      return (Join-Path (Join-Path $globalConfig.Output.SystemRoot $globalConfig.Output.DbSubdir) 'ui-preferences.json')
+    }
+  }
+  catch {}
+  return ''
+}
+
+function Load-MainExcelPathPreference {
+  $path = Get-MainExcelPreferencePath
+  if (-not $path -or -not (Test-Path -LiteralPath $path)) { return '' }
+  try {
+    $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -ErrorAction Stop
+    if ($json -and $json.PSObject.Properties['excelPath']) {
+      return ("" + $json.excelPath).Trim()
+    }
+  }
+  catch {}
+  return ''
+}
+
+function Save-MainExcelPathPreference {
+  param([string]$ExcelPath)
+  $safeExcelPath = ("" + $ExcelPath).Trim()
+  if (-not $safeExcelPath) { return }
+  $path = Get-MainExcelPreferencePath
+  if (-not $path) { return }
+  try {
+    Ensure-Directory -Path (Split-Path -Parent $path) | Out-Null
+    $existing = @{}
+    if (Test-Path -LiteralPath $path) {
+      try {
+        $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -ErrorAction Stop
+        if ($json) {
+          foreach ($prop in $json.PSObject.Properties) { $existing[$prop.Name] = $prop.Value }
+        }
+      }
+      catch {}
+    }
+    $existing['excelPath'] = $safeExcelPath
+    ($existing | ConvertTo-Json -Depth 5) | Set-Content -LiteralPath $path -Encoding UTF8
+  }
+  catch {}
+}
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'Schuman — Main'
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-$form.MinimumSize = New-Object System.Drawing.Size(880, 520)
-$form.Size = New-Object System.Drawing.Size(920, 560)
-$form.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
-$form.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10)
+$form.MinimumSize = New-Object System.Drawing.Size(900, 540)
+$form.Size = New-Object System.Drawing.Size(960, 580)
+$form.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#0F172A')
+$form.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
+$form.Font = New-Object System.Drawing.Font('Segoe UI', 10.5)
 
 $root = New-Object System.Windows.Forms.TableLayoutPanel
 $root.Dock = [System.Windows.Forms.DockStyle]::Fill
 $root.ColumnCount = 3
 $root.RowCount = 3
 $root.Padding = New-Object System.Windows.Forms.Padding(24)
-$root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 10)))
-$root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 80)))
+$root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 5)))
+$root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 85)))
 $root.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 10)))
 $root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
 $root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
@@ -1571,22 +1929,13 @@ $root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Fo
 $form.Controls.Add($root)
 
 $hdr = New-Object System.Windows.Forms.Label
-$hdr.Text = 'Schuman Main'
-$hdr.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 20, [System.Drawing.FontStyle]::Bold)
-$hdr.ForeColor = [System.Drawing.Color]::FromArgb(28,28,30)
+$hdr.Text = 'Schuman'
+$hdr.Font = New-Object System.Drawing.Font('Segoe UI', 18, [System.Drawing.FontStyle]::Bold)
+$hdr.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
 $hdr.AutoSize = $true
-$hdr.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 12)
+$hdr.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 4)
 $root.Controls.Add($hdr, 1, 0)
 
-$btnSettings = New-Object System.Windows.Forms.Button
-$btnSettings.Text = '⚙'
-$btnSettings.Width = 38
-$btnSettings.Height = 34
-$btnSettings.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
-$btnSettings.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnSettings.FlatAppearance.BorderSize = 1
-$btnSettings.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 12)
-$root.Controls.Add($btnSettings, 2, 0)
 
 $card = New-CardContainer -Title 'Modules'
 $card.Border.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -1596,91 +1945,55 @@ $layout = New-Object System.Windows.Forms.TableLayoutPanel
 $layout.Dock = [System.Windows.Forms.DockStyle]::Top
 $layout.AutoSize = $true
 $layout.ColumnCount = 1
-$layout.RowCount = 8
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))
-$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+$layout.RowCount = 10
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 0 - Excel label
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 1 - Excel textbox
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 2 - prefs panel
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 3 - main btns (Dashboard/Generate)
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))  # 4 - spacer
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 5 - Force Update
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 6)))  # 6 - spacer
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 7 - Clean temp files
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))  # 8 - spacer
+$layout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))  # 9 - Emergency btns
 $card.Content.Controls.Add($layout)
 
 $lbl = New-Object System.Windows.Forms.Label
 $lbl.Text = 'Excel file'
 $lbl.AutoSize = $true
-$lbl.ForeColor = [System.Drawing.Color]::FromArgb(110,110,115)
+$lbl.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#94A3B8')
 $layout.Controls.Add($lbl, 0, 0)
+
+$excelPathRow = New-Object System.Windows.Forms.TableLayoutPanel
+$excelPathRow.Dock = [System.Windows.Forms.DockStyle]::Top
+$excelPathRow.AutoSize = $true
+$excelPathRow.ColumnCount = 2
+$excelPathRow.RowCount = 1
+[void]$excelPathRow.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+[void]$excelPathRow.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
+$excelPathRow.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
+$layout.Controls.Add($excelPathRow, 0, 1)
 
 $txtExcel = New-Object System.Windows.Forms.TextBox
 $txtExcel.Dock = [System.Windows.Forms.DockStyle]::Top
-$txtExcel.Text = $ExcelPath
-$txtExcel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
-$layout.Controls.Add($txtExcel, 0, 1)
-$txtExcel.Add_TextChanged(({
-  $ready = Test-MainExcelReady -ExcelPathValue $txtExcel.Text -SheetNameValue $SheetName
-  if ($ready) {
-    Update-MainExcelDependentControls -ExcelReady $true
-  } else {
-    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
-  }
-}).GetNewClosure())
+$prefExcelPath = Load-MainExcelPathPreference
+$txtExcel.Text = if ($prefExcelPath) { $prefExcelPath } else { $ExcelPath }
+$txtExcel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
+$excelPathRow.Controls.Add($txtExcel, 0, 0)
 
-$prefsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-$prefsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
-$prefsPanel.AutoSize = $true
-$prefsPanel.WrapContents = $true
-$prefsPanel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
-$layout.Controls.Add($prefsPanel, 0, 2)
+$btnLoadExcel = New-Object System.Windows.Forms.Button
+$btnLoadExcel.Text = 'Load Excel...'
+$btnLoadExcel.AutoSize = $true
+$btnLoadExcel.Height = 30
+$btnLoadExcel.MinimumSize = New-Object System.Drawing.Size(110, 30)
+$btnLoadExcel.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnLoadExcel.FlatAppearance.BorderSize = 1
+$btnLoadExcel.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#334155')
+$btnLoadExcel.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#1E293B')
+$btnLoadExcel.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
+$btnLoadExcel.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 0)
+$excelPathRow.Controls.Add($btnLoadExcel, 1, 0)
 
-$lblThemeOpt = New-Object System.Windows.Forms.Label
-$lblThemeOpt.Text = 'Theme'
-$lblThemeOpt.AutoSize = $true
-$lblThemeOpt.Margin = New-Object System.Windows.Forms.Padding(0, 7, 8, 0)
-$prefsPanel.Controls.Add($lblThemeOpt)
-
-$cmbTheme = New-Object System.Windows.Forms.ComboBox
-$cmbTheme.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-$cmbTheme.Width = 92
-[void]$cmbTheme.Items.AddRange(@('Dark', 'Light', 'Matrix', 'Hot', 'Parliament'))
-$cmbTheme.Margin = New-Object System.Windows.Forms.Padding(0, 2, 14, 0)
-$prefsPanel.Controls.Add($cmbTheme)
-
-$lblAccentOpt = New-Object System.Windows.Forms.Label
-$lblAccentOpt.Text = 'Accent'
-$lblAccentOpt.AutoSize = $true
-$lblAccentOpt.Margin = New-Object System.Windows.Forms.Padding(0, 7, 8, 0)
-$prefsPanel.Controls.Add($lblAccentOpt)
-
-$cmbAccent = New-Object System.Windows.Forms.ComboBox
-$cmbAccent.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-$cmbAccent.Width = 108
-[void]$cmbAccent.Items.AddRange(@('Blue', 'Teal', 'Orange', 'Green', 'Red'))
-$cmbAccent.Margin = New-Object System.Windows.Forms.Padding(0, 2, 14, 0)
-$prefsPanel.Controls.Add($cmbAccent)
-
-$lblScaleOpt = New-Object System.Windows.Forms.Label
-$lblScaleOpt.Text = 'Font'
-$lblScaleOpt.AutoSize = $true
-$lblScaleOpt.Margin = New-Object System.Windows.Forms.Padding(0, 7, 8, 0)
-$prefsPanel.Controls.Add($lblScaleOpt)
-
-$cmbScale = New-Object System.Windows.Forms.ComboBox
-$cmbScale.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-$cmbScale.Width = 88
-[void]$cmbScale.Items.AddRange(@('90%', '100%', '110%', '120%'))
-$cmbScale.Margin = New-Object System.Windows.Forms.Padding(0, 2, 14, 0)
-$prefsPanel.Controls.Add($cmbScale)
-
-$chkCompact = New-Object System.Windows.Forms.CheckBox
-$chkCompact.Text = 'Compact'
-$chkCompact.AutoSize = $true
-$chkCompact.Margin = New-Object System.Windows.Forms.Padding(0, 6, 14, 0)
-$prefsPanel.Controls.Add($chkCompact)
-$prefsPanel.Visible = $false
-$prefsPanel.Height = 0
-$prefsPanel.Margin = New-Object System.Windows.Forms.Padding(0)
 
 $btns = New-Object System.Windows.Forms.TableLayoutPanel
 $btns.Dock = [System.Windows.Forms.DockStyle]::Top
@@ -1696,7 +2009,7 @@ $btnDashboard.Dock = [System.Windows.Forms.DockStyle]::Fill
 $btnDashboard.Height = 46
 $btnDashboard.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $btnDashboard.FlatAppearance.BorderSize = 0
-$btnDashboard.BackColor = [System.Drawing.Color]::FromArgb(0,122,255)
+$btnDashboard.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#2563EB')
 $btnDashboard.ForeColor = [System.Drawing.Color]::White
 $btnDashboard.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
 $btnDashboard.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
@@ -1707,9 +2020,9 @@ $btnGenerate.Text = 'Generate'
 $btnGenerate.Dock = [System.Windows.Forms.DockStyle]::Fill
 $btnGenerate.Height = 46
 $btnGenerate.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnGenerate.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(230,230,235)
-$btnGenerate.BackColor = [System.Drawing.Color]::FromArgb(255,255,255)
-$btnGenerate.ForeColor = [System.Drawing.Color]::FromArgb(28,28,30)
+$btnGenerate.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#334155')
+$btnGenerate.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#1E293B')
+$btnGenerate.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
 $btnGenerate.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
 $btnGenerate.Margin = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
 $btns.Controls.Add($btnGenerate, 1, 0)
@@ -1719,44 +2032,59 @@ $btnForce.Text = 'Force Update Excel'
 $btnForce.Dock = [System.Windows.Forms.DockStyle]::Top
 $btnForce.Height = 40
 $btnForce.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnForce.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(222, 152, 0)
+$btnForce.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#334155')
 $btnForce.FlatAppearance.BorderSize = 1
-$btnForce.BackColor = [System.Drawing.Color]::FromArgb(255, 248, 230)
-$btnForce.ForeColor = [System.Drawing.Color]::FromArgb(146, 88, 0)
+$btnForce.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#2563EB')
+$btnForce.ForeColor = [System.Drawing.Color]::White
 $btnForce.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
 $btnForce.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 0)
 $layout.Controls.Add($btnForce, 0, 5)
 
+# --- Clean Temp Files button (row 7) ---
+$btnCleanTemp = New-Object System.Windows.Forms.Button
+$btnCleanTemp.Text = 'Clean Temp Files'
+$btnCleanTemp.Dock = [System.Windows.Forms.DockStyle]::Top
+$btnCleanTemp.Height = 36
+$btnCleanTemp.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnCleanTemp.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#334155')
+$btnCleanTemp.FlatAppearance.BorderSize = 1
+$btnCleanTemp.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#1E293B')
+$btnCleanTemp.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
+$btnCleanTemp.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
+$btnCleanTemp.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 0)
+$layout.Controls.Add($btnCleanTemp, 0, 7)
+
+# --- Emergency buttons panel (row 9) ---
 $btnEmergency = New-Object System.Windows.Forms.TableLayoutPanel
 $btnEmergency.Dock = [System.Windows.Forms.DockStyle]::Top
 $btnEmergency.AutoSize = $true
 $btnEmergency.ColumnCount = 2
 $btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
 $btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
-$layout.Controls.Add($btnEmergency, 0, 7)
+$layout.Controls.Add($btnEmergency, 0, 9)
 
 $btnCloseCode = New-Object System.Windows.Forms.Button
-$btnCloseCode.Text = 'Cerrar codigo'
+$btnCloseCode.Text = 'Close Code Apps'
 $btnCloseCode.Dock = [System.Windows.Forms.DockStyle]::Fill
 $btnCloseCode.Height = 36
 $btnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnCloseCode.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(210, 80, 80)
+$btnCloseCode.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
 $btnCloseCode.FlatAppearance.BorderSize = 1
-$btnCloseCode.BackColor = [System.Drawing.Color]::FromArgb(255, 238, 238)
-$btnCloseCode.ForeColor = [System.Drawing.Color]::FromArgb(160, 32, 32)
+$btnCloseCode.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
+$btnCloseCode.ForeColor = [System.Drawing.Color]::White
 $btnCloseCode.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
 $btnCloseCode.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
 $btnEmergency.Controls.Add($btnCloseCode, 0, 0)
 
 $btnCloseDocs = New-Object System.Windows.Forms.Button
-$btnCloseDocs.Text = 'Cerrar documentos'
+$btnCloseDocs.Text = 'Close Documents'
 $btnCloseDocs.Dock = [System.Windows.Forms.DockStyle]::Fill
 $btnCloseDocs.Height = 36
 $btnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnCloseDocs.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(210, 80, 80)
+$btnCloseDocs.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
 $btnCloseDocs.FlatAppearance.BorderSize = 1
-$btnCloseDocs.BackColor = [System.Drawing.Color]::FromArgb(255, 238, 238)
-$btnCloseDocs.ForeColor = [System.Drawing.Color]::FromArgb(160, 32, 32)
+$btnCloseDocs.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
+$btnCloseDocs.ForeColor = [System.Drawing.Color]::White
 $btnCloseDocs.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
 $btnCloseDocs.Margin = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
 $btnEmergency.Controls.Add($btnCloseDocs, 1, 0)
@@ -1764,7 +2092,7 @@ $btnEmergency.Controls.Add($btnCloseDocs, 1, 0)
 $status = New-Object System.Windows.Forms.Label
 $status.Text = 'Status: Ready (SSO connected)'
 $status.AutoSize = $true
-$status.ForeColor = [System.Drawing.Color]::FromArgb(110,110,115)
+$status.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#94A3B8')
 $statusHost = New-Object System.Windows.Forms.TableLayoutPanel
 $statusHost.Dock = [System.Windows.Forms.DockStyle]::Fill
 $statusHost.ColumnCount = 1
@@ -1783,6 +2111,73 @@ $loadingBar.Visible = $false
 $loadingBar.Margin = New-Object System.Windows.Forms.Padding(0, 6, 0, 0)
 $statusHost.Controls.Add($loadingBar, 0, 1)
 
+$startupOverlay = New-Object System.Windows.Forms.Panel
+$startupOverlay.Dock = [System.Windows.Forms.DockStyle]::Fill
+$startupOverlay.BackColor = [System.Drawing.Color]::FromArgb(230, 15, 15, 15)
+$startupOverlay.Visible = $false
+$form.Controls.Add($startupOverlay)
+$startupOverlay.BringToFront()
+
+$startupOverlayCenter = New-Object System.Windows.Forms.TableLayoutPanel
+$startupOverlayCenter.BackColor = [System.Drawing.Color]::FromArgb(240, 30, 30, 30)
+$startupOverlayCenter.ColumnCount = 1
+$startupOverlayCenter.RowCount = 4
+$startupOverlayCenter.AutoSize = $true
+$startupOverlayCenter.Padding = New-Object System.Windows.Forms.Padding(22, 16, 22, 16)
+$startupOverlay.Controls.Add($startupOverlayCenter)
+
+$lblStartupTitle = New-Object System.Windows.Forms.Label
+$lblStartupTitle.Text = 'Schuman is starting...'
+$lblStartupTitle.AutoSize = $true
+$lblStartupTitle.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 12, [System.Drawing.FontStyle]::Bold)
+$lblStartupTitle.ForeColor = [System.Drawing.Color]::FromArgb(235, 235, 235)
+$startupOverlayCenter.Controls.Add($lblStartupTitle, 0, 0)
+
+$lblStartupStep = New-Object System.Windows.Forms.Label
+$lblStartupStep.Text = 'Checking updates...'
+$lblStartupStep.AutoSize = $true
+$lblStartupStep.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 4)
+$lblStartupStep.ForeColor = [System.Drawing.Color]::FromArgb(195, 195, 195)
+$startupOverlayCenter.Controls.Add($lblStartupStep, 0, 1)
+
+$pbStartup = New-Object System.Windows.Forms.ProgressBar
+$pbStartup.Style = [System.Windows.Forms.ProgressBarStyle]::Marquee
+$pbStartup.MarqueeAnimationSpeed = 28
+$pbStartup.Dock = [System.Windows.Forms.DockStyle]::Top
+$pbStartup.Height = 12
+$pbStartup.Width = 360
+$pbStartup.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 8)
+$startupOverlayCenter.Controls.Add($pbStartup, 0, 2)
+
+$lblStartupAnim = New-Object System.Windows.Forms.Label
+$lblStartupAnim.Text = 'Loading.'
+$lblStartupAnim.AutoSize = $true
+$lblStartupAnim.ForeColor = [System.Drawing.Color]::FromArgb(165, 165, 165)
+$startupOverlayCenter.Controls.Add($lblStartupAnim, 0, 3)
+
+$script:StartupOverlayAnimTick = 0
+$script:StartupOverlayAnimTimer = New-Object System.Windows.Forms.Timer
+$script:StartupOverlayAnimTimer.Interval = 230
+$script:StartupOverlayAnimTimer.Add_Tick(({
+      try {
+        if (-not $form -or $form.IsDisposed -or -not $form.IsHandleCreated) { return }
+        if (-not $startupOverlay.Visible) { return }
+        $script:StartupOverlayAnimTick = [int]$script:StartupOverlayAnimTick + 1
+        $lblStartupAnim.Text = ('Loading' + ('.' * (($script:StartupOverlayAnimTick % 3) + 1)))
+      }
+      catch {}
+    }).GetNewClosure())
+
+$startupOverlay.Add_Resize(({
+      try {
+        if (-not $startupOverlayCenter -or $startupOverlayCenter.IsDisposed) { return }
+        $x = [Math]::Max(0, [int](($startupOverlay.ClientSize.Width - $startupOverlayCenter.PreferredSize.Width) / 2))
+        $y = [Math]::Max(0, [int](($startupOverlay.ClientSize.Height - $startupOverlayCenter.PreferredSize.Height) / 2))
+        $startupOverlayCenter.Location = New-Object System.Drawing.Point($x, $y)
+      }
+      catch {}
+    }).GetNewClosure())
+
 $script:MainBusyTimer = New-Object System.Windows.Forms.Timer
 $script:MainBusyTimer.Interval = 240
 $script:MainBusyTick = 0
@@ -1790,14 +2185,15 @@ $script:MainBusyBaseText = 'Loading'
 $script:MainBusyActive = $false
 
 $script:MainBusyTimer.Add_Tick({
-  try {
-    if (-not $script:MainBusyActive) { return }
-    if (-not $status -or $status.IsDisposed) { return }
-    $script:MainBusyTick = [int]$script:MainBusyTick + 1
-    $dots = '.' * (($script:MainBusyTick % 3) + 1)
-    $status.Text = ("Status: {0}{1}" -f $script:MainBusyBaseText, $dots)
-  } catch {}
-})
+    try {
+      if (-not $script:MainBusyActive) { return }
+      if (-not $status -or $status.IsDisposed) { return }
+      $script:MainBusyTick = [int]$script:MainBusyTick + 1
+      $dots = '.' * (($script:MainBusyTick % 3) + 1)
+      $status.Text = ("Status: {0}{1}" -f $script:MainBusyBaseText, $dots)
+    }
+    catch {}
+  })
 
 function global:Set-MainBusyState {
   param(
@@ -1818,7 +2214,8 @@ function global:Set-MainBusyState {
       if ($btnDashboard) { $btnDashboard.Enabled = $false }
       if ($btnGenerate) { $btnGenerate.Enabled = $false }
       if ($btnForce) { $btnForce.Enabled = $false }
-    } catch {}
+    }
+    catch {}
   }
   else {
     try { $script:MainBusyTimer.Stop() } catch {}
@@ -1826,7 +2223,8 @@ function global:Set-MainBusyState {
     $status.Text = 'Status: Ready'
     try {
       Update-MainExcelDependentControls -ExcelReady $script:MainExcelReady
-    } catch {}
+    }
+    catch {}
   }
 }
 
@@ -1849,13 +2247,14 @@ function Convert-HexToUiColor {
     if ($h -notmatch '^#') { $h = "#$h" }
     if ($h -notmatch '^#([0-9a-fA-F]{6})$') { return $Fallback }
     return [System.Drawing.ColorTranslator]::FromHtml($h)
-  } catch {
+  }
+  catch {
     return $Fallback
   }
 }
 
 function Get-ShiftedUiColor {
-  param([System.Drawing.Color]$Color,[int]$Delta = 0)
+  param([System.Drawing.Color]$Color, [int]$Delta = 0)
   $r = [Math]::Min(255, [Math]::Max(0, $Color.R + $Delta))
   $g = [Math]::Min(255, [Math]::Max(0, $Color.G + $Delta))
   $b = [Math]::Min(255, [Math]::Max(0, $Color.B + $Delta))
@@ -1872,32 +2271,43 @@ function Get-ReadableTextColor {
 
 function New-UiThemeCatalog {
   $themes = [ordered]@{}
-  $themes['Dark'] = @{ FormBG=Convert-HexToUiColor '#111827'; HeaderBG=Convert-HexToUiColor '#0F172A'; CardBG=Convert-HexToUiColor '#1E293B'; Border=Convert-HexToUiColor '#334155'; Text=Convert-HexToUiColor '#E2E8F0'; MutedText=Convert-HexToUiColor '#94A3B8'; Primary=Convert-HexToUiColor '#2563EB'; PrimaryHover=Convert-HexToUiColor '#3B82F6'; Secondary=Convert-HexToUiColor '#334155'; SecondaryHover=Convert-HexToUiColor '#475569'; Accent=Convert-HexToUiColor '#38BDF8'; AccentHover=Convert-HexToUiColor '#0EA5E9'; Danger=Convert-HexToUiColor '#7F1D1D'; DangerHover=Convert-HexToUiColor '#991B1B'; InputBG=Convert-HexToUiColor '#0F172A'; InputBorder=Convert-HexToUiColor '#334155'; FocusBorder=Convert-HexToUiColor '#38BDF8'; GridAltRow=Convert-HexToUiColor '#18243A' }
-  $themes['Light'] = @{ FormBG=Convert-HexToUiColor '#F3F6FB'; HeaderBG=Convert-HexToUiColor '#E7EEF9'; CardBG=Convert-HexToUiColor '#FAFCFF'; Border=Convert-HexToUiColor '#CBD5E1'; Text=Convert-HexToUiColor '#0F172A'; MutedText=Convert-HexToUiColor '#475569'; Primary=Convert-HexToUiColor '#003399'; PrimaryHover=Convert-HexToUiColor '#1D4ED8'; Secondary=Convert-HexToUiColor '#E2E8F0'; SecondaryHover=Convert-HexToUiColor '#CBD5E1'; Accent=Convert-HexToUiColor '#FFCC00'; AccentHover=Convert-HexToUiColor '#EAB308'; Danger=Convert-HexToUiColor '#B91C1C'; DangerHover=Convert-HexToUiColor '#991B1B'; InputBG=Convert-HexToUiColor '#FFFFFF'; InputBorder=Convert-HexToUiColor '#CBD5E1'; FocusBorder=Convert-HexToUiColor '#003399'; GridAltRow=Convert-HexToUiColor '#F1F5F9' }
-  $themes['Matrix'] = @{ FormBG=Convert-HexToUiColor '#06110C'; HeaderBG=Convert-HexToUiColor '#081810'; CardBG=Convert-HexToUiColor '#0D1F14'; Border=Convert-HexToUiColor '#185C28'; Text=Convert-HexToUiColor '#B0FFC8'; MutedText=Convert-HexToUiColor '#5ECB7E'; Primary=Convert-HexToUiColor '#22C55E'; PrimaryHover=Convert-HexToUiColor '#4ADE80'; Secondary=Convert-HexToUiColor '#163622'; SecondaryHover=Convert-HexToUiColor '#1E4A2D'; Accent=Convert-HexToUiColor '#30FF80'; AccentHover=Convert-HexToUiColor '#22C55E'; Danger=Convert-HexToUiColor '#5E1D1D'; DangerHover=Convert-HexToUiColor '#7F1D1D'; InputBG=Convert-HexToUiColor '#0A1C12'; InputBorder=Convert-HexToUiColor '#1F7A3A'; FocusBorder=Convert-HexToUiColor '#30FF80'; GridAltRow=Convert-HexToUiColor '#0A1911' }
-  $themes['Hot'] = @{ FormBG=Convert-HexToUiColor '#180A10'; HeaderBG=Convert-HexToUiColor '#240C16'; CardBG=Convert-HexToUiColor '#2D0E1A'; Border=Convert-HexToUiColor '#5C1E2E'; Text=Convert-HexToUiColor '#FFE4E6'; MutedText=Convert-HexToUiColor '#F8B4BD'; Primary=Convert-HexToUiColor '#BE185D'; PrimaryHover=Convert-HexToUiColor '#DB2777'; Secondary=Convert-HexToUiColor '#581C2D'; SecondaryHover=Convert-HexToUiColor '#7F1D1D'; Accent=Convert-HexToUiColor '#F43F5E'; AccentHover=Convert-HexToUiColor '#E11D48'; Danger=Convert-HexToUiColor '#7F1D1D'; DangerHover=Convert-HexToUiColor '#991B1B'; InputBG=Convert-HexToUiColor '#260B18'; InputBorder=Convert-HexToUiColor '#7F1D3A'; FocusBorder=Convert-HexToUiColor '#F43F5E'; GridAltRow=Convert-HexToUiColor '#210B15' }
-  $themes['Parliament'] = @{ FormBG=Convert-HexToUiColor '#0F172A'; HeaderBG=Convert-HexToUiColor '#003399'; CardBG=Convert-HexToUiColor '#1E293B'; Border=Convert-HexToUiColor '#334155'; Text=Convert-HexToUiColor '#E2E8F0'; MutedText=Convert-HexToUiColor '#94A3B8'; Primary=Convert-HexToUiColor '#003399'; PrimaryHover=Convert-HexToUiColor '#1D4ED8'; Secondary=Convert-HexToUiColor '#1E40AF'; SecondaryHover=Convert-HexToUiColor '#1D4ED8'; Accent=Convert-HexToUiColor '#FFCC00'; AccentHover=Convert-HexToUiColor '#EAB308'; Danger=Convert-HexToUiColor '#7F1D1D'; DangerHover=Convert-HexToUiColor '#991B1B'; InputBG=Convert-HexToUiColor '#111C33'; InputBorder=Convert-HexToUiColor '#334155'; FocusBorder=Convert-HexToUiColor '#FFCC00'; GridAltRow=Convert-HexToUiColor '#1A2436' }
+  $themes['Dark'] = Get-SchumanThemeMidnightEU
   return $themes
 }
 
-function Resolve-AccentColor {
-  param([string]$AccentValue,[System.Drawing.Color]$Fallback)
-  $key = ("" + $AccentValue).Trim()
-  switch ($key.ToLowerInvariant()) {
-    'blue' { return Convert-HexToUiColor '#3B82F6' }
-    'teal' { return Convert-HexToUiColor '#14B8A6' }
-    'orange' { return Convert-HexToUiColor '#F59E0B' }
-    'green' { return Convert-HexToUiColor '#22C55E' }
-    'red' { return Convert-HexToUiColor '#EF4444' }
-    default {
-      if ($key -match '^#?[0-9a-fA-F]{6}$') { return Convert-HexToUiColor $key -Fallback $Fallback }
-      return $Fallback
-    }
+function Get-SchumanThemeMidnightEU {
+  return @{
+    FormBG          = Convert-HexToUiColor '#0F172A'
+    HeaderBG        = Convert-HexToUiColor '#1E293B'
+    CardBG          = Convert-HexToUiColor '#1E293B'
+    Border          = Convert-HexToUiColor '#334155'
+    Text            = Convert-HexToUiColor '#E5E7EB'
+    MutedText       = Convert-HexToUiColor '#94A3B8'
+    Primary         = Convert-HexToUiColor '#2563EB'
+    PrimaryHover    = Convert-HexToUiColor '#3B82F6'
+    PrimaryPressed  = Convert-HexToUiColor '#1D4ED8'
+    Secondary       = Convert-HexToUiColor '#1E293B'
+    SecondaryHover  = Convert-HexToUiColor '#2B3647'
+    Accent          = Convert-HexToUiColor '#2563EB'
+    AccentHover     = Convert-HexToUiColor '#3B82F6'
+    Danger          = Convert-HexToUiColor '#7F1D1D'
+    DangerHover     = Convert-HexToUiColor '#DC2626'
+    InputBG         = Convert-HexToUiColor '#0B1220'
+    InputBorder     = Convert-HexToUiColor '#334155'
+    FocusBorder     = Convert-HexToUiColor '#2563EB'
+    GridAltRow      = Convert-HexToUiColor '#172033'
+    SelectionBG     = Convert-HexToUiColor '#1E40AF'
+    SelectionText   = Convert-HexToUiColor '#FFFFFF'
+    Success         = Convert-HexToUiColor '#22C55E'
+    Warning         = Convert-HexToUiColor '#F59E0B'
+    Error           = Convert-HexToUiColor '#DC2626'
+    DisabledBG      = Convert-HexToUiColor '#2B3647'
+    DisabledText    = Convert-HexToUiColor '#64748B'
   }
 }
 
 function Set-UiControlRole {
-  param([System.Windows.Forms.Control]$Control,[string]$Role)
+  param([System.Windows.Forms.Control]$Control, [string]$Role)
   if (-not $Control) { return }
   $script:UiRoleByControlId[[string]$Control.GetHashCode()] = ("" + $Role)
 }
@@ -1911,7 +2321,7 @@ function Get-UiControlRole {
 }
 
 function Update-UiButtonVisual {
-  param([System.Windows.Forms.Button]$Button,[hashtable]$Theme,[bool]$Hover = $false)
+  param([System.Windows.Forms.Button]$Button, [hashtable]$Theme, [bool]$Hover = $false)
   if (-not $Button -or -not $Theme -or -not $Theme.ContainsKey('Secondary')) { return }
   $roleHandler = ${function:Get-UiControlRole}
   $role = if ($roleHandler) { & $roleHandler -Control $Button } else { '' }
@@ -1923,6 +2333,7 @@ function Update-UiButtonVisual {
     'AccentButton' { $bg = $Theme.Accent; $bgHover = $Theme.AccentHover }
   }
   $fill = if ($Hover) { $bgHover } else { $bg }
+  $pressed = if ($Theme.ContainsKey('PrimaryPressed')) { $Theme.PrimaryPressed } else { Get-ShiftedUiColor -Color $bgHover -Delta -14 }
   $Button.UseVisualStyleBackColor = $false
   $Button.BackColor = $fill
   $Button.ForeColor = Get-ReadableTextColor -Background $fill
@@ -1930,7 +2341,12 @@ function Update-UiButtonVisual {
   $Button.FlatAppearance.BorderSize = 1
   $Button.FlatAppearance.BorderColor = if ($Hover) { $Theme.FocusBorder } else { $Theme.Border }
   $Button.FlatAppearance.MouseOverBackColor = $bgHover
-  $Button.FlatAppearance.MouseDownBackColor = Get-ShiftedUiColor -Color $bgHover -Delta -14
+  $Button.FlatAppearance.MouseDownBackColor = $pressed
+  if (-not $Button.Enabled -and $Theme.ContainsKey('DisabledBG') -and $Theme.ContainsKey('DisabledText')) {
+    $Button.BackColor = $Theme.DisabledBG
+    $Button.ForeColor = $Theme.DisabledText
+    $Button.FlatAppearance.BorderColor = $Theme.Border
+  }
 }
 
 function Ensure-UiButtonHoverBinding {
@@ -1939,92 +2355,132 @@ function Ensure-UiButtonHoverBinding {
   $id = [string]$Button.GetHashCode()
   if ($script:UiHoverBoundByControlId.ContainsKey($id)) { return }
   $updateHandler = ${function:Update-UiButtonVisual}
-  $Button.Add_MouseEnter(({ param($sender,$eventArgs) try { if ($updateHandler) { & $updateHandler -Button $sender -Theme $script:CurrentMainTheme -Hover:$true } } catch {} }).GetNewClosure())
-  $Button.Add_MouseLeave(({ param($sender,$eventArgs) try { if ($updateHandler) { & $updateHandler -Button $sender -Theme $script:CurrentMainTheme -Hover:$false } } catch {} }).GetNewClosure())
+  $Button.Add_MouseEnter(({ param($sender, $eventArgs) try { if ($updateHandler) { & $updateHandler -Button $sender -Theme $script:CurrentMainTheme -Hover:$true } } catch {} }).GetNewClosure())
+  $Button.Add_MouseLeave(({ param($sender, $eventArgs) try { if ($updateHandler) { & $updateHandler -Button $sender -Theme $script:CurrentMainTheme -Hover:$false } } catch {} }).GetNewClosure())
   $script:UiHoverBoundByControlId[$id] = $true
 }
 
-function Apply-ThemeToControlTree {
-  param([System.Windows.Forms.Control]$RootControl,[hashtable]$Theme,[double]$FontScale = 1.0)
+function Set-ControlThemeSafe {
+  param(
+    [System.Windows.Forms.Control]$Control,
+    [hashtable]$Theme,
+    [System.Drawing.Font]$Regular,
+    [System.Drawing.Font]$Bold,
+    [System.Drawing.Font]$Title
+  )
+  if (-not $Control -or $Control.IsDisposed -or -not $Theme) { return }
+  $role = Get-UiControlRole -Control $Control
+  if ($Control -is [System.Windows.Forms.Form]) {
+    $Control.BackColor = $Theme.FormBG
+    $Control.ForeColor = $Theme.Text
+    if ($Regular) { $Control.Font = $Regular }
+  }
+  elseif ($Control -is [System.Windows.Forms.Panel]) {
+    switch ($role) {
+      'CardBorder' { $Control.BackColor = $Theme.Border }
+      'CardSurface' { $Control.BackColor = $Theme.CardBG }
+      'StartupOverlay' { $Control.BackColor = [System.Drawing.Color]::FromArgb(220, 11, 18, 32) }
+      'StartupOverlayCard' { $Control.BackColor = $Theme.CardBG }
+      default { $Control.BackColor = if ($Control.Parent) { $Control.Parent.BackColor } else { $Theme.FormBG } }
+    }
+  }
+  elseif ($Control -is [System.Windows.Forms.TableLayoutPanel] -or $Control -is [System.Windows.Forms.FlowLayoutPanel]) {
+    $Control.BackColor = if ($Control.Parent) { $Control.Parent.BackColor } else { $Theme.FormBG }
+  }
+  elseif ($Control -is [System.Windows.Forms.GroupBox]) {
+    $Control.BackColor = if ($Control.Parent) { $Control.Parent.BackColor } else { $Theme.FormBG }
+    $Control.ForeColor = $Theme.Text
+    if ($Regular) { $Control.Font = $Regular }
+  }
+  elseif ($Control -is [System.Windows.Forms.Label]) {
+    $Control.ForeColor = if ($role -eq 'MutedLabel' -or $role -eq 'StatusLabel') { $Theme.MutedText } else { $Theme.Text }
+    if ($role -eq 'HeaderTitle') {
+      if ($Title) { $Control.Font = $Title }
+    }
+    elseif ($Regular) {
+      $Control.Font = $Regular
+    }
+  }
+  elseif ($Control -is [System.Windows.Forms.TextBox] -or $Control -is [System.Windows.Forms.RichTextBox] -or $Control -is [System.Windows.Forms.ComboBox]) {
+    $Control.BackColor = $Theme.InputBG
+    $Control.ForeColor = $Theme.Text
+    if ($Regular) { $Control.Font = $Regular }
+    if ($Control -is [System.Windows.Forms.TextBox]) { $Control.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle }
+    if ($Control -is [System.Windows.Forms.ComboBox]) { $Control.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat }
+  }
+  elseif ($Control -is [System.Windows.Forms.CheckBox] -or $Control -is [System.Windows.Forms.RadioButton]) {
+    $Control.BackColor = if ($Control.Parent) { $Control.Parent.BackColor } else { $Theme.FormBG }
+    $Control.ForeColor = $Theme.Text
+    if ($Regular) { $Control.Font = $Regular }
+  }
+  elseif ($Control -is [System.Windows.Forms.ProgressBar]) {
+    $Control.BackColor = $Theme.CardBG
+    $Control.ForeColor = $Theme.Primary
+  }
+  elseif ($Control -is [System.Windows.Forms.DataGridView]) {
+    $Control.BackgroundColor = $Theme.CardBG
+    $Control.GridColor = $Theme.Border
+    $Control.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+    $Control.EnableHeadersVisualStyles = $false
+    $Control.RowHeadersVisible = $false
+    $Control.DefaultCellStyle.BackColor = $Theme.InputBG
+    $Control.DefaultCellStyle.ForeColor = $Theme.Text
+    $Control.DefaultCellStyle.SelectionBackColor = $Theme.SelectionBG
+    $Control.DefaultCellStyle.SelectionForeColor = $Theme.SelectionText
+    $Control.AlternatingRowsDefaultCellStyle.BackColor = $Theme.GridAltRow
+    $Control.AlternatingRowsDefaultCellStyle.ForeColor = $Theme.Text
+    $Control.ColumnHeadersDefaultCellStyle.BackColor = $Theme.HeaderBG
+    $Control.ColumnHeadersDefaultCellStyle.ForeColor = $Theme.Text
+    if ($Bold) { $Control.ColumnHeadersDefaultCellStyle.Font = $Bold }
+  }
+  elseif ($Control -is [System.Windows.Forms.Button]) {
+    if ($Bold) { $Control.Font = $Bold }
+    Ensure-UiButtonHoverBinding -Button $Control
+    Update-UiButtonVisual -Button $Control -Theme $Theme -Hover:$false
+    if (Get-Command -Name Set-UiRoundedButton -ErrorAction SilentlyContinue) {
+      Set-UiRoundedButton -Button $Control -Radius 10
+    }
+  }
+}
+
+function Apply-SchumanTheme {
+  param([System.Windows.Forms.Control]$RootControl, [hashtable]$Theme, [double]$FontScale = 1.0)
   if (-not $RootControl -or -not $Theme) { return }
-  $fontName = Get-UiFontNameSafe
-  $regular = New-Object System.Drawing.Font($fontName, [single](11 * $FontScale), [System.Drawing.FontStyle]::Regular)
-  $bold = New-Object System.Drawing.Font($fontName, [single](11 * $FontScale), [System.Drawing.FontStyle]::Bold)
-  $title = New-Object System.Drawing.Font($fontName, [single](18 * $FontScale), [System.Drawing.FontStyle]::Bold)
+  $safeScale = if ($FontScale -le 0) { 1.0 } else { $FontScale }
+  $fontName = 'Segoe UI'
+  $regular = New-Object System.Drawing.Font($fontName, [single](10.5 * $safeScale), [System.Drawing.FontStyle]::Regular)
+  $bold = New-Object System.Drawing.Font($fontName, [single](10.5 * $safeScale), [System.Drawing.FontStyle]::Bold)
+  $title = New-Object System.Drawing.Font($fontName, [single](18 * $safeScale), [System.Drawing.FontStyle]::Bold)
+  $errors = New-Object System.Collections.Generic.List[string]
 
   $walk = $null
   $walk = {
     param([System.Windows.Forms.Control]$Ctrl)
-    if (-not $Ctrl) { return }
-    $role = Get-UiControlRole -Control $Ctrl
-    if ($Ctrl -is [System.Windows.Forms.Form]) { $Ctrl.BackColor = $Theme.FormBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
-    elseif ($Ctrl -is [System.Windows.Forms.Panel]) {
-      switch ($role) {
-        'CardBorder' { $Ctrl.BackColor = $Theme.Border }
-        'CardSurface' { $Ctrl.BackColor = $Theme.CardBG }
-        default { $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG } }
+    if (-not $Ctrl -or $Ctrl.IsDisposed) { return }
+    try {
+      Set-ControlThemeSafe -Control $Ctrl -Theme $Theme -Regular $regular -Bold $bold -Title $title
+      if ($Ctrl -and $Ctrl.HasChildren) {
+        foreach ($child in $Ctrl.Controls) { & $walk $child }
       }
     }
-    elseif ($Ctrl -is [System.Windows.Forms.TableLayoutPanel] -or $Ctrl -is [System.Windows.Forms.FlowLayoutPanel]) { $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG } }
-    elseif ($Ctrl -is [System.Windows.Forms.GroupBox]) { $Ctrl.ForeColor = $Theme.Text; $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG }; $Ctrl.Font = $regular }
-    elseif ($Ctrl -is [System.Windows.Forms.CheckBox] -or $Ctrl -is [System.Windows.Forms.RadioButton]) { $Ctrl.ForeColor = $Theme.Text; $Ctrl.BackColor = if ($Ctrl.Parent) { $Ctrl.Parent.BackColor } else { $Theme.FormBG }; $Ctrl.Font = $regular }
-    elseif ($Ctrl -is [System.Windows.Forms.NumericUpDown] -or $Ctrl -is [System.Windows.Forms.DateTimePicker]) { $Ctrl.BackColor = $Theme.InputBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
-    elseif ($Ctrl -is [System.Windows.Forms.TabControl]) { $Ctrl.BackColor = $Theme.FormBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
-    elseif ($Ctrl -is [System.Windows.Forms.TabPage]) { $Ctrl.BackColor = $Theme.CardBG; $Ctrl.ForeColor = $Theme.Text; $Ctrl.Font = $regular }
-    elseif ($Ctrl -is [System.Windows.Forms.StatusStrip] -or $Ctrl -is [System.Windows.Forms.ToolStrip]) {
-      $Ctrl.BackColor = $Theme.HeaderBG
-      $Ctrl.ForeColor = $Theme.Text
-      $Ctrl.Font = $regular
-      try {
-        foreach ($item in $Ctrl.Items) {
-          $item.ForeColor = $Theme.Text
-          $item.BackColor = $Theme.HeaderBG
-          if ($item -is [System.Windows.Forms.ToolStripDropDownItem]) {
-            try {
-              foreach ($dd in $item.DropDownItems) {
-                $dd.BackColor = $Theme.HeaderBG
-                $dd.ForeColor = $Theme.Text
-              }
-            } catch {}
-          }
-        }
-      } catch {}
+    catch {
+      $id = ''
+      try { $id = ("" + $Ctrl.Name).Trim() } catch {}
+      $errors.Add(("{0}: {1}" -f $(if ($id) { $id } else { $Ctrl.GetType().Name }), $_.Exception.Message)) | Out-Null
     }
-    elseif ($Ctrl -is [System.Windows.Forms.ProgressBar]) {
-      $Ctrl.BackColor = $Theme.CardBG
-      $Ctrl.ForeColor = $Theme.Primary
-    }
-    elseif ($Ctrl -is [System.Windows.Forms.Label]) { $Ctrl.ForeColor = if ($role -eq 'MutedLabel' -or $role -eq 'StatusLabel') { $Theme.MutedText } else { $Theme.Text }; $Ctrl.Font = if ($role -eq 'HeaderTitle') { $title } else { $regular } }
-    elseif ($Ctrl -is [System.Windows.Forms.TextBox] -or $Ctrl -is [System.Windows.Forms.RichTextBox] -or $Ctrl -is [System.Windows.Forms.ComboBox]) {
-      $Ctrl.BackColor = $Theme.InputBG
-      $Ctrl.ForeColor = $Theme.Text
-      $Ctrl.Font = $regular
-      if ($Ctrl -is [System.Windows.Forms.ComboBox]) {
-        $Ctrl.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-      }
-    }
-    elseif ($Ctrl -is [System.Windows.Forms.DataGridView]) {
-      $Ctrl.BackgroundColor = $Theme.CardBG; $Ctrl.GridColor = $Theme.Border; $Ctrl.BorderStyle = [System.Windows.Forms.BorderStyle]::None
-      $Ctrl.DefaultCellStyle.BackColor = $Theme.CardBG; $Ctrl.DefaultCellStyle.ForeColor = $Theme.Text
-      $Ctrl.DefaultCellStyle.SelectionBackColor = $Theme.Primary; $Ctrl.DefaultCellStyle.SelectionForeColor = Get-ReadableTextColor -Background $Theme.Primary
-      $Ctrl.AlternatingRowsDefaultCellStyle.BackColor = $Theme.GridAltRow; $Ctrl.AlternatingRowsDefaultCellStyle.ForeColor = $Theme.Text
-      $Ctrl.ColumnHeadersDefaultCellStyle.BackColor = $Theme.HeaderBG; $Ctrl.ColumnHeadersDefaultCellStyle.ForeColor = $Theme.Text
-      $Ctrl.EnableHeadersVisualStyles = $false
-    }
-    elseif ($Ctrl -is [System.Windows.Forms.Button]) {
-      $Ctrl.Font = $bold
-      Ensure-UiButtonHoverBinding -Button $Ctrl
-      Update-UiButtonVisual -Button $Ctrl -Theme $Theme -Hover:$false
-      if (Get-Command -Name Set-UiRoundedButton -ErrorAction SilentlyContinue) {
-        Set-UiRoundedButton -Button $Ctrl -Radius 10
-      }
-    }
-    foreach ($child in $Ctrl.Controls) { & $walk $child }
   }
   & $walk $RootControl
   if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
     Apply-UiRoundedButtonsRecursive -Root $RootControl -Radius 10
   }
+  if ($errors.Count -gt 0) {
+    Write-UiTrace -Level 'WARN' -Message ("Theme application reported {0} control error(s). First: {1}" -f $errors.Count, $errors[0])
+  }
+}
+
+function Apply-ThemeToControlTree {
+  param([System.Windows.Forms.Control]$RootControl, [hashtable]$Theme, [double]$FontScale = 1.0)
+  Apply-SchumanTheme -RootControl $RootControl -Theme $Theme -FontScale $FontScale
 }
 
 function Sync-ThemeAcrossOpenForms {
@@ -2077,14 +2533,18 @@ if ($script:SetUiControlRoleHandler) {
   & $script:SetUiControlRoleHandler -Control $btnDashboard -Role 'PrimaryButton'
   & $script:SetUiControlRoleHandler -Control $btnGenerate -Role 'SecondaryButton'
   & $script:SetUiControlRoleHandler -Control $btnForce -Role 'AccentButton'
+  & $script:SetUiControlRoleHandler -Control $btnLoadExcel -Role 'SecondaryButton'
   & $script:SetUiControlRoleHandler -Control $btnCloseCode -Role 'DangerButton'
   & $script:SetUiControlRoleHandler -Control $btnCloseDocs -Role 'DangerButton'
-  & $script:SetUiControlRoleHandler -Control $btnSettings -Role 'SecondaryButton'
   & $script:SetUiControlRoleHandler -Control $card.Border -Role 'CardBorder'
   & $script:SetUiControlRoleHandler -Control $card.Content.Parent -Role 'CardSurface'
   & $script:SetUiControlRoleHandler -Control $hdr -Role 'HeaderTitle'
   & $script:SetUiControlRoleHandler -Control $status -Role 'StatusLabel'
   & $script:SetUiControlRoleHandler -Control $lbl -Role 'MutedLabel'
+  & $script:SetUiControlRoleHandler -Control $startupOverlay -Role 'StartupOverlay'
+  & $script:SetUiControlRoleHandler -Control $startupOverlayCenter -Role 'StartupOverlayCard'
+  & $script:SetUiControlRoleHandler -Control $lblStartupStep -Role 'MutedLabel'
+  & $script:SetUiControlRoleHandler -Control $lblStartupAnim -Role 'MutedLabel'
 }
 
 function Apply-MainUiTheme {
@@ -2095,11 +2555,9 @@ function Apply-MainUiTheme {
     [bool]$Compact = $false
   )
 
-  $safeTheme = ("" + $ThemeName).Trim()
-  if (-not $script:Themes.Contains($safeTheme)) { $safeTheme = 'Dark' }
-  $safeAccent = ("" + $AccentName).Trim()
-  if (-not $safeAccent) { $safeAccent = 'Blue' }
-  $safeScale = [Math]::Min(130, [Math]::Max(90, $FontScale))
+  $safeTheme = 'Dark'
+  $safeScale = 100
+  $safeCompact = $false
 
   $baseTheme = $script:Themes[$safeTheme]
   if (-not $baseTheme -or -not ($baseTheme -is [hashtable])) {
@@ -2109,12 +2567,6 @@ function Apply-MainUiTheme {
   $resolved = @{}
   foreach ($k in $baseTheme.Keys) { $resolved[$k] = $baseTheme[$k] }
 
-  $accent = Resolve-AccentColor -AccentValue $safeAccent -Fallback $resolved.Accent
-  $resolved.Primary = $accent
-  $resolved.PrimaryHover = Get-ShiftedUiColor -Color $accent -Delta 18
-  $resolved.Accent = $accent
-  $resolved.AccentHover = Get-ShiftedUiColor -Color $accent -Delta 10
-  $resolved.FocusBorder = $accent
   $script:CurrentMainTheme = $resolved
   $script:CurrentMainFontScale = ($safeScale / 100.0)
   $global:CurrentMainTheme = $resolved
@@ -2129,7 +2581,7 @@ function Apply-MainUiTheme {
     }
     $formsToRefresh = @()
     try { $formsToRefresh = @([System.Windows.Forms.Application]::OpenForms | ForEach-Object { $_ }) } catch {}
-    try { Write-Log -Level INFO -Message ("Theme apply '{0}/{1}' on {2} open form(s)." -f $safeTheme, $safeAccent, $formsToRefresh.Count) } catch {}
+    try { Write-Log -Level INFO -Message ("Theme apply '{0}' on {1} open form(s)." -f $safeTheme, $formsToRefresh.Count) } catch {}
     foreach ($openForm in $formsToRefresh) {
       if (-not $openForm -or $openForm.IsDisposed) { continue }
       if ($form -and ($openForm -eq $form)) { continue }
@@ -2146,68 +2598,52 @@ function Apply-MainUiTheme {
   }
   try { Sync-ThemeAcrossOpenForms -Force } catch {}
 
-  $moduleHeight = if ($Compact) { 38 } else { 46 }
-  $dangerHeight = if ($Compact) { 32 } else { 36 }
-  $forceHeight = if ($Compact) { 34 } else { 40 }
+  $moduleHeight = if ($safeCompact) { 38 } else { 46 }
+  $dangerHeight = if ($safeCompact) { 32 } else { 36 }
+  $forceHeight = if ($safeCompact) { 34 } else { 40 }
   if ($btnDashboard -and -not $btnDashboard.IsDisposed) { $btnDashboard.Height = $moduleHeight }
   if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Height = $moduleHeight }
   if ($btnForce -and -not $btnForce.IsDisposed) { $btnForce.Height = $forceHeight }
   if ($btnCloseCode -and -not $btnCloseCode.IsDisposed) { $btnCloseCode.Height = $dangerHeight }
   if ($btnCloseDocs -and -not $btnCloseDocs.IsDisposed) { $btnCloseDocs.Height = $dangerHeight }
-
-  $mainUiPrefs = @{
-    theme = $safeTheme
-    accent = $safeAccent
-    fontScale = $safeScale
-    compact = [bool]$Compact
-  }
-  Save-MainUiPrefs -Config $globalConfig -Prefs $mainUiPrefs
 }
 
-$mainUiPrefs = Get-MainUiPrefs -Config $globalConfig
-$themePref = ("" + $mainUiPrefs.theme).Trim()
-if (-not $script:Themes.Contains($themePref)) { $themePref = 'Dark' }
-$accentPref = ("" + $mainUiPrefs.accent).Trim()
-if (-not $accentPref) { $accentPref = 'Blue' }
-$scalePref = [Math]::Min(130, [Math]::Max(90, [int]$mainUiPrefs.fontScale))
-$compactPref = [bool]$mainUiPrefs.compact
-
-$cmbTheme.SelectedItem = $themePref
-if (-not $cmbTheme.SelectedItem) { $cmbTheme.SelectedItem = 'Dark' }
-$cmbAccent.SelectedItem = $accentPref
-if (-not $cmbAccent.SelectedItem) { $cmbAccent.SelectedItem = 'Blue' }
-$scaleText = ('{0}%' -f $scalePref)
-if ($cmbScale.Items -contains $scaleText) { $cmbScale.SelectedItem = $scaleText } else { $cmbScale.SelectedItem = '100%' }
-$chkCompact.Checked = $compactPref
-
-try { Apply-MainUiTheme -ThemeName $themePref -AccentName $accentPref -FontScale $scalePref -Compact:$compactPref }
+try { Apply-MainUiTheme -ThemeName 'Dark' -AccentName '' -FontScale 100 -Compact:$false }
 catch { Show-UiError -Title 'Theme' -Message 'Could not apply initial theme.' -Exception $_.Exception }
 
 $script:ApplyMainUiThemeHandler = ${function:Apply-MainUiTheme}
 $script:MainExcelReady = $false
-
-function Test-MainExcelReady {
-  param([string]$ExcelPathValue,[string]$SheetNameValue)
-  $path = ("" + $ExcelPathValue).Trim()
-  if ([string]::IsNullOrWhiteSpace($path)) { return $false }
-  if (-not (Test-Path -LiteralPath $path)) { return $false }
-  try {
-    $rows = @(Search-DashboardRows -ExcelPath $path -SheetName $SheetNameValue -SearchText '')
-    return ($rows.Count -gt 0)
-  } catch {
-    return $false
-  }
-}
+$script:ExcelReady = $false
+$script:ExcelRefreshInProgress = $false
+$script:ExcelRefreshWorker = $null
+$script:ExcelLoadErrorShown = $false
+$script:LastExcelRefreshAt = $null
+$script:StartupInitDone = $false
+$script:ExcelRefreshStartedAt = $null
+$script:ExcelRefreshTimeoutSeconds = 0
+$script:ExcelRefreshRunId = 0
+$script:ActiveExcelRefreshRunId = -1
+$script:ExcelRefreshWatchdogTimer = $null
 
 function Update-MainExcelDependentControls {
-  param([bool]$ExcelReady,[string]$Reason = '')
-  $script:MainExcelReady = [bool]$ExcelReady
-  $btnDashboard.Enabled = [bool]$ExcelReady
-  $btnGenerate.Enabled = [bool]$ExcelReady
-  $btnForce.Enabled = [bool]$ExcelReady
+  param([bool]$ExcelReady, [string]$Reason = '')
+  $ready = [bool]$ExcelReady
+  $script:MainExcelReady = $ready
+  $script:ExcelReady = $ready
+  $pathValid = $false
+  try {
+    $candidate = ("" + $txtExcel.Text).Trim()
+    $pathValid = (-not [string]::IsNullOrWhiteSpace($candidate)) -and (Test-Path -LiteralPath $candidate)
+  }
+  catch { $pathValid = $false }
+  if ($btnDashboard -and -not $btnDashboard.IsDisposed) { $btnDashboard.Enabled = $ready }
+  if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Enabled = $ready }
+  if ($btnForce -and -not $btnForce.IsDisposed) { $btnForce.Enabled = ($pathValid -and -not $script:ExcelRefreshInProgress) }
+  if ($btnCleanTemp -and -not $btnCleanTemp.IsDisposed) { $btnCleanTemp.Enabled = $ready }
+  if ($btnLoadExcel -and -not $btnLoadExcel.IsDisposed) { $btnLoadExcel.Enabled = (-not $script:ExcelRefreshInProgress) }
   if (-not $ExcelReady -and $status -and -not $status.IsDisposed) {
     $msg = ("" + $Reason).Trim()
-    if (-not $msg) { $msg = 'Please load Excel first.' }
+    if (-not $msg) { $msg = 'Excel not ready yet - loading...' }
     $status.Text = ("Status: {0}" -f $msg)
   }
   elseif ($ExcelReady -and $status -and -not $status.IsDisposed -and -not $script:MainBusyActive) {
@@ -2215,256 +2651,372 @@ function Update-MainExcelDependentControls {
   }
 }
 
-$showSettingsDialog = ({
-  if (-not $form -or $form.IsDisposed) {
-    Show-UiError -Title 'Theme' -Message 'Owner form is not available.'
+function Update-StartupOverlay {
+  param(
+    [bool]$Visible,
+    [string]$Title = 'Schuman is starting...',
+    [string]$Step = 'Loading modules...'
+  )
+  if (-not $startupOverlay -or $startupOverlay.IsDisposed) { return }
+  if ($Visible) {
+    Invoke-OnUiThread -Control $form -Action {
+      if ($lblStartupTitle -and -not $lblStartupTitle.IsDisposed) { $lblStartupTitle.Text = if ($Title) { $Title } else { 'Schuman is starting...' } }
+      if ($lblStartupStep -and -not $lblStartupStep.IsDisposed) { $lblStartupStep.Text = if ($Step) { $Step } else { 'Loading modules...' } }
+      $startupOverlay.Visible = $true
+      $startupOverlay.BringToFront()
+      try {
+        $x = [Math]::Max(0, [int](($startupOverlay.ClientSize.Width - $startupOverlayCenter.PreferredSize.Width) / 2))
+        $y = [Math]::Max(0, [int](($startupOverlay.ClientSize.Height - $startupOverlayCenter.PreferredSize.Height) / 2))
+        $startupOverlayCenter.Location = New-Object System.Drawing.Point($x, $y)
+      }
+      catch {}
+      $script:StartupOverlayAnimTick = 0
+      try { $script:StartupOverlayAnimTimer.Start() } catch {}
+      try { $startupOverlay.PerformLayout() } catch {}
+    }
+  }
+  else {
+    Invoke-OnUiThread -Control $form -Action {
+      try { $script:StartupOverlayAnimTimer.Stop() } catch {}
+      $startupOverlay.Visible = $false
+    }
+  }
+}
+
+function Show-ExcelLoadErrorOnce {
+  param([string]$Message)
+  if ($script:ExcelLoadErrorShown) { return }
+  $script:ExcelLoadErrorShown = $true
+  $safe = ("" + $Message).Trim()
+  if (-not $safe) { $safe = 'Excel file is not available. Please select a valid file.' }
+  try { [System.Windows.Forms.MessageBox]::Show($safe, 'Excel load', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null } catch {}
+}
+
+function Invoke-SchumanExcelRefresh {
+  param(
+    [string]$ExcelPath,
+    [string]$Reason = 'Manual refresh',
+    [ValidateSet('Auto', 'RitmOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
+    [ValidateSet('Auto', 'ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI')][string]$PiSearchMode = 'Auto',
+    [int]$MaxTickets = 0,
+    [bool]$FastMode = $true,
+    [int]$TimeoutSeconds = 180
+  )
+
+  $result = @{
+    Success   = $false
+    Message   = ''
+    UpdatedAt = $null
+    ExcelPath = ("" + $ExcelPath).Trim()
+    Errors    = @()
+  }
+
+  try {
+    $safeExcel = ("" + $ExcelPath).Trim()
+    if ([string]::IsNullOrWhiteSpace($safeExcel)) {
+      $result.Message = 'Excel path is empty.'
+      $result.Errors += $result.Message
+      return $result
+    }
+    if (-not (Test-Path -LiteralPath $safeExcel)) {
+      $result.Message = ("Excel file not found: {0}" -f $safeExcel)
+      $result.Errors += $result.Message
+      return $result
+    }
+    Write-UiTrace -Level 'INFO' -Message ("Excel refresh started. Reason='{0}', Scope='{1}', PiMode='{2}', TimeoutSec={3}" -f $Reason, $ProcessingScope, $PiSearchMode, [int]$TimeoutSeconds)
+
+    $args = @(
+      '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+      '-File', $invokeScript,
+      '-Operation', 'Export',
+      '-ExcelPath', $safeExcel,
+      '-SheetName', $SheetName,
+      '-ProcessingScope', $ProcessingScope,
+      '-PiSearchMode', $PiSearchMode,
+      '-MaxTickets', [string]$MaxTickets,
+      '-NoPopups'
+    )
+    if ($FastMode) { $args += '-SkipLegalNameFallback' }
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = (Join-Path $PSHOME 'powershell.exe')
+    $psi.Arguments = Convert-ToArgumentString -Tokens $args
+    $psi.WorkingDirectory = $projectRoot
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $false
+    $psi.RedirectStandardError = $false
+
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    [void]$proc.Start()
+
+    $waitMs = [Math]::Max(1000, ([int]$TimeoutSeconds * 1000))
+    $finished = $proc.WaitForExit($waitMs)
+    if (-not $finished) {
+      try { $proc.Kill() } catch {}
+      try { $proc.WaitForExit(1500) | Out-Null } catch {}
+      try { $proc.Dispose() } catch {}
+      $result.Message = ("Excel refresh timed out after {0} seconds." -f [int]$TimeoutSeconds)
+      $result.Errors += $result.Message
+      Write-UiTrace -Level 'ERROR' -Message $result.Message
+      return $result
+    }
+
+    $exitCode = $proc.ExitCode
+    try { $proc.Dispose() } catch {}
+
+    if ($exitCode -ne 0) {
+      $msg = ("Refresh process exited with code {0}." -f $exitCode)
+      $result.Message = $msg
+      $result.Errors += $msg
+      Write-UiTrace -Level 'ERROR' -Message $msg
+      return $result
+    }
+
+    $fs = $null
+    try {
+      $fs = [System.IO.File]::Open($safeExcel, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    }
+    catch {
+      $result.Message = 'Excel file is locked or unavailable after refresh.'
+      $result.Errors += $_.Exception.Message
+      return $result
+    }
+    finally {
+      try { if ($fs) { $fs.Close(); $fs.Dispose() } } catch {}
+    }
+
+    $result.Success = $true
+    $result.UpdatedAt = [DateTime]::Now
+    $result.Message = ("Excel refreshed successfully ({0})." -f $Reason)
+    Write-UiTrace -Level 'INFO' -Message $result.Message
+    return $result
+  }
+  catch {
+    $result.Message = ("" + $_.Exception.Message).Trim()
+    if (-not $result.Message) { $result.Message = 'Refresh failed without exception details.' }
+    $result.Errors += $result.Message
+    Write-UiTrace -Level 'ERROR' -Message ("Excel refresh exception: " + $result.Message)
+    return $result
+  }
+}
+
+function Start-SchumanExcelRefreshAsync {
+  param(
+    [string]$ExcelPath,
+    [string]$Reason = 'Manual refresh',
+    [bool]$ShowOverlay = $true,
+    [bool]$Startup = $false,
+    [ValidateSet('Auto', 'RitmOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
+    [ValidateSet('Auto', 'ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI')][string]$PiSearchMode = 'Auto',
+    [int]$MaxTickets = 0,
+    [bool]$FastMode = $true,
+    [scriptblock]$OnCompleted = $null
+  )
+
+  $safeExcel = ("" + $ExcelPath).Trim()
+  if ($script:ExcelRefreshInProgress) {
+    if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Refresh already in progress...' }
+    Write-UiTrace -Level 'WARN' -Message 'Excel refresh request ignored: already in progress.'
     return
   }
-  if (-not $script:SetUiControlRoleHandler) {
-    $cmd = Get-Command -Name Set-UiControlRole -CommandType Function -ErrorAction SilentlyContinue
-    if ($cmd -and $cmd.ScriptBlock) { $script:SetUiControlRoleHandler = $cmd.ScriptBlock }
-  }
-  if (-not $script:ApplyThemeToControlTreeHandler) {
-    $cmd = Get-Command -Name Apply-ThemeToControlTree -CommandType Function -ErrorAction SilentlyContinue
-    if ($cmd -and $cmd.ScriptBlock) { $script:ApplyThemeToControlTreeHandler = $cmd.ScriptBlock }
-  }
-  if (-not $script:ApplyMainUiThemeHandler) {
-    $cmd = Get-Command -Name Apply-MainUiTheme -CommandType Function -ErrorAction SilentlyContinue
-    if ($cmd -and $cmd.ScriptBlock) { $script:ApplyMainUiThemeHandler = $cmd.ScriptBlock }
+  if ([string]::IsNullOrWhiteSpace($safeExcel) -or -not (Test-Path -LiteralPath $safeExcel)) {
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel refresh failed. Please load Excel.'
+    Show-ExcelLoadErrorOnce -Message 'Excel file is missing. Please click "Load Excel..." and select a valid .xlsx file.'
+    return
   }
 
-  $dlg = New-Object System.Windows.Forms.Form
-  $dlg.Text = 'Personalization'
-  $dlg.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
-  $dlg.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
-  $dlg.MaximizeBox = $false
-  $dlg.MinimizeBox = $false
-  $dlg.MinimumSize = New-Object System.Drawing.Size(460, 320)
-  $dlg.MaximumSize = New-Object System.Drawing.Size(520, 360)
-  $dlg.Size = New-Object System.Drawing.Size(470, 330)
-  $dlg.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Font
-  $dlg.BackColor = if ($form) { $form.BackColor } else { [System.Drawing.Color]::FromArgb(30,30,32) }
-  $dlg.ForeColor = if ($hdr) { $hdr.ForeColor } else { [System.Drawing.Color]::FromArgb(230,230,230) }
-  $dialogFontName = 'Segoe UI'
-  if ($script:GetUiFontNameSafeHandler) {
+  $script:ExcelRefreshInProgress = $true
+  Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready yet - loading...'
+  if ($ShowOverlay) {
+    $titleText = if ($Startup) { 'Schuman is starting...' } else { 'Refreshing Excel...' }
+    Update-StartupOverlay -Visible $true -Title $titleText -Step 'Checking updates...'
+  }
+  if ($status -and -not $status.IsDisposed) { $status.Text = ("Status: {0}" -f $Reason) }
+  Write-UiTrace -Level 'INFO' -Message ("Excel refresh queued. Startup={0}; Reason='{1}'" -f $Startup, $Reason)
+
+  $worker = New-Object System.ComponentModel.BackgroundWorker
+  $worker.WorkerSupportsCancellation = $false
+  $script:ExcelRefreshWorker = $worker
+
+  $invokeRefreshHandler = ${function:Invoke-SchumanExcelRefresh}
+  $resolvedTimeoutSeconds = if ($Startup) { 120 } else { 300 }
+  $script:ExcelRefreshRunId = [int]$script:ExcelRefreshRunId + 1
+  $runId = [int]$script:ExcelRefreshRunId
+  $script:ActiveExcelRefreshRunId = $runId
+  $script:ExcelRefreshStartedAt = [DateTime]::Now
+  $script:ExcelRefreshTimeoutSeconds = $resolvedTimeoutSeconds
+
+  if (-not $script:ExcelRefreshWatchdogTimer) {
+    $script:ExcelRefreshWatchdogTimer = New-Object System.Timers.Timer
+    $script:ExcelRefreshWatchdogTimer.Interval = 1000
+    $script:ExcelRefreshWatchdogTimer.AutoReset = $true
+    $script:ExcelRefreshWatchdogTimer.add_Elapsed(({
+          param($sender, $eventArgs)
+          try {
+            if (-not $script:ExcelRefreshInProgress) {
+              try { if ($script:ExcelRefreshWatchdogTimer) { $script:ExcelRefreshWatchdogTimer.Stop() } } catch {}
+              return
+            }
+            if (-not $script:ExcelRefreshStartedAt -or $script:ExcelRefreshTimeoutSeconds -le 0) { return }
+            $elapsed = [int]([DateTime]::Now - $script:ExcelRefreshStartedAt).TotalSeconds
+            if ($elapsed -lt $script:ExcelRefreshTimeoutSeconds) { return }
+
+            Write-UiTrace -Level 'ERROR' -Message ("Excel refresh watchdog timeout after {0}s." -f $elapsed)
+            $script:ExcelRefreshInProgress = $false
+            $script:ExcelRefreshWorker = $null
+            $script:ActiveExcelRefreshRunId = -1
+            $script:ExcelRefreshStartedAt = $null
+            $script:ExcelRefreshTimeoutSeconds = 0
+            try { if ($script:ExcelRefreshWatchdogTimer) { $script:ExcelRefreshWatchdogTimer.Stop() } } catch {}
+
+            try {
+              Invoke-OnUiThread -Control $form -Action {
+                try { Update-StartupOverlay -Visible $false } catch {}
+                try { Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel refresh timeout. Please load Excel or retry Force Update.' } catch {}
+                if ($status -and -not $status.IsDisposed) {
+                  $status.Text = 'Status: Excel refresh timeout. Ready with limited actions.'
+                }
+              }
+            }
+            catch {}
+          }
+          catch {}
+        }).GetNewClosure())
+  }
+  try { $script:ExcelRefreshWatchdogTimer.Start() } catch {}
+  $worker.Add_DoWork(({
+        param($sender, $eventArgs)
+        Write-UiTrace -Level 'INFO' -Message ("Excel refresh DoWork started. RunId={0}" -f $runId)
+        Invoke-OnUiThread -Control $form -Action {
+          try { if ($lblStartupStep -and -not $lblStartupStep.IsDisposed) { $lblStartupStep.Text = 'Refreshing Excel...' } } catch {}
+        }
+        $input = $eventArgs.Argument
+        $eventArgs.Result = & $invokeRefreshHandler -ExcelPath $input.ExcelPath -Reason $input.Reason -ProcessingScope $input.ProcessingScope -PiSearchMode $input.PiSearchMode -MaxTickets $input.MaxTickets -FastMode $input.FastMode -TimeoutSeconds $input.TimeoutSeconds
+      }).GetNewClosure())
+
+  $worker.Add_RunWorkerCompleted(({
+        param($sender, $eventArgs)
+        try {
+          if ($script:ActiveExcelRefreshRunId -ne $runId) {
+            Write-UiTrace -Level 'WARN' -Message ("Excel refresh completion ignored (stale run id {0})." -f $runId)
+            return
+          }
+
+          $script:ExcelRefreshInProgress = $false
+          $script:ExcelRefreshWorker = $null
+          $script:ActiveExcelRefreshRunId = -1
+          $script:ExcelRefreshStartedAt = $null
+          $script:ExcelRefreshTimeoutSeconds = 0
+          try { if ($script:ExcelRefreshWatchdogTimer) { $script:ExcelRefreshWatchdogTimer.Stop() } } catch {}
+
+          $res = $null
+          if ($eventArgs -and $eventArgs.Result) { $res = $eventArgs.Result }
+          if ($eventArgs -and $eventArgs.Error) {
+            $res = @{
+              Success   = $false
+              Message   = ("" + $eventArgs.Error.Message).Trim()
+              UpdatedAt = $null
+              ExcelPath = $safeExcel
+              Errors    = @((("" + $eventArgs.Error.Message).Trim()))
+            }
+          }
+          if (-not $res) {
+            $res = @{ Success = $false; Message = 'Refresh failed without details.'; UpdatedAt = $null; ExcelPath = $safeExcel; Errors = @('Refresh failed without details.') }
+          }
+
+          if ($res.Success) {
+            $script:ExcelLoadErrorShown = $false
+            $script:LastExcelRefreshAt = $res.UpdatedAt
+            Save-MainExcelPathPreference -ExcelPath $res.ExcelPath
+            Update-MainExcelDependentControls -ExcelReady $true
+            try { if ($lblStartupStep -and -not $lblStartupStep.IsDisposed) { $lblStartupStep.Text = 'Loading modules...' } } catch {}
+            if ($status -and -not $status.IsDisposed) {
+              $status.Text = ("Status: Ready - Excel refreshed at {0:HH:mm:ss}" -f $res.UpdatedAt)
+            }
+            Write-UiTrace -Level 'INFO' -Message ("Excel refresh completed successfully. Startup={0}" -f $Startup)
+          }
+          else {
+            Update-MainExcelDependentControls -ExcelReady $false -Reason ("Excel refresh failed: {0}. Please load Excel." -f $res.Message)
+            Show-ExcelLoadErrorOnce -Message ("Excel refresh failed.`r`n`r`n{0}`r`n`r`nPlease click 'Load Excel...' and select a valid file." -f $res.Message)
+            Write-UiTrace -Level 'ERROR' -Message ("Excel refresh failed. Startup={0}. Reason={1}" -f $Startup, $res.Message)
+          }
+
+          if ($ShowOverlay) { Update-StartupOverlay -Visible $false }
+          if ($OnCompleted) { & $OnCompleted $res }
+        }
+        catch {
+          try { Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel refresh failed. Please load Excel.' } catch {}
+          try { if ($ShowOverlay) { Update-StartupOverlay -Visible $false } } catch {}
+        }
+      }).GetNewClosure())
+
+  $workerInput = @{
+    ExcelPath       = $safeExcel
+    Reason          = $Reason
+    ProcessingScope = $ProcessingScope
+    PiSearchMode    = $PiSearchMode
+    MaxTickets      = $MaxTickets
+    FastMode        = $FastMode
+    TimeoutSeconds  = $resolvedTimeoutSeconds
+  }
+  Write-UiTrace -Level 'INFO' -Message ("Excel refresh RunWorkerAsync starting. RunId={0}; TimeoutSec={1}" -f $runId, $resolvedTimeoutSeconds)
+  $worker.RunWorkerAsync($workerInput)
+  Write-UiTrace -Level 'INFO' -Message ("Excel refresh RunWorkerAsync dispatched. RunId={0}" -f $runId)
+}
+
+function Start-SchumanStartupInit {
+  if ($script:StartupInitDone) { return }
+  $script:StartupInitDone = $true
+
+  Update-StartupOverlay -Visible $true -Title 'Schuman is starting...' -Step 'Checking updates...'
+  if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Startup initialization in progress...' }
+  Write-UiTrace -Level 'INFO' -Message 'Startup initialization started.'
+  try {
+    $excel = ("" + $txtExcel.Text).Trim()
+    if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
+      Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel file path is invalid. Please load Excel.'
+      Write-UiTrace -Level 'ERROR' -Message 'Startup initialization failed: Excel file path is invalid.'
+      return
+    }
+
+    $fs = $null
     try {
-      $candidateFont = ("" + (& $script:GetUiFontNameSafeHandler)).Trim()
-      if ($candidateFont) { $dialogFontName = $candidateFont }
-    } catch {}
+      $fs = [System.IO.File]::Open($excel, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+    }
+    finally {
+      try { if ($fs) { $fs.Close(); $fs.Dispose() } } catch {}
+    }
+
+    Save-MainExcelPathPreference -ExcelPath $excel
+    $script:ExcelLoadErrorShown = $false
+    $script:LastExcelRefreshAt = [DateTime]::Now
+    Update-MainExcelDependentControls -ExcelReady $true
+    if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Ready' }
+    Write-UiTrace -Level 'INFO' -Message 'Startup initialization completed successfully (quick Excel validation mode).'
   }
-  $dlg.Font = New-Object System.Drawing.Font($dialogFontName, 10, [System.Drawing.FontStyle]::Regular)
-
-  $root = New-Object System.Windows.Forms.TableLayoutPanel
-  $root.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $root.ColumnCount = 1
-  $root.RowCount = 2
-  [void]$root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
-  [void]$root.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 60)))
-  $dlg.Controls.Add($root)
-
-  $gridPrefs = New-Object System.Windows.Forms.TableLayoutPanel
-  $gridPrefs.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $gridPrefs.Padding = New-Object System.Windows.Forms.Padding(16)
-  $gridPrefs.ColumnCount = 2
-  $gridPrefs.RowCount = 6
-  [void]$gridPrefs.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 38)))
-  [void]$gridPrefs.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 62)))
-  [void]$root.Controls.Add($gridPrefs, 0, 0)
-
-  $newRowLabel = {
-    param([string]$text, [int]$row)
-    $l = New-Object System.Windows.Forms.Label
-    $l.Text = $text
-    $l.AutoSize = $true
-    $l.Margin = New-Object System.Windows.Forms.Padding(0, 8, 8, 8)
-    $gridPrefs.Controls.Add($l, 0, $row)
-    return $l
+  catch {
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready. Please load Excel.'
+    Write-UiTrace -Level 'ERROR' -Message ("Startup initialization exception: " + $_.Exception.Message)
   }
-
-  $null = & $newRowLabel 'Theme' 0
-  $dlgTheme = New-Object System.Windows.Forms.ComboBox
-  $dlgTheme.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$dlgTheme.Items.AddRange(@('Dark', 'Light', 'Matrix', 'Hot', 'Parliament'))
-  $dlgTheme.SelectedItem = if ($cmbTheme) { $cmbTheme.SelectedItem } else { 'Dark' }
-  $dlgTheme.Dock = [System.Windows.Forms.DockStyle]::Top
-  $gridPrefs.Controls.Add($dlgTheme, 1, 0)
-
-  $null = & $newRowLabel 'Accent' 1
-  $dlgAccent = New-Object System.Windows.Forms.ComboBox
-  $dlgAccent.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$dlgAccent.Items.AddRange(@('Blue', 'Teal', 'Orange', 'Green', 'Red'))
-  $dlgAccent.SelectedItem = if ($cmbAccent) { $cmbAccent.SelectedItem } else { 'Blue' }
-  $dlgAccent.Dock = [System.Windows.Forms.DockStyle]::Top
-  $gridPrefs.Controls.Add($dlgAccent, 1, 1)
-
-  $null = & $newRowLabel 'Font scale' 2
-  $dlgScale = New-Object System.Windows.Forms.ComboBox
-  $dlgScale.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$dlgScale.Items.AddRange(@('90%', '100%', '110%', '120%'))
-  $dlgScale.SelectedItem = if ($cmbScale) { $cmbScale.SelectedItem } else { '100%' }
-  $dlgScale.Dock = [System.Windows.Forms.DockStyle]::Top
-  $gridPrefs.Controls.Add($dlgScale, 1, 2)
-
-  $null = & $newRowLabel 'Compact mode' 3
-  $dlgCompact = New-Object System.Windows.Forms.CheckBox
-  $dlgCompact.Checked = if ($chkCompact) { [bool]$chkCompact.Checked } else { $false }
-  $dlgCompact.AutoSize = $true
-  $gridPrefs.Controls.Add($dlgCompact, 1, 3)
-
-  $note = New-Object System.Windows.Forms.Label
-  $note.Text = 'Parliament=EP blue+gold | Matrix=green/black | Hot=burgundy/red'
-  $note.AutoSize = $true
-  $note.Margin = New-Object System.Windows.Forms.Padding(0, 8, 0, 0)
-  $gridPrefs.Controls.Add($note, 0, 4)
-  $gridPrefs.SetColumnSpan($note, 2)
-
-  $miniStatus = New-Object System.Windows.Forms.Label
-  $miniStatus.Text = ''
-  $miniStatus.AutoSize = $true
-  $miniStatus.Margin = New-Object System.Windows.Forms.Padding(0, 6, 0, 0)
-  $gridPrefs.Controls.Add($miniStatus, 0, 5)
-  $gridPrefs.SetColumnSpan($miniStatus, 2)
-
-  $buttonBar = New-Object System.Windows.Forms.FlowLayoutPanel
-  $buttonBar.FlowDirection = [System.Windows.Forms.FlowDirection]::RightToLeft
-  $buttonBar.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $buttonBar.Padding = New-Object System.Windows.Forms.Padding(12)
-  $buttonBar.WrapContents = $false
-  [void]$root.Controls.Add($buttonBar, 0, 1)
-
-  $btnApply = New-Object System.Windows.Forms.Button
-  $btnApply.Text = 'Apply'
-  $btnApply.Size = New-Object System.Drawing.Size(110, 34)
-  $btnApply.Visible = $true
-  $buttonBar.Controls.Add($btnApply) | Out-Null
-
-  $btnClose = New-Object System.Windows.Forms.Button
-  $btnClose.Text = 'Close'
-  $btnClose.Size = New-Object System.Drawing.Size(110, 34)
-  $btnClose.Visible = $true
-  $btnClose.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-  $buttonBar.Controls.Add($btnClose) | Out-Null
-
-  $btnApply.BringToFront()
-  $btnClose.BringToFront()
-  $dlg.AcceptButton = $btnApply
-  $dlg.CancelButton = $btnClose
-
-  if ($script:CurrentMainTheme -and $script:CurrentMainTheme.Count -gt 0) {
-    if ($script:SetUiControlRoleHandler) {
-      & $script:SetUiControlRoleHandler -Control $btnApply -Role 'PrimaryButton'
-      & $script:SetUiControlRoleHandler -Control $btnClose -Role 'SecondaryButton'
-    }
-    if ($script:EnsureUiButtonHoverBindingHandler) {
-      & $script:EnsureUiButtonHoverBindingHandler -Button $btnApply
-      & $script:EnsureUiButtonHoverBindingHandler -Button $btnClose
-    }
-    if ($script:UpdateUiButtonVisualHandler) {
-      & $script:UpdateUiButtonVisualHandler -Button $btnApply -Theme $script:CurrentMainTheme -Hover:$false
-      & $script:UpdateUiButtonVisualHandler -Button $btnClose -Theme $script:CurrentMainTheme -Hover:$false
-    }
-    if ($script:ApplyThemeToControlTreeHandler) {
-      & $script:ApplyThemeToControlTreeHandler -RootControl $dlg -Theme $script:CurrentMainTheme -FontScale 1.0
-    }
+  finally {
+    try { Update-StartupOverlay -Visible $false } catch {}
   }
-
-  $previewThemeAction = {
-      if (-not $form -or $form.IsDisposed) { return }
-      if (-not $script:Themes -or $script:Themes.Count -eq 0) { return }
-      if (-not $dlgTheme -or -not $dlgAccent -or -not $dlgScale -or -not $dlgCompact) { return }
-      $selectedTheme = ("" + $dlgTheme.SelectedItem).Trim()
-      if (-not $selectedTheme -or -not $script:Themes.Contains($selectedTheme)) { $selectedTheme = 'Dark' }
-      $selectedAccent = ("" + $dlgAccent.SelectedItem).Trim()
-      if (-not $selectedAccent) { $selectedAccent = 'Blue' }
-      $selectedScale = 100
-      try { $selectedScale = [int]((("" + $dlgScale.SelectedItem).Trim()).TrimEnd('%')) } catch { $selectedScale = 100 }
-      $selectedScale = [Math]::Min(130, [Math]::Max(90, $selectedScale))
-      $selectedCompact = [bool]$dlgCompact.Checked
-
-      if ($cmbTheme) { $cmbTheme.SelectedItem = $selectedTheme }
-      if ($cmbAccent) { $cmbAccent.SelectedItem = $selectedAccent }
-      if ($cmbScale) { $cmbScale.SelectedItem = ("{0}%" -f $selectedScale) }
-      if ($chkCompact) { $chkCompact.Checked = $selectedCompact }
-
-      try {
-        Write-Log -Level INFO -Message ("Theme preview apply: theme={0}, accent={1}, scale={2}, compact={3}" -f $selectedTheme, $selectedAccent, $selectedScale, $selectedCompact)
-      } catch {}
-      if (-not $script:ApplyMainUiThemeHandler) {
-        throw 'Apply-MainUiTheme handler is not available.'
-      }
-      & $script:ApplyMainUiThemeHandler -ThemeName $selectedTheme -AccentName $selectedAccent -FontScale $selectedScale -Compact:$selectedCompact
-      if ($script:CurrentMainTheme -and $script:CurrentMainTheme.Count -gt 0 -and $dlg -and -not $dlg.IsDisposed -and $script:ApplyThemeToControlTreeHandler) {
-        & $script:ApplyThemeToControlTreeHandler -RootControl $dlg -Theme $script:CurrentMainTheme -FontScale ($selectedScale / 100.0)
-        try { $dlg.Invalidate() } catch {}
-        try { $dlg.Refresh() } catch {}
-      }
-      if ($form -and -not $form.IsDisposed) {
-        try { $form.Invalidate() } catch {}
-        try { $form.Refresh() } catch {}
-      }
-      if ($status) { $status.Text = "Status: Theme applied ($selectedTheme/$selectedAccent)" }
-      $miniStatus.Text = 'Applied'
-  }.GetNewClosure()
-
-  $applyPersonalizationAction = {
-      if (-not $form -or $form.IsDisposed) { return }
-      if (-not $script:Themes -or $script:Themes.Count -eq 0) {
-        Show-UiError -Title 'Theme' -Message 'Theme catalog is not initialized.'
-        return
-      }
-      if (-not $dlgTheme -or -not $dlgAccent -or -not $dlgScale -or -not $dlgCompact) {
-        Show-UiError -Title 'Theme' -Message 'Personalization controls are not initialized.'
-        return
-      }
-
-      $selectedTheme = ("" + $dlgTheme.SelectedItem).Trim()
-      if (-not $selectedTheme -or -not $script:Themes.Contains($selectedTheme)) { $selectedTheme = 'Dark' }
-      $selectedAccent = ("" + $dlgAccent.SelectedItem).Trim()
-      if (-not $selectedAccent) { $selectedAccent = 'Blue' }
-      $selectedScale = 100
-      try { $selectedScale = [int]((("" + $dlgScale.SelectedItem).Trim()).TrimEnd('%')) } catch { $selectedScale = 100 }
-      $selectedScale = [Math]::Min(130, [Math]::Max(90, $selectedScale))
-      $selectedCompact = [bool]$dlgCompact.Checked
-
-      if ($cmbTheme) { $cmbTheme.SelectedItem = $selectedTheme }
-      if ($cmbAccent) { $cmbAccent.SelectedItem = $selectedAccent }
-      if ($cmbScale) { $cmbScale.SelectedItem = ("{0}%" -f $selectedScale) }
-      if ($chkCompact) { $chkCompact.Checked = $selectedCompact }
-
-      & $previewThemeAction
-  }.GetNewClosure()
-
-  $dlgTheme.Add_SelectedIndexChanged(({
-    Invoke-SafeUiAction -ActionName 'Preview Theme' -Owner $dlg -Action $previewThemeAction | Out-Null
-  }).GetNewClosure())
-  $dlgAccent.Add_SelectedIndexChanged(({
-    Invoke-SafeUiAction -ActionName 'Preview Accent' -Owner $dlg -Action $previewThemeAction | Out-Null
-  }).GetNewClosure())
-  $dlgScale.Add_SelectedIndexChanged(({
-    Invoke-SafeUiAction -ActionName 'Preview Font Scale' -Owner $dlg -Action $previewThemeAction | Out-Null
-  }).GetNewClosure())
-  $dlgCompact.Add_CheckedChanged(({
-    Invoke-SafeUiAction -ActionName 'Preview Compact Mode' -Owner $dlg -Action $previewThemeAction | Out-Null
-  }).GetNewClosure())
-
-  $btnApply.Add_Click(({
-    Invoke-SafeUiAction -ActionName 'Apply Personalization' -Owner $dlg -Action $applyPersonalizationAction | Out-Null
-  }).GetNewClosure())
-
-  [void]$dlg.ShowDialog($form)
-}).GetNewClosure()
+}
 
 $openModule = {
   param([string]$module)
 
   if (-not $script:MainExcelReady) {
-    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready yet - loading...'
+    try { if ($txtExcel -and -not $txtExcel.IsDisposed) { $txtExcel.Focus() } } catch {}
     return
   }
   $excel = ("" + $txtExcel.Text).Trim()
   if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
-    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.','Validation') | Out-Null
-    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
+    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready yet - loading...'
+    try { if ($txtExcel -and -not $txtExcel.IsDisposed) { $txtExcel.Focus() } } catch {}
     return
   }
 
@@ -2479,23 +3031,23 @@ $openModule = {
       $defaultOutput = Join-Path $projectRoot $globalConfig.Documents.OutputFolder
 
       $frm = Resolve-UiForm -UiResult (New-GeneratePdfUI -ExcelPath $excel -SheetName $SheetName -TemplatePath $defaultTemplate -OutputPath $defaultOutput -OnOpenDashboard {
-        $d = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
-        [void]$d.ShowDialog($form)
-      } -OnGenerate {
-        param($argsObj)
-        $okRun = Invoke-DocsGenerate -Excel $argsObj.ExcelPath -Sheet $SheetName -Template $argsObj.TemplatePath -Output $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf
-        if ($okRun) {
-          return [pscustomobject]@{
-            ok = $true
-            message = 'Documents generated successfully.'
-            outputPath = $argsObj.OutputPath
+          $d = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
+          [void]$d.ShowDialog($form)
+        } -OnGenerate {
+          param($argsObj)
+          $okRun = Invoke-DocsGenerate -Excel $argsObj.ExcelPath -Sheet $SheetName -Template $argsObj.TemplatePath -Output $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf
+          if ($okRun) {
+            return [pscustomobject]@{
+              ok         = $true
+              message    = 'Documents generated successfully.'
+              outputPath = $argsObj.OutputPath
+            }
           }
-        }
-        return [pscustomobject]@{
-          ok = $false
-          message = 'Document generation failed. Check logs under system/runs.'
-        }
-      }) -UiName 'New-GeneratePdfUI'
+          return [pscustomobject]@{
+            ok      = $false
+            message = 'Document generation failed. Check logs under system/runs.'
+          }
+        }) -UiName 'New-GeneratePdfUI'
       [void]$frm.ShowDialog($form)
     }
   }
@@ -2506,9 +3058,20 @@ $openModule = {
 
 $openDashboardAction = { & $openModule 'Dashboard' }.GetNewClosure()
 $openGenerateAction = { & $openModule 'Generate' }.GetNewClosure()
-$invokeForceExcelUpdateHandler = ${function:Invoke-ForceExcelUpdate}
 $showForceUpdateOptionsDialogHandler = ${function:Show-ForceUpdateOptionsDialog}
 $newFallbackForceUpdateOptionsDialogHandler = ${function:New-FallbackForceUpdateOptionsDialog}
+$invokeForceExcelUpdateHandler = ${function:Invoke-ForceExcelUpdate}
+$startSchumanStartupInitHandler = ${function:Start-SchumanStartupInit}
+$updateMainExcelDependentControlsHandler = ${function:Update-MainExcelDependentControls}
+$startSchumanExcelRefreshAsyncHandler = ${function:Start-SchumanExcelRefreshAsync}
+$saveMainExcelPathPreferenceHandler = ${function:Save-MainExcelPathPreference}
+$showExcelLoadErrorOnceHandler = ${function:Show-ExcelLoadErrorOnce}
+if (-not $startSchumanStartupInitHandler) { throw 'Startup initialization handler is not available.' }
+if (-not $updateMainExcelDependentControlsHandler) { throw 'Excel readiness handler is not available.' }
+if (-not $startSchumanExcelRefreshAsyncHandler) { throw 'Excel refresh handler is not available.' }
+if (-not $invokeForceExcelUpdateHandler) { throw 'Force update handler is not available.' }
+if (-not $saveMainExcelPathPreferenceHandler) { throw 'Excel preference save handler is not available.' }
+if (-not $showExcelLoadErrorOnceHandler) { throw 'Excel load error handler is not available.' }
 $closeCodeAction = {
   $cmd = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue
   if (-not $cmd) {
@@ -2516,14 +3079,14 @@ $closeCodeAction = {
     return
   }
   try {
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'All' -MainForm $form -BaseDir $projectRoot
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Close Code Apps' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'All' -MainForm $form -BaseDir $projectRoot
     if ($r -and -not $r.Cancelled) {
       $status.Text = "Status: $($r.Message)"
       try { Close-SchumanOpenForms } catch {}
     }
   }
   catch {
-    Show-UiError -Title 'Schuman' -Message 'Could not complete "Cerrar codigo".' -Exception $_.Exception
+    Show-UiError -Title 'Schuman' -Message 'Could not complete "Close Code Apps".' -Exception $_.Exception
   }
 }.GetNewClosure()
 $closeDocsAction = {
@@ -2533,28 +3096,29 @@ $closeDocsAction = {
     return
   }
   try {
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form -Mode 'Documents' -MainForm $form -BaseDir $projectRoot
+    $r = Invoke-UiEmergencyClose -ActionLabel 'Close Documents' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form -Mode 'Documents' -MainForm $form -BaseDir $projectRoot
     if ($r -and -not $r.Cancelled) {
       $status.Text = "Status: $($r.Message)"
     }
   }
   catch {
-    Show-UiError -Title 'Schuman' -Message 'Could not complete "Cerrar documentos".' -Exception $_.Exception
+    Show-UiError -Title 'Schuman' -Message 'Could not complete "Close Documents".' -Exception $_.Exception
   }
 }.GetNewClosure()
 $forceUpdateAction = {
-  if (-not $script:MainExcelReady) {
-    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
-    return
-  }
   $excel = ("" + $txtExcel.Text).Trim()
   if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
-    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.','Validation') | Out-Null
-    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
+    & $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel file path is invalid. Please load Excel.'
+    & $showExcelLoadErrorOnceHandler -Message 'Excel file is missing or invalid. Please click "Load Excel..." and select a valid .xlsx file.'
     return
   }
 
-  Set-MainBusyState -IsBusy $true -Text 'Preparing force update'
+  if ($script:ExcelRefreshInProgress) {
+    if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Refresh already in progress...' }
+    return
+  }
+
+  Set-MainBusyState -IsBusy $true -Text 'Preparing force update options'
   $opts = $null
   try {
     if ($showForceUpdateOptionsDialogHandler) {
@@ -2566,7 +3130,8 @@ $forceUpdateAction = {
       }
       $opts = & $newFallbackForceUpdateOptionsDialogHandler -Owner $form
     }
-  } finally {
+  }
+  finally {
     Set-MainBusyState -IsBusy $false
   }
 
@@ -2575,101 +3140,152 @@ $forceUpdateAction = {
     return
   }
 
-  $btnDashboard.Enabled = $false
-  $btnGenerate.Enabled = $false
-  $btnForce.Enabled = $false
-  $status.Text = ("Status: Running force update ({0}, {1}, fast={2}, max={3})..." -f $opts.processingScope, $opts.piSearchMode, $opts.fastMode, $opts.maxTickets)
+  Set-MainBusyState -IsBusy $true -Text ("Refreshing Excel ({0}/{1})..." -f $opts.processingScope, $opts.piSearchMode)
   try {
-    if (-not $invokeForceExcelUpdateHandler) {
-      throw 'Invoke-ForceExcelUpdate handler is not available.'
+    $forceResult = & $invokeForceExcelUpdateHandler -Excel $excel -Sheet $SheetName -ProcessingScope $opts.processingScope -PiSearchMode $opts.piSearchMode -MaxTickets ([int]$opts.maxTickets) -FastMode ([bool]$opts.fastMode)
+    if ($forceResult -and $forceResult.ok) {
+      $script:ExcelLoadErrorShown = $false
+      $script:LastExcelRefreshAt = [DateTime]::Now
+      & $updateMainExcelDependentControlsHandler -ExcelReady $true -Reason 'Ready'
+      if ($status -and -not $status.IsDisposed) { $status.Text = ("Status: Ready - Force update completed in {0}s" -f [int]$forceResult.durationSec) }
     }
-    $res = & $invokeForceExcelUpdateHandler -Excel $excel -Sheet $SheetName -ProcessingScope $opts.processingScope -PiSearchMode $opts.piSearchMode -MaxTickets ([int]$opts.maxTickets) -FastMode ([bool]$opts.fastMode)
-    if ($res.ok) {
-      $status.Text = ("Status: Force update complete ({0}s, tickets={1})" -f $res.durationSec, $res.ticketCount)
-      [System.Windows.Forms.MessageBox]::Show(
-        "Force update completed successfully.`r`nDuration: $($res.durationSec)s`r`nTickets: $($res.ticketCount)`r`nScope: $($opts.processingScope)`r`nPI mode: $($opts.piSearchMode)`r`nFast mode: $($opts.fastMode)`r`nMax tickets: $($opts.maxTickets)",
-        'Force Update'
-      ) | Out-Null
-    } else {
-      $status.Text = 'Status: Force update failed'
-      $err = ("" + $res.errorMessage).Trim()
-      if (-not $err) { $err = 'Force update failed. Check logs under system/runs.' }
-      [System.Windows.Forms.MessageBox]::Show($err,'Error') | Out-Null
+    else {
+      & $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel refresh failed. Please retry Force Update.'
+      $msg = if ($forceResult -and $forceResult.errorMessage) { ("" + $forceResult.errorMessage).Trim() } else { 'Force update failed without details.' }
+      Show-UiError -Title 'Force Update' -Message $msg
     }
   }
   finally {
-    $btnDashboard.Enabled = $true
-    $btnGenerate.Enabled = $true
-    $btnForce.Enabled = $true
+    Set-MainBusyState -IsBusy $false
   }
 }.GetNewClosure()
 
-$initialExcelReady = Test-MainExcelReady -ExcelPathValue $txtExcel.Text -SheetNameValue $SheetName
-if ($initialExcelReady) {
-  Update-MainExcelDependentControls -ExcelReady $true
-} else {
-  Update-MainExcelDependentControls -ExcelReady $false -Reason 'Please load Excel first.'
-}
+& $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel not ready yet - loading...'
+
+$txtExcel.Add_TextChanged(({
+      if ($script:ExcelRefreshInProgress) { return }
+      $candidate = ("" + $txtExcel.Text).Trim()
+      if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+        & $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel path changed. Click "Load Excel..." to refresh.'
+      }
+      else {
+        & $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel file path is invalid. Please load Excel.'
+      }
+    }).GetNewClosure())
+
+$btnLoadExcel.Add_Click(({
+      $pickExcelAction = {
+        if ($script:ExcelRefreshInProgress) {
+          if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Refresh already in progress...' }
+          return
+        }
+        $dlg = New-Object System.Windows.Forms.OpenFileDialog
+        $dlg.Title = 'Select Excel file'
+        $dlg.Filter = 'Excel Workbook (*.xlsx)|*.xlsx|All files (*.*)|*.*'
+        $dlg.CheckFileExists = $true
+        $dlg.Multiselect = $false
+        try {
+          $current = ("" + $txtExcel.Text).Trim()
+          if ($current -and (Test-Path -LiteralPath $current)) {
+            $dlg.InitialDirectory = Split-Path -Parent $current
+            $dlg.FileName = Split-Path -Leaf $current
+          }
+        }
+        catch {}
+        $res = $dlg.ShowDialog($form)
+        if ($res -ne [System.Windows.Forms.DialogResult]::OK) { return }
+        $selected = ("" + $dlg.FileName).Trim()
+        if (-not $selected) { return }
+        $txtExcel.Text = $selected
+        & $saveMainExcelPathPreferenceHandler -ExcelPath $selected
+        & $startSchumanExcelRefreshAsyncHandler -ExcelPath $selected -Reason 'Refreshing Excel from selected file...' -ShowOverlay $true -Startup $false
+      }
+      Invoke-UiHandler -Context 'Load Excel' -Action $pickExcelAction
+    }).GetNewClosure())
 
 $btnDashboard.Add_Click(({
-  Invoke-UiHandler -Context 'Open Dashboard' -Action $openDashboardAction
-}).GetNewClosure())
+      Invoke-UiHandler -Context 'Open Dashboard' -Action $openDashboardAction
+    }).GetNewClosure())
 $btnGenerate.Add_Click(({
-  Invoke-UiHandler -Context 'Open Generate' -Action $openGenerateAction
-}).GetNewClosure())
-$btnSettings.Add_Click(({
-  try {
-    Set-MainBusyState -IsBusy $true -Text 'Opening settings'
-    & $showSettingsDialog
-  }
-  catch { Show-UiError -Context 'Open Settings' -ErrorRecord $_ }
-  finally { Set-MainBusyState -IsBusy $false }
-}).GetNewClosure())
+      Invoke-UiHandler -Context 'Open Generate' -Action $openGenerateAction
+    }).GetNewClosure())
 $btnCloseCode.Add_Click(({
-  Invoke-UiHandler -Context 'Cerrar codigo' -Action $closeCodeAction
-}).GetNewClosure())
+      Invoke-UiHandler -Context 'Close Code Apps' -Action $closeCodeAction
+    }).GetNewClosure())
 $btnCloseDocs.Add_Click(({
-  Invoke-UiHandler -Context 'Cerrar documentos' -Action $closeDocsAction
-}).GetNewClosure())
+      Invoke-UiHandler -Context 'Close Documents' -Action $closeDocsAction
+    }).GetNewClosure())
 $btnForce.Add_Click(({
-  Invoke-UiHandler -Context 'Force Update' -Action $forceUpdateAction
-}).GetNewClosure())
+      Invoke-UiHandler -Context 'Force Update' -Action $forceUpdateAction
+    }).GetNewClosure())
+$btnCleanTemp.Add_Click(({
+      $cleanTempAction = {
+        Set-MainBusyState -IsBusy $true -Text 'Cleaning temp files...'
+        try {
+          $r = Clear-SchumanTempFiles -ProjectRoot $projectRoot -WhatIf:$false
+          $kbFreed = [math]::Round($r.FreedBytes / 1KB, 1)
+          $summary = "Deleted: $($r.DeletedFiles) files, $($r.DeletedFolders) folders. Freed: ${kbFreed} KB. Skipped: $($r.Skipped)."
+          if ($r.Errors.Count -gt 0) {
+            $errList = ($r.Errors | Select-Object -First 5) -join "`r`n"
+            $summary += "`r`nSome items skipped (locked/access denied):`r`n$errList"
+          }
+          [System.Windows.Forms.MessageBox]::Show($summary, 'Clean Temp Files') | Out-Null
+          if ($status -and -not $status.IsDisposed) {
+            $status.Text = "Status: Temp cleaned — $($r.DeletedFiles) files, $($r.DeletedFolders) folders, ${kbFreed} KB freed"
+          }
+        }
+        finally {
+          Set-MainBusyState -IsBusy $false
+        }
+      }
+      Invoke-UiHandler -Context 'Clean Temp Files' -Action $cleanTempAction
+    }).GetNewClosure())
 
-if (-not (Get-Variable -Name ThemeSyncTimer -Scope Script -ErrorAction SilentlyContinue)) {
-  $script:ThemeSyncTimer = New-Object System.Windows.Forms.Timer
-  $script:ThemeSyncTimer.Interval = 700
-  $script:ThemeSyncTimer.Add_Tick(({
-    try { Sync-ThemeAcrossOpenForms } catch {}
-  }).GetNewClosure())
-}
-try { $script:ThemeSyncTimer.Start() } catch {}
+[void]$form.add_Shown(({
+      Invoke-UiHandler -Context 'StartupInit' -Action {
+        & $startSchumanStartupInitHandler
+      }
+    }).GetNewClosure())
+
 
 [void]$form.add_FormClosed(({
-  try {
-    if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
-  } catch {}
-  try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
-  try {
-    if ($script:MainBusyTimer) {
-      $script:MainBusyTimer.Stop()
-      $script:MainBusyTimer.Dispose()
-    }
-  } catch {}
-  try {
-    if ($script:ThemeSyncTimer) {
-      $script:ThemeSyncTimer.Stop()
-      $script:ThemeSyncTimer.Dispose()
-    }
-  } catch {}
-}).GetNewClosure())
+      try {
+        if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
+      }
+      catch {}
+      try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
+      try {
+        if ($script:MainBusyTimer) {
+          $script:MainBusyTimer.Stop()
+          $script:MainBusyTimer.Dispose()
+        }
+      }
+      catch {}
+      try {
+        if ($script:StartupOverlayAnimTimer) {
+          $script:StartupOverlayAnimTimer.Stop()
+          $script:StartupOverlayAnimTimer.Dispose()
+        }
+      }
+      catch {}
+      try {
+        if ($script:ExcelRefreshWatchdogTimer) {
+          $script:ExcelRefreshWatchdogTimer.Stop()
+          $script:ExcelRefreshWatchdogTimer.Dispose()
+        }
+      }
+      catch {}
+    }).GetNewClosure())
 
 [void]$form.add_FormClosing(({
-  param($sender, $eventArgs)
-  try {
-    try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
-    try { Close-SchumanOpenForms -Except $sender } catch {}
-  }
-  catch {}
-}).GetNewClosure())
+      param($sender, $eventArgs)
+      try {
+        try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
+        try { Close-SchumanOpenForms -Except $sender } catch {}
+      }
+      catch {}
+    }).GetNewClosure())
 
 [void]$form.ShowDialog()
+
+

@@ -1,7 +1,7 @@
 ﻿{
     "force_update_excel":  {
-                               "last_seconds":  20,
-                               "samples":  6,
-                               "avg_seconds":  40.5
+                               "last_seconds":  13,
+                               "samples":  8,
+                               "avg_seconds":  33.75
                            }
 }

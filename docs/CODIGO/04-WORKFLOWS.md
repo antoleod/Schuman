@@ -1,19 +1,19 @@
 ﻿# Workflows
 
 ## `src/Schuman.Automation/Workflows/TicketExport.ps1`
-- Orquesta export completo:
-  - lee tickets de Excel,
-  - consulta ServiceNow,
-  - genera JSON,
-  - write-back opcional a Excel.
+- Orchestrates full export:
+  - reads tickets from Excel,
+  - queries ServiceNow,
+  - generates JSON,
+  - optional write-back to Excel.
 
 ## `src/Schuman.Automation/Workflows/Dashboard.ps1`
 - `Invoke-DashboardSearchWorkflow`
 - `Invoke-DashboardCheckInWorkflow`
 - `Invoke-DashboardCheckOutWorkflow`
-- Usa `Invoke-DashboardActionCore` para logica comun.
+- Uses `Invoke-DashboardActionCore` for shared logic.
 
 ## `src/Schuman.Automation/Workflows/Documents.ps1`
-- Genera documentos Word desde plantilla.
-- Export PDF opcional.
-- Sustitucion de placeholders y guardado por fila RITM.
+- Generates Word documents from template.
+- Optional PDF export.
+- Placeholder replacement and per-RITM file output.

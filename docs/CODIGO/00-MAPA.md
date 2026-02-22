@@ -1,14 +1,14 @@
-﻿# Mapa De Codigo
+﻿# Code Map
 
-## Entry points
-- `Start-Schuman.ps1`: arranca la UI principal.
-- `Invoke-Schuman.ps1`: CLI/automatizacion por operacion (`Export`, `DashboardSearch`, `DashboardCheckIn`, `DashboardCheckOut`, `DocsGenerate`).
+## Entry Points
+- `Start-Schuman.ps1`: starts the main UI.
+- `Invoke-Schuman.ps1`: CLI automation by operation (`Export`, `DashboardSearch`, `DashboardCheckIn`, `DashboardCheckOut`, `DocsGenerate`).
 
-## Modulos
-- `src/Schuman.Automation/Core`: bootstrap, logging, paths y utilidades de texto.
-- `src/Schuman.Automation/Integrations`: acceso a Excel COM y ServiceNow (WebView2 + JSONv2).
-- `src/Schuman.Automation/Workflows`: casos de uso de negocio.
-- `src/Schuman.Automation/UI`: UI WinForms (`Main`, `Dashboard`, `Generate`, `Theme`).
+## Modules
+- `src/Schuman.Automation/Core`: bootstrap, logging, paths, and text utilities.
+- `src/Schuman.Automation/Integrations`: Excel COM and ServiceNow (WebView2 + JSONv2).
+- `src/Schuman.Automation/Workflows`: business workflow use cases.
+- `src/Schuman.Automation/UI`: WinForms UI (`Main`, `Dashboard`, `Generate`, `Theme`).
 
-## Estado
-- Legacy eliminado: no se usan `auto-excel.ps1`, `dashboard-checkin-checkout.ps1`, `Generate-pdf.ps1`.
+## Status
+- Legacy scripts removed: `auto-excel.ps1`, `dashboard-checkin-checkout.ps1`, `Generate-pdf.ps1` are no longer used.

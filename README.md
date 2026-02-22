@@ -1,13 +1,13 @@
 ﻿# Schuman Automation
 
-Sistema unificado en PowerShell 5.1 para operaciones con ServiceNow, Excel y documentos.
+Unified PowerShell 5.1 system for ServiceNow, Excel, and document workflows.
 
-## Inicio
+## Start UI
 ```powershell
 .\Start-Schuman.ps1
 ```
 
-## Operaciones CLI
+## CLI Operations
 ```powershell
 .\Invoke-Schuman.ps1 -Operation Export -ExcelPath ".\Schuman List.xlsx" -SheetName BRU
 .\Invoke-Schuman.ps1 -Operation DashboardSearch -ExcelPath ".\Schuman List.xlsx" -SheetName BRU -SearchText "john"
@@ -16,17 +16,17 @@ Sistema unificado en PowerShell 5.1 para operaciones con ServiceNow, Excel y doc
 .\Invoke-Schuman.ps1 -Operation DocsGenerate -ExcelPath ".\Schuman List.xlsx" -SheetName BRU -TemplatePath ".\Reception_ITequipment.docx" -OutputDirectory ".\WORD files"
 ```
 
-## Arquitectura
-- `src/Schuman.Automation/Main.ps1`: launcher UI.
-- `src/Schuman.Automation/UI`: Dashboard y Generate.
-- `src/Schuman.Automation/Workflows`: casos de uso.
-- `src/Schuman.Automation/Integrations`: Excel + ServiceNow.
-- `src/Schuman.Automation/Core`: bootstrap/logging/helpers.
+## Architecture
+- `src/Schuman.Automation/Main.ps1`: main UI launcher.
+- `src/Schuman.Automation/UI`: Dashboard and Generate WinForms UI.
+- `src/Schuman.Automation/Workflows`: workflow use cases.
+- `src/Schuman.Automation/Integrations`: Excel and ServiceNow integrations.
+- `src/Schuman.Automation/Core`: bootstrap, logging, and utility helpers.
 
-## Documentacion tecnica
+## Technical Documentation
 - `docs/GUIA-RAPIDA.md`
 - `docs/CODIGO/00-MAPA.md`
 - `docs/CODIGO/*.md`
 
-## Nota
-- Legacy eliminado. Solo se soporta la estructura `src/Schuman.Automation`.
+## Note
+- Legacy scripts are removed. Only `src/Schuman.Automation` is supported.

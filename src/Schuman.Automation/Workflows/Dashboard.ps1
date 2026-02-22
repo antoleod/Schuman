@@ -1,6 +1,14 @@
 ﻿Set-StrictMode -Version Latest
 
 function Invoke-DashboardSearchWorkflow {
+  <#
+  .SYNOPSIS
+  Executes Dashboard search against Excel-backed rows.
+  .DESCRIPTION
+  Wraps Search-DashboardRows and guarantees an array-shaped result for strict mode safety.
+  .OUTPUTS
+  object[]
+  #>
   param(
     [Parameter(Mandatory = $true)][hashtable]$RunContext,
     [Parameter(Mandatory = $true)][string]$ExcelPath,
@@ -8,7 +16,7 @@ function Invoke-DashboardSearchWorkflow {
     [string]$SearchText = ''
   )
 
-  $rows = Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText $SearchText
+  $rows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText $SearchText)
   Write-RunLog -RunContext $RunContext -Level INFO -Message ("Dashboard search query='{0}' => {1} row(s)" -f $SearchText, $rows.Count)
   return $rows
 }
@@ -53,7 +61,7 @@ function Invoke-DashboardActionCore {
     [string]$WorkNote
   )
 
-  $rows = Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText ''
+  $rows = @(Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText '')
   $match = $rows | Where-Object { $_.Row -eq $Row } | Select-Object -First 1
   if (-not $match) {
     throw "Dashboard row $Row not found."
@@ -69,7 +77,7 @@ function Invoke-DashboardActionCore {
   $session = $null
   try {
     $session = New-ServiceNowSession -Config $Config -RunContext $RunContext
-    $tasks = Get-ServiceNowTasksForRitm -Session $session -RitmNumber $ritm
+    $tasks = @(Get-ServiceNowTasksForRitm -Session $session -RitmNumber $ritm)
     if ($tasks.Count -eq 0) {
       throw "No SCTASK found for $ritm"
     }

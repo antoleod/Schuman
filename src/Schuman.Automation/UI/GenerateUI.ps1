@@ -30,18 +30,23 @@ function Show-UiError {
   )
 
   $ctx = if ([string]::IsNullOrWhiteSpace($Context)) { 'UI' } else { $Context }
-  $msg = 'Unknown error.'
-
-  try {
-    if ($ErrorRecord -and $ErrorRecord.Exception) {
-      $msg = ("" + $ErrorRecord.Exception.Message).Trim()
+  $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+  if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
+    try {
+      if ($ErrorRecord -and $ErrorRecord.Exception) {
+        & $globalShowUiError.ScriptBlock -Title 'Schuman' -Message ("{0} failed." -f $ctx) -Exception $ErrorRecord.Exception
+      }
+      else {
+        & $globalShowUiError.ScriptBlock -Title 'Schuman' -Message ("{0} failed." -f $ctx)
+      }
+      return
     }
-    if ([string]::IsNullOrWhiteSpace($msg)) { $msg = 'Unknown error.' }
+    catch {}
   }
-  catch {}
-
+  $msg = if ($ErrorRecord -and $ErrorRecord.Exception) { ("" + $ErrorRecord.Exception.Message).Trim() } else { "$ctx failed." }
+  if (-not $msg) { $msg = "$ctx failed." }
   Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $msg)
-  try { [System.Windows.Forms.MessageBox]::Show("$ctx failed.`r`n`r`n$msg", 'Schuman', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null } catch {}
+  try { [System.Windows.Forms.MessageBox]::Show($msg, 'Schuman', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null } catch {}
 }
 
 function New-UI {
@@ -63,35 +68,24 @@ function New-UI {
   $UI.OnGenerate = $OnGenerate
   $UI.ExcelReady = $false
   $UI.Theme = @{
-    Light = @{
-      Bg = [System.Drawing.Color]::FromArgb(245, 246, 248)
-      Card = [System.Drawing.Color]::FromArgb(255, 255, 255)
-      Text = [System.Drawing.Color]::FromArgb(24, 24, 26)
-      Sub = [System.Drawing.Color]::FromArgb(110, 110, 115)
-      Border = [System.Drawing.Color]::FromArgb(228, 228, 232)
-      Accent = [System.Drawing.Color]::FromArgb(0, 122, 255)
-      Success = [System.Drawing.Color]::FromArgb(220, 245, 231)
-      Error = [System.Drawing.Color]::FromArgb(255, 230, 230)
-      BadgeText = [System.Drawing.Color]::FromArgb(26, 26, 28)
-      Shadow = [System.Drawing.Color]::FromArgb(236, 236, 240)
-      StopBg = [System.Drawing.Color]::FromArgb(255, 235, 235)
-      StopFg = [System.Drawing.Color]::FromArgb(170, 30, 30)
-      StopBorder = [System.Drawing.Color]::FromArgb(210, 80, 80)
-    }
     Dark = @{
-      Bg = [System.Drawing.Color]::FromArgb(30, 30, 30)
-      Card = [System.Drawing.Color]::FromArgb(37, 37, 38)
-      Text = [System.Drawing.Color]::FromArgb(230, 230, 230)
-      Sub = [System.Drawing.Color]::FromArgb(170, 170, 170)
-      Border = [System.Drawing.Color]::FromArgb(60, 60, 60)
-      Accent = [System.Drawing.Color]::FromArgb(10, 132, 255)
-      Success = [System.Drawing.Color]::FromArgb(32, 60, 45)
-      Error = [System.Drawing.Color]::FromArgb(70, 36, 36)
-      BadgeText = [System.Drawing.Color]::FromArgb(235, 235, 235)
-      Shadow = [System.Drawing.Color]::FromArgb(28, 28, 32)
-      StopBg = [System.Drawing.Color]::FromArgb(88, 36, 36)
-      StopFg = [System.Drawing.Color]::FromArgb(255, 210, 210)
-      StopBorder = [System.Drawing.Color]::FromArgb(210, 80, 80)
+      Bg = [System.Drawing.ColorTranslator]::FromHtml('#0F172A')
+      Card = [System.Drawing.ColorTranslator]::FromHtml('#1E293B')
+      Input = [System.Drawing.ColorTranslator]::FromHtml('#0B1220')
+      Text = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
+      Sub = [System.Drawing.ColorTranslator]::FromHtml('#94A3B8')
+      Border = [System.Drawing.ColorTranslator]::FromHtml('#334155')
+      Accent = [System.Drawing.ColorTranslator]::FromHtml('#2563EB')
+      AccentHover = [System.Drawing.ColorTranslator]::FromHtml('#3B82F6')
+      AccentPressed = [System.Drawing.ColorTranslator]::FromHtml('#1D4ED8')
+      Success = [System.Drawing.ColorTranslator]::FromHtml('#22C55E')
+      Error = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
+      BadgeText = [System.Drawing.ColorTranslator]::FromHtml('#FFFFFF')
+      GridAlt = [System.Drawing.ColorTranslator]::FromHtml('#172033')
+      Selection = [System.Drawing.ColorTranslator]::FromHtml('#1E40AF')
+      StopBg = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
+      StopFg = [System.Drawing.ColorTranslator]::FromHtml('#FFFFFF')
+      StopBorder = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
     }
   }
   $UI.GridTable = New-Object System.Data.DataTable 'GenerateStatus'
@@ -107,6 +101,17 @@ function New-UI {
 }
 
 function Initialize-Controls {
+  <#
+  .SYNOPSIS
+  Builds the Word Generator form controls and layout.
+  .DESCRIPTION
+  Creates a responsive WinForms layout with grid, progress, action buttons, and options.
+  Control arrangement is optimized to avoid overlap on resize.
+  .PARAMETER UI
+  Shared synchronized UI state hashtable.
+  .OUTPUTS
+  hashtable
+  #>
   param([hashtable]$UI)
 
   $fontName = Get-UiFontName
@@ -115,7 +120,7 @@ function Initialize-Controls {
   $form.Size = New-Object System.Drawing.Size(1120, 720)
   $form.MinimumSize = New-Object System.Drawing.Size(980, 640)
   $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-  $form.Font = New-Object System.Drawing.Font($fontName, 10)
+  $form.Font = New-Object System.Drawing.Font($fontName, 11)
   $form.Tag = $UI
   $UI.Form = $form
 
@@ -244,8 +249,8 @@ function Initialize-Controls {
   $grid.AutoGenerateColumns = $false
   $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
   $grid.EnableHeadersVisualStyles = $false
-  $grid.ColumnHeadersHeight = 32
-  $grid.RowTemplate.Height = 28
+  $grid.ColumnHeadersHeight = 36
+  $grid.RowTemplate.Height = 32
   try {
     $prop = $grid.GetType().GetProperty('DoubleBuffered', 'NonPublic,Instance')
     if ($prop) { $prop.SetValue($grid, $true, $null) }
@@ -299,15 +304,16 @@ function Initialize-Controls {
 
   $footerGrid = New-Object System.Windows.Forms.TableLayoutPanel
   $footerGrid.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $footerGrid.ColumnCount = 2
+  $footerGrid.ColumnCount = 3
   [void]$footerGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  [void]$footerGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
   [void]$footerGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::AutoSize)))
   [void]$footer.Controls.Add($footerGrid)
 
   $buttonFlow = New-Object System.Windows.Forms.FlowLayoutPanel
   $buttonFlow.Dock = [System.Windows.Forms.DockStyle]::Fill
   $buttonFlow.AutoSize = $true
-  $buttonFlow.WrapContents = $false
+  $buttonFlow.WrapContents = $true
   $buttonFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
   [void]$footerGrid.Controls.Add($buttonFlow, 0, 0)
 
@@ -334,19 +340,19 @@ function Initialize-Controls {
   $UI.BtnOpen.Enabled = $false
   [void]$buttonFlow.Controls.Add($UI.BtnOpen)
 
+  $closeFlow = New-Object System.Windows.Forms.FlowLayoutPanel
+  $closeFlow.Dock = [System.Windows.Forms.DockStyle]::Fill
+  $closeFlow.AutoSize = $true
+  $closeFlow.WrapContents = $false
+  $closeFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
+  [void]$footerGrid.Controls.Add($closeFlow, 1, 0)
+
   $UI.BtnCloseCode = New-Object System.Windows.Forms.Button
-  $UI.BtnCloseCode.Text = 'Cerrar codigo'
-  $UI.BtnCloseCode.Width = 120
+  $UI.BtnCloseCode.Text = 'Close All'
+  $UI.BtnCloseCode.Width = 130
   $UI.BtnCloseCode.Height = 30
   $UI.BtnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  [void]$buttonFlow.Controls.Add($UI.BtnCloseCode)
-
-  $UI.BtnCloseDocs = New-Object System.Windows.Forms.Button
-  $UI.BtnCloseDocs.Text = 'Cerrar documentos'
-  $UI.BtnCloseDocs.Width = 145
-  $UI.BtnCloseDocs.Height = 30
-  $UI.BtnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  [void]$buttonFlow.Controls.Add($UI.BtnCloseDocs)
+  [void]$closeFlow.Controls.Add($UI.BtnCloseCode)
 
   $UI.BtnToggleLog = New-Object System.Windows.Forms.Button
   $UI.BtnToggleLog.Text = 'Show Log'
@@ -358,9 +364,9 @@ function Initialize-Controls {
   $optionsFlow = New-Object System.Windows.Forms.FlowLayoutPanel
   $optionsFlow.Dock = [System.Windows.Forms.DockStyle]::Fill
   $optionsFlow.AutoSize = $true
-  $optionsFlow.WrapContents = $false
-  $optionsFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::RightToLeft
-  [void]$footerGrid.Controls.Add($optionsFlow, 1, 0)
+  $optionsFlow.WrapContents = $true
+  $optionsFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
+  [void]$footerGrid.Controls.Add($optionsFlow, 2, 0)
 
   $UI.ChkShowWord = New-Object System.Windows.Forms.CheckBox
   $UI.ChkShowWord.Text = 'Show Word after generation'
@@ -378,12 +384,6 @@ function Initialize-Controls {
   $UI.ChkSavePdf.AutoSize = $true
   $UI.ChkSavePdf.Checked = $true
   [void]$optionsFlow.Controls.Add($UI.ChkSavePdf)
-
-  $UI.ChkDark = New-Object System.Windows.Forms.CheckBox
-  $UI.ChkDark.Text = 'Dark theme'
-  $UI.ChkDark.AutoSize = $true
-  $UI.ChkDark.Checked = $true
-  [void]$optionsFlow.Controls.Add($UI.ChkDark)
 
   return $UI
 }
@@ -482,6 +482,16 @@ function Generate-PDF {
 }
 
 function Set-GenerateUiTheme {
+  <#
+  .SYNOPSIS
+  Applies the Midnight theme to Generator controls.
+  .DESCRIPTION
+  Styles form, grid, buttons, and status controls with readable high-contrast colors.
+  .PARAMETER UI
+  Shared synchronized UI state hashtable.
+  .NOTES
+  Must run on UI thread.
+  #>
   param([hashtable]$UI)
 
   $globalTheme = $null
@@ -493,7 +503,19 @@ function Set-GenerateUiTheme {
     if ($scaleVar -and $scaleVar.Value) { $globalScale = [double]$scaleVar.Value }
   } catch {}
 
-  $palette = if ($UI.ChkDark.Checked) { $UI.Theme.Dark } else { $UI.Theme.Light }
+  $palette = $UI.Theme.Dark
+  $setRoleCmd = Get-Command -Name Set-UiControlRole -CommandType Function -ErrorAction SilentlyContinue
+  if ($setRoleCmd -and $setRoleCmd.ScriptBlock) {
+    & $setRoleCmd.ScriptBlock -Control $UI.BtnStart -Role 'PrimaryButton'
+    & $setRoleCmd.ScriptBlock -Control $UI.BtnDashboard -Role 'AccentButton'
+    & $setRoleCmd.ScriptBlock -Control $UI.BtnOpen -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $UI.BtnStop -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $UI.BtnToggleLog -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $UI.BtnCloseCode -Role 'DangerButton'
+    & $setRoleCmd.ScriptBlock -Control $UI.LblMetrics -Role 'MutedLabel'
+    & $setRoleCmd.ScriptBlock -Control $UI.LblStatusText -Role 'StatusLabel'
+  }
+
   $UI.Form.BackColor = $palette.Bg
   $UI.Form.ForeColor = $palette.Text
   $UI.HeaderCard.BackColor = $palette.Card
@@ -505,10 +527,10 @@ function Set-GenerateUiTheme {
   $UI.LblTitle.ForeColor = $palette.Text
   $UI.LblMetrics.ForeColor = $palette.Sub
   $UI.LblStatusText.ForeColor = $palette.Sub
-  $UI.LogBox.BackColor = $palette.Bg
+  $UI.LogBox.BackColor = $palette.Input
   $UI.LogBox.ForeColor = $palette.Text
 
-  foreach ($btn in @($UI.BtnDashboard, $UI.BtnStart, $UI.BtnStop, $UI.BtnOpen, $UI.BtnCloseCode, $UI.BtnCloseDocs, $UI.BtnToggleLog)) {
+  foreach ($btn in @($UI.BtnDashboard, $UI.BtnStart, $UI.BtnStop, $UI.BtnOpen, $UI.BtnCloseCode, $UI.BtnToggleLog)) {
     $btn.BackColor = $palette.Card
     $btn.ForeColor = $palette.Text
     $btn.FlatAppearance.BorderColor = $palette.Border
@@ -521,25 +543,29 @@ function Set-GenerateUiTheme {
   $UI.BtnStart.BackColor = $palette.Accent
   $UI.BtnStart.ForeColor = $palette.BadgeText
   $UI.BtnStart.FlatAppearance.BorderColor = $palette.Accent
+  $UI.BtnStart.FlatAppearance.MouseOverBackColor = $palette.AccentHover
+  $UI.BtnStart.FlatAppearance.MouseDownBackColor = $palette.AccentPressed
   $UI.BtnStop.BackColor = $palette.StopBg
   $UI.BtnStop.ForeColor = $palette.StopFg
   $UI.BtnStop.FlatAppearance.BorderColor = $palette.StopBorder
 
-  foreach ($chk in @($UI.ChkDark, $UI.ChkSavePdf, $UI.ChkSaveDocx, $UI.ChkShowWord)) {
+  foreach ($chk in @($UI.ChkSavePdf, $UI.ChkSaveDocx, $UI.ChkShowWord)) {
     $chk.BackColor = $palette.Card
-    $chk.ForeColor = $palette.Sub
+    $chk.ForeColor = $palette.Text
   }
 
-  $UI.Grid.BackgroundColor = $palette.Bg
+  $UI.Grid.BackgroundColor = $palette.Card
   $UI.Grid.GridColor = $palette.Border
   $UI.Grid.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+  $UI.Grid.EnableHeadersVisualStyles = $false
+  $UI.Grid.RowHeadersVisible = $false
   $UI.Grid.ColumnHeadersDefaultCellStyle.BackColor = $palette.Card
-  $UI.Grid.ColumnHeadersDefaultCellStyle.ForeColor = $palette.Sub
-  $UI.Grid.DefaultCellStyle.BackColor = $palette.Bg
+  $UI.Grid.ColumnHeadersDefaultCellStyle.ForeColor = $palette.Text
+  $UI.Grid.DefaultCellStyle.BackColor = $palette.Input
   $UI.Grid.DefaultCellStyle.ForeColor = $palette.Text
-  $UI.Grid.DefaultCellStyle.SelectionBackColor = $palette.Shadow
-  $UI.Grid.DefaultCellStyle.SelectionForeColor = $palette.Text
-  $UI.Grid.AlternatingRowsDefaultCellStyle.BackColor = $palette.Card
+  $UI.Grid.DefaultCellStyle.SelectionBackColor = $palette.Selection
+  $UI.Grid.DefaultCellStyle.SelectionForeColor = $palette.BadgeText
+  $UI.Grid.AlternatingRowsDefaultCellStyle.BackColor = $palette.GridAlt
   $UI.Grid.AlternatingRowsDefaultCellStyle.ForeColor = $palette.Text
 
   if ($globalTheme -and (Get-Command -Name Apply-ThemeToControlTree -ErrorAction SilentlyContinue)) {
@@ -557,7 +583,7 @@ function Update-GenerateDataState {
   $UI.BtnDashboard.Enabled = [bool]$ExcelReady
   if (-not $ExcelReady) {
     $msg = ("" + $Reason).Trim()
-    if (-not $msg) { $msg = 'Please load Excel first.' }
+    if (-not $msg) { $msg = 'Excel not ready yet - loading...' }
     $UI.LblStatusText.Text = $msg
     Set-StatusPill -UI $UI -Text 'Missing Excel' -State error
   }
@@ -570,7 +596,7 @@ function Set-StatusPill {
     [ValidateSet('idle', 'running', 'done', 'error')]$State = 'idle'
   )
 
-  $palette = if ($UI.ChkDark.Checked) { $UI.Theme.Dark } else { $UI.Theme.Light }
+  $palette = $UI.Theme.Dark
   $UI.LblStatusPill.Text = $Text
   switch ($State) {
     'running' { $UI.StatusPill.BackColor = $palette.Accent }
@@ -601,18 +627,33 @@ function Invoke-UiSafe {
     [string]$Context,
     [scriptblock]$Action
   )
-  try { & $Action }
-  catch { Show-UiError -Context $Context -ErrorRecord $_ }
+  $safeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue
+  if ($safeCmd -and $safeCmd.ScriptBlock) {
+    & $safeCmd.ScriptBlock -ActionName $Context -Action $Action | Out-Null
+    return
+  }
+  try { & $Action } catch { Show-UiError -Context $Context -ErrorRecord $_ }
 }
 
 function Register-GenerateHandlers {
+  <#
+  .SYNOPSIS
+  Registers Generator button and interaction handlers.
+  .DESCRIPTION
+  Wraps all UI actions with Invoke-UiSafe to avoid unhandled exceptions.
+  .PARAMETER UI
+  Shared synchronized UI state hashtable.
+  .NOTES
+  Event handlers execute on the WinForms UI thread.
+  #>
   param([hashtable]$UI)
 
   $UI.BtnDashboard.Add_Click(({
     param($sender, $args)
     Invoke-UiSafe -UI $UI -Context 'Open Dashboard' -Action {
       if (-not [bool]$UI.ExcelReady) {
-        [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+        $UI.LblStatusText.Text = 'Excel not ready yet - loading...'
+        Set-StatusPill -UI $UI -Text 'Loading' -State running
         return
       }
       if ($UI.OnOpenDashboard) { & $UI.OnOpenDashboard; return }
@@ -633,23 +674,12 @@ function Register-GenerateHandlers {
 
   $UI.BtnCloseCode.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Cerrar codigo' -Action {
-      $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $UI.Form -Mode 'All' -MainForm $UI.Form
+    Invoke-UiSafe -UI $UI -Context 'Close All' -Action {
+      $r = Invoke-UiEmergencyClose -ActionLabel 'Close All' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe', 'winword.exe') -Owner $UI.Form -Mode 'All' -MainForm $UI.Form
       if (-not $r.Cancelled) {
         $UI.LblStatusText.Text = $r.Message
         Append-GenerateLog -UI $UI -Line $r.Message
         try { if (Get-Command -Name Close-SchumanOpenForms -ErrorAction SilentlyContinue) { Close-SchumanOpenForms } } catch {}
-      }
-    }
-  }).GetNewClosure())
-
-  $UI.BtnCloseDocs.Add_Click(({
-    param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Cerrar documentos' -Action {
-      $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $UI.Form
-      if (-not $r.Cancelled) {
-        $UI.LblStatusText.Text = $r.Message
-        Append-GenerateLog -UI $UI -Line $r.Message
       }
     }
   }).GetNewClosure())
@@ -680,7 +710,8 @@ function Register-GenerateHandlers {
     param($sender, $args)
     Invoke-UiSafe -UI $UI -Context 'Generate Documents' -Action {
       if (-not [bool]$UI.ExcelReady) {
-        [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Validation') | Out-Null
+        $UI.LblStatusText.Text = 'Excel not ready yet - loading...'
+        Set-StatusPill -UI $UI -Text 'Loading' -State running
         return
       }
       $UI.BtnStart.Enabled = $false
@@ -710,7 +741,7 @@ function Register-GenerateHandlers {
           $UI.LblMetrics.Text = 'Total: 1 | Saved: 1 | Skipped: 0 | Errors: 0'
         }
         else {
-          $msg = if ($result -and $result.message) { "" + $result.message } else { 'Unknown error.' }
+          $msg = if ($result -and $result.message) { "" + $result.message } else { 'Generation failed without details.' }
           $UI.LblStatusText.Text = 'Generation failed.'
           Set-StatusPill -UI $UI -Text 'Error' -State error
           Append-GenerateLog -UI $UI -Line $msg
@@ -733,13 +764,6 @@ function Register-GenerateHandlers {
     }
   }).GetNewClosure())
 
-  $UI.ChkDark.Add_CheckedChanged(({
-    param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Apply Theme' -Action {
-      Set-GenerateUiTheme -UI $UI
-      Set-StatusPill -UI $UI -Text $UI.LblStatusPill.Text -State idle
-    }
-  }).GetNewClosure())
 }
 
 function New-GeneratePdfUI {
@@ -754,13 +778,6 @@ function New-GeneratePdfUI {
 
   $UI = New-UI -ExcelPath $ExcelPath -SheetName $SheetName -TemplatePath $TemplatePath -OutputPath $OutputPath -OnOpenDashboard $OnOpenDashboard -OnGenerate $OnGenerate
   $null = Initialize-Controls -UI $UI
-  try {
-    $themeVar = Get-Variable -Name CurrentMainTheme -Scope Global -ErrorAction SilentlyContinue
-    if ($themeVar -and $themeVar.Value -and $UI.ChkDark) {
-      $UI.ChkDark.Visible = $false
-      $UI.ChkDark.Enabled = $false
-    }
-  } catch {}
   Register-GenerateHandlers -UI $UI
   Set-GenerateUiTheme -UI $UI
   Set-StatusPill -UI $UI -Text 'Idle' -State idle
@@ -770,7 +787,7 @@ function New-GeneratePdfUI {
     $rows = @(Export-Excel -UI $UI)
     Update-Grid -UI $UI -Rows $rows
     $total = $rows.Count
-    Update-GenerateDataState -UI $UI -ExcelReady ($total -gt 0) -Reason 'Please load Excel first.'
+    Update-GenerateDataState -UI $UI -ExcelReady ($total -gt 0) -Reason 'Excel not ready yet - loading...'
     $UI.LblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
     if ($total -gt 0) {
       $UI.LblStatusText.Text = "Ready. Preloaded $total rows from Excel."
@@ -778,7 +795,7 @@ function New-GeneratePdfUI {
     }
   }
   catch {
-    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason 'Please load Excel first.'
+    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason 'Excel not ready yet - loading...'
     Show-UiError -Context 'Load-Data' -ErrorRecord $_
   }
 

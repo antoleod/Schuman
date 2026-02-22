@@ -1,6 +1,27 @@
 ﻿Set-StrictMode -Version Latest
 
 function New-DashboardUI {
+  <#
+  .SYNOPSIS
+  Creates and returns the Check-in/Check-out Dashboard form.
+  .DESCRIPTION
+  Builds the Dashboard WinForms UI, wires event handlers through safe UI wrappers,
+  and loads Excel-backed rows for ServiceNow-assisted operations.
+  .PARAMETER ExcelPath
+  Path to the Excel workbook used as data source/writeback target.
+  .PARAMETER SheetName
+  Worksheet name used by Dashboard operations.
+  .PARAMETER Config
+  Runtime configuration hashtable.
+  .PARAMETER RunContext
+  Run context used by logging/integrations.
+  .PARAMETER InitialSession
+  Optional pre-authenticated ServiceNow session.
+  .OUTPUTS
+  System.Windows.Forms.Form
+  .NOTES
+  UI updates are performed on the UI thread through safe wrappers.
+  #>
   param(
     [Parameter(Mandatory = $true)][string]$ExcelPath,
     [string]$SheetName = 'BRU',
@@ -26,14 +47,14 @@ function New-DashboardUI {
 
   $templateStorePath = Join-Path (Join-Path $env:APPDATA 'Schuman') 'dashboard-templates.json'
 
-  $cBg = [System.Drawing.Color]::FromArgb(24, 24, 26)
-  $cPanel = [System.Drawing.Color]::FromArgb(30, 30, 32)
-  $cPanel2 = [System.Drawing.Color]::FromArgb(36, 36, 38)
-  $cBorder = [System.Drawing.Color]::FromArgb(58, 58, 62)
-  $cText = [System.Drawing.Color]::FromArgb(230, 230, 230)
-  $cMuted = [System.Drawing.Color]::FromArgb(178, 178, 182)
-  $cHint = [System.Drawing.Color]::FromArgb(120, 180, 255)
-  $cAccent = [System.Drawing.Color]::FromArgb(0, 122, 255)
+  $cBg = [System.Drawing.ColorTranslator]::FromHtml('#0F172A')
+  $cPanel = [System.Drawing.ColorTranslator]::FromHtml('#1E293B')
+  $cPanel2 = [System.Drawing.ColorTranslator]::FromHtml('#172033')
+  $cBorder = [System.Drawing.ColorTranslator]::FromHtml('#334155')
+  $cText = [System.Drawing.ColorTranslator]::FromHtml('#E5E7EB')
+  $cMuted = [System.Drawing.ColorTranslator]::FromHtml('#94A3B8')
+  $cHint = [System.Drawing.ColorTranslator]::FromHtml('#3B82F6')
+  $cAccent = [System.Drawing.ColorTranslator]::FromHtml('#2563EB')
 
   $form = New-Object System.Windows.Forms.Form
   $form.Text = 'Check-in / Check-out Dashboard'
@@ -42,7 +63,7 @@ function New-DashboardUI {
   $form.MinimumSize = New-Object System.Drawing.Size(980, 680)
   $form.BackColor = $cBg
   $form.ForeColor = $cText
-  $form.Font = New-Object System.Drawing.Font($fontName, 10)
+  $form.Font = New-Object System.Drawing.Font($fontName, 11)
   $form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Font
 
   if (Get-Command -Name Initialize-SchumanRuntime -ErrorAction SilentlyContinue) {
@@ -85,6 +106,7 @@ function New-DashboardUI {
 
   $btnStyle = ({
     param($b, [bool]$accent = $false)
+    $b.Font = New-Object System.Drawing.Font($fontName, 10.5, [System.Drawing.FontStyle]::Bold)
     $b.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
     $b.FlatAppearance.BorderSize = 1
     if ($accent) {
@@ -101,6 +123,18 @@ function New-DashboardUI {
       $b.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(44, 44, 48)
       $b.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(32, 32, 34)
     }
+    $b.Add_EnabledChanged(({
+          param($sender, $eventArgs)
+          try {
+            if ($sender.Enabled) {
+              $sender.ForeColor = $cText
+            }
+            else {
+              $sender.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#94A3B8')
+            }
+          }
+          catch {}
+        }).GetNewClosure())
   }).GetNewClosure()
 
   $lblSearch = New-Object System.Windows.Forms.Label
@@ -132,15 +166,9 @@ function New-DashboardUI {
   $btnClear.Size = New-Object System.Drawing.Size(80, 28)
   & $btnStyle $btnClear $false
 
-  $btnRecalc = New-Object System.Windows.Forms.Button
-  $btnRecalc.Text = 'Recalculate from SNOW'
-  $btnRecalc.Location = New-Object System.Drawing.Point(590, 36)
-  $btnRecalc.Size = New-Object System.Drawing.Size(170, 28)
-  & $btnStyle $btnRecalc $false
-
   $btnOpenSnow = New-Object System.Windows.Forms.Button
   $btnOpenSnow.Text = 'Open in ServiceNow'
-  $btnOpenSnow.Location = New-Object System.Drawing.Point(770, 36)
+  $btnOpenSnow.Location = New-Object System.Drawing.Point(690, 36)
   $btnOpenSnow.Size = New-Object System.Drawing.Size(160, 28)
   & $btnStyle $btnOpenSnow $false
 
@@ -151,19 +179,11 @@ function New-DashboardUI {
   & $btnStyle $btnTemplateSettings $false
 
   $chkOpenOnly = New-Object System.Windows.Forms.CheckBox
-  $chkOpenOnly.Text = 'Solo RITM abiertos'
+  $chkOpenOnly.Text = 'Open RITM only'
   $chkOpenOnly.Location = New-Object System.Drawing.Point(984, 40)
   $chkOpenOnly.Size = New-Object System.Drawing.Size(180, 24)
   $chkOpenOnly.ForeColor = $cMuted
   $chkOpenOnly.BackColor = $cBg
-
-  $chkUltraFast = New-Object System.Windows.Forms.CheckBox
-  $chkUltraFast.Text = 'Ultra fast mode'
-  $chkUltraFast.Location = New-Object System.Drawing.Point(984, 16)
-  $chkUltraFast.Size = New-Object System.Drawing.Size(160, 22)
-  $chkUltraFast.ForeColor = $cMuted
-  $chkUltraFast.BackColor = $cBg
-  $chkUltraFast.Checked = $true
 
   $lblHint = New-Object System.Windows.Forms.Label
   $lblHint.Text = 'Live filter enabled. Start typing to load matching users and tasks.'
@@ -281,16 +301,34 @@ function New-DashboardUI {
   & $btnStyle $btnCheckOut $false
 
   $btnCloseCode = New-Object System.Windows.Forms.Button
-  $btnCloseCode.Text = 'Cerrar codigo'
+  $btnCloseCode.Text = 'Close All'
   $btnCloseCode.Location = New-Object System.Drawing.Point(704, 626)
-  $btnCloseCode.Size = New-Object System.Drawing.Size(180, 36)
+  $btnCloseCode.Size = New-Object System.Drawing.Size(210, 36)
   & $btnStyle $btnCloseCode $false
+  $btnCloseCode.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
+  $btnCloseCode.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
+  $btnCloseCode.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#FFFFFF')
 
-  $btnCloseDocs = New-Object System.Windows.Forms.Button
-  $btnCloseDocs.Text = 'Cerrar documentos'
-  $btnCloseDocs.Location = New-Object System.Drawing.Point(894, 626)
-  $btnCloseDocs.Size = New-Object System.Drawing.Size(192, 36)
-  & $btnStyle $btnCloseDocs $false
+  $sepHistory = New-Object System.Windows.Forms.Panel
+  $sepHistory.Height = 1
+  $sepHistory.Width = 1070
+  $sepHistory.BackColor = $cBorder
+
+  $lblHistory = New-Object System.Windows.Forms.Label
+  $lblHistory.Text = 'Activity / History'
+  $lblHistory.AutoSize = $true
+  $lblHistory.ForeColor = $cMuted
+
+  $txtHistory = New-Object System.Windows.Forms.RichTextBox
+  $txtHistory.ReadOnly = $true
+  $txtHistory.Multiline = $true
+  $txtHistory.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+  $txtHistory.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+  $txtHistory.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#0B1220')
+  $txtHistory.ForeColor = $cText
+  $txtHistory.DetectUrls = $false
+  $txtHistory.WordWrap = $false
+  $txtHistory.Font = New-Object System.Drawing.Font($fontName, 9.5)
 
   $lblStatus = New-Object System.Windows.Forms.Label
   $lblStatus.Text = 'Type to filter users. Nothing is loaded by default.'
@@ -299,8 +337,8 @@ function New-DashboardUI {
   $lblStatus.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 170)
 
   $form.Controls.AddRange(@(
-      $lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnRecalc, $btnOpenSnow, $btnTemplateSettings, $chkUltraFast, $chkOpenOnly, $lblHint, $loadingBar,
-      $grid, $lblComment, $txtComment, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $btnCloseCode, $btnCloseDocs, $lblStatus
+      $lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnOpenSnow, $btnTemplateSettings, $chkOpenOnly, $lblHint, $loadingBar,
+      $grid, $lblComment, $txtComment, $sepHistory, $lblHistory, $txtHistory, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $btnCloseCode, $lblStatus
     ))
 
   $layoutDashboard = ({
@@ -311,9 +349,8 @@ function New-DashboardUI {
 
     $lblSearch.Location = New-Object System.Drawing.Point($m, 16)
 
-    $rightColumnW = 184
+    $rightColumnW = 196
     $rightColumnX = [Math]::Max(760, $clientW - $rightColumnW - $m)
-    $chkUltraFast.Location = New-Object System.Drawing.Point($rightColumnX, 16)
     $chkOpenOnly.Location = New-Object System.Drawing.Point($rightColumnX, 40)
 
     $topButtonsY = 36
@@ -322,10 +359,8 @@ function New-DashboardUI {
 
     $btnOpenSnow.Size = New-Object System.Drawing.Size(160, 28)
     $btnOpenSnow.Location = New-Object System.Drawing.Point(($btnTemplateSettings.Left - $g - $btnOpenSnow.Width), $topButtonsY)
-    $btnRecalc.Size = New-Object System.Drawing.Size(170, 28)
-    $btnRecalc.Location = New-Object System.Drawing.Point(($btnOpenSnow.Left - $g - $btnRecalc.Width), $topButtonsY)
     $btnClear.Size = New-Object System.Drawing.Size(80, 28)
-    $btnClear.Location = New-Object System.Drawing.Point(($btnRecalc.Left - $g - $btnClear.Width), $topButtonsY)
+    $btnClear.Location = New-Object System.Drawing.Point(($btnOpenSnow.Left - $g - $btnClear.Width), $topButtonsY)
     $btnRefresh.Size = New-Object System.Drawing.Size(100, 28)
     $btnRefresh.Location = New-Object System.Drawing.Point(($btnClear.Left - $g - $btnRefresh.Width), $topButtonsY)
 
@@ -340,8 +375,9 @@ function New-DashboardUI {
 
     $gridTop = 96
     $bottomButtonsTop = $clientH - 54
-    $commentTop = [Math]::Max(($gridTop + 220), ($bottomButtonsTop - 156))
-    $commentHeight = [Math]::Max(90, $bottomButtonsTop - $commentTop - 34)
+    $historyHeight = 96
+    $commentTop = [Math]::Max(($gridTop + 180), ($bottomButtonsTop - 282))
+    $commentHeight = [Math]::Max(72, $bottomButtonsTop - $commentTop - (34 + $historyHeight + 24))
     $gridHeight = [Math]::Max(220, $commentTop - $gridTop - 14)
 
     $grid.Location = New-Object System.Drawing.Point($m, $gridTop)
@@ -351,11 +387,17 @@ function New-DashboardUI {
     $txtComment.Location = New-Object System.Drawing.Point($m, ($commentTop + 24))
     $txtComment.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), $commentHeight)
 
+    $historyTop = $txtComment.Bottom + 8
+    $sepHistory.Location = New-Object System.Drawing.Point($m, $historyTop)
+    $sepHistory.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), 1)
+    $lblHistory.Location = New-Object System.Drawing.Point($m, ($historyTop + 4))
+    $txtHistory.Location = New-Object System.Drawing.Point($m, ($lblHistory.Bottom + 4))
+    $txtHistory.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), $historyHeight)
+
     $btnUseCheckInNote.Location = New-Object System.Drawing.Point($m, $bottomButtonsTop)
     $btnUseCheckOutNote.Location = New-Object System.Drawing.Point(($btnUseCheckInNote.Right + 12), $bottomButtonsTop)
 
-    $btnCloseDocs.Location = New-Object System.Drawing.Point(($clientW - $m - $btnCloseDocs.Width), $bottomButtonsTop)
-    $btnCloseCode.Location = New-Object System.Drawing.Point(($btnCloseDocs.Left - 10 - $btnCloseCode.Width), $bottomButtonsTop)
+    $btnCloseCode.Location = New-Object System.Drawing.Point(($clientW - $m - $btnCloseCode.Width), $bottomButtonsTop)
     $btnCheckOut.Location = New-Object System.Drawing.Point(($btnCloseCode.Left - 10 - $btnCheckOut.Width), $bottomButtonsTop)
     $btnCheckIn.Location = New-Object System.Drawing.Point(($btnCheckOut.Left - 10 - $btnCheckIn.Width), $bottomButtonsTop)
 
@@ -388,8 +430,8 @@ function New-DashboardUI {
       Search = $txtSearch
       Grid = $grid
       OpenOnly = $chkOpenOnly
-      UltraFast = $chkUltraFast
       Comment = $txtComment
+      History = $txtHistory
       Status = $lblStatus
       TemplateSettings = $btnTemplateSettings
       LoadingBar = $loadingBar
@@ -560,8 +602,7 @@ function New-DashboardUI {
 
   $ensureExcelReady = ({
     if ([bool]$state.ExcelReady) { return $true }
-    [System.Windows.Forms.MessageBox]::Show('Please load Excel first.', 'Dashboard') | Out-Null
-    $lblStatus.Text = 'Please load Excel first.'
+    $lblStatus.Text = 'Excel not ready yet - loading...'
     return $false
   }).GetNewClosure()
 
@@ -582,11 +623,10 @@ function New-DashboardUI {
     $btnTemplateSettings.Enabled = $allowActions
     $btnCheckIn.Enabled = ($allowActions -and $hasValidRitm -and -not $isClosed)
     $btnCheckOut.Enabled = ($allowActions -and $hasValidRitm)
-    $btnRecalc.Enabled = ($allowActions -and $hasValidRitm)
+    # Recalculate button intentionally removed.
     $btnOpenSnow.Enabled = ($allowActions -and $hasValidRitm)
     $txtSearch.Enabled = $allowActions
     $chkOpenOnly.Enabled = $allowActions
-    $chkUltraFast.Enabled = $allowActions
   }).GetNewClosure()
 
   $getVisibleRows = ({
@@ -732,8 +772,9 @@ function New-DashboardUI {
         & $updateActionButtons
         if ($state.ExcelReady) {
           $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
+          & $appendHistory "Preloaded $($state.Rows.Count) rows from Excel."
         } else {
-          $lblStatus.Text = 'Please load Excel first.'
+          $lblStatus.Text = 'Excel not ready yet - loading...'
         }
         return
       }
@@ -751,11 +792,12 @@ function New-DashboardUI {
       & $bindRowsToGrid $rows
       & $updateActionButtons
 
-      $filterNote = if ($chkOpenOnly.Checked) { ' (solo abiertos)' } else { '' }
+      $filterNote = if ($chkOpenOnly.Checked) { ' (open only)' } else { '' }
       if ($state.ExcelReady) {
         $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
+        & $appendHistory "Search '$q' => $($rows.Count) row(s)$filterNote."
       } else {
-        $lblStatus.Text = 'Please load Excel first.'
+        $lblStatus.Text = 'Excel not ready yet - loading...'
       }
     }
     catch {
@@ -822,6 +864,7 @@ function New-DashboardUI {
 
       & $updateDashboardRowHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -Row ([int]$row.Row) -Status $dashboardStatus -SCTaskNumber ("" + $task.number)
       $lblStatus.Text = ("{0}: {1} ({2})" -f $dashboardStatus, $row.RITM, $task.number)
+      & $appendHistory ("{0}: {1} ({2})" -f $dashboardStatus, $row.RITM, $task.number)
       & $performSearch -ReloadFromExcel
     }
     catch {
@@ -874,6 +917,7 @@ function New-DashboardUI {
 
       & $updateDashboardRowHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -Row ([int]$row.Row) -Status $newStatus -SCTaskNumber ("" + $tasks[0].number)
       $lblStatus.Text = "Recalculated: $ritm => $newStatus"
+      & $appendHistory ("Recalculated {0} => {1}" -f $ritm, $newStatus)
       & $performSearch -ReloadFromExcel
     }
     catch {
@@ -986,6 +1030,14 @@ function New-DashboardUI {
 
     $dlg.CancelButton = $btnCancel
     $dlg.AcceptButton = $btnSave
+    $applyThemeToControlTreeHandler = ${function:Apply-ThemeToControlTree}
+    $themeVar = Get-Variable -Name CurrentMainTheme -Scope Global -ErrorAction SilentlyContinue
+    $scaleVar = Get-Variable -Name CurrentMainFontScale -Scope Global -ErrorAction SilentlyContinue
+    $scale = 1.0
+    if ($scaleVar -and $scaleVar.Value) { try { $scale = [double]$scaleVar.Value } catch { $scale = 1.0 } }
+    if ($applyThemeToControlTreeHandler -and $themeVar -and $themeVar.Value) {
+      & $applyThemeToControlTreeHandler -RootControl $dlg -Theme $themeVar.Value -FontScale $scale
+    }
     [void]$dlg.ShowDialog($form)
   }).GetNewClosure()
 
@@ -1002,7 +1054,7 @@ function New-DashboardUI {
       if ($state.ExcelReady) {
         $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
       } else {
-        $lblStatus.Text = 'Please load Excel first.'
+        $lblStatus.Text = 'Excel not ready yet - loading...'
       }
       try { Write-Log -Level INFO -Message ("Preloaded {0} rows from Excel." -f $state.Rows.Count) } catch {}
     }
@@ -1010,7 +1062,10 @@ function New-DashboardUI {
       $state.ExcelReady = $false
       & $updateActionButtons
       $lblStatus.Text = 'Preload failed.'
-      [System.Windows.Forms.MessageBox]::Show("Preload failed: $($_.Exception.Message)", 'Dashboard Error') | Out-Null
+      $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+      if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
+        & $globalShowUiError.ScriptBlock -Title 'Dashboard' -Message 'Preload failed.' -Exception $_.Exception
+      }
     }
     finally {
       & $setLoadingState -IsLoading $false
@@ -1031,118 +1086,194 @@ function New-DashboardUI {
     $state.Controls.SearchTimer.Start()
   }).GetNewClosure()
 
+  $runSafeUi = ({
+    param([string]$ctx, [scriptblock]$act)
+    $safeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue
+    if ($safeCmd -and $safeCmd.ScriptBlock) {
+      & $safeCmd.ScriptBlock -ActionName $ctx -Action $act | Out-Null
+      return
+    }
+    try { & $act } catch {
+      $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+      if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
+        & $globalShowUiError.ScriptBlock -Title 'Dashboard' -Message ("{0} failed." -f $ctx) -Exception $_.Exception
+      }
+    }
+  }).GetNewClosure()
+
+  $appendHistory = ({
+    param([string]$Line)
+    $safeLine = ("" + $Line).Trim()
+    if (-not $safeLine) { return }
+    $hist = $state.Controls.History
+    if (-not $hist -or $hist.IsDisposed) { return }
+    try {
+      $stamp = Get-Date -Format 'HH:mm:ss'
+      $hist.AppendText(("[{0}] {1}" -f $stamp, $safeLine) + [Environment]::NewLine)
+      $all = @($hist.Lines)
+      if ($all.Count -gt 500) {
+        $all = $all[($all.Count - 500)..($all.Count - 1)]
+        $hist.Lines = $all
+      }
+      $hist.SelectionStart = $hist.TextLength
+      $hist.ScrollToCaret()
+    }
+    catch {}
+  }).GetNewClosure()
+
+  $assignThemeRoles = ({
+    $setRoleCmd = Get-Command -Name Set-UiControlRole -CommandType Function -ErrorAction SilentlyContinue
+    if (-not $setRoleCmd -or -not $setRoleCmd.ScriptBlock) { return }
+    & $setRoleCmd.ScriptBlock -Control $btnRefresh -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $btnClear -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $btnOpenSnow -Role 'AccentButton'
+    & $setRoleCmd.ScriptBlock -Control $btnTemplateSettings -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $btnUseCheckInNote -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $btnUseCheckOutNote -Role 'SecondaryButton'
+    & $setRoleCmd.ScriptBlock -Control $btnCheckIn -Role 'PrimaryButton'
+    & $setRoleCmd.ScriptBlock -Control $btnCheckOut -Role 'AccentButton'
+    & $setRoleCmd.ScriptBlock -Control $btnCloseCode -Role 'DangerButton'
+    & $setRoleCmd.ScriptBlock -Control $lblSearch -Role 'MutedLabel'
+    & $setRoleCmd.ScriptBlock -Control $lblHint -Role 'MutedLabel'
+    & $setRoleCmd.ScriptBlock -Control $lblStatus -Role 'StatusLabel'
+  }).GetNewClosure()
+
   $txtSearch.Add_KeyDown(({
     param($sender, $e)
-    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
-      $e.SuppressKeyPress = $true
-      if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
-      & $performSearch
+    & $runSafeUi 'Dashboard Search KeyDown' {
+      if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
+        $e.SuppressKeyPress = $true
+        if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
+        & $performSearch
+      }
     }
   }).GetNewClosure())
   $txtSearch.Add_TextUpdate(({
-    & $updateSearchUserSuggestions
-    & $scheduleSearch
+    & $runSafeUi 'Dashboard Search TextUpdate' {
+      & $updateSearchUserSuggestions
+      & $scheduleSearch
+    }
   }).GetNewClosure())
-  $txtSearch.Add_DropDown(({ & $updateSearchUserSuggestions }.GetNewClosure()))
-  $txtSearch.Add_SelectedIndexChanged(({ & $scheduleSearch }.GetNewClosure()))
+  $txtSearch.Add_DropDown(({
+        & $runSafeUi 'Dashboard Search DropDown' { & $updateSearchUserSuggestions }
+      }).GetNewClosure())
+  $txtSearch.Add_SelectedIndexChanged(({
+        & $runSafeUi 'Dashboard Search SelectionChanged' { & $scheduleSearch }
+      }).GetNewClosure())
 
   $chkOpenOnly.Add_CheckedChanged(({
-    if ($state.AllRows.Count -eq 0) {
-      & $performSearch -ReloadFromExcel
-      return
+    & $runSafeUi 'Dashboard OpenOnly Changed' {
+      if ($state.AllRows.Count -eq 0) {
+        & $performSearch -ReloadFromExcel
+        return
+      }
+      $rows = & $getVisibleRows
+      $state.Rows = @($rows)
+      & $bindRowsToGrid $rows
+      & $updateActionButtons
+      if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
+        $filterNote = if ($chkOpenOnly.Checked) { ' (open only)' } else { '' }
+        $lblStatus.Text = "Preloaded $($rows.Count) rows from Excel$filterNote."
+        return
+      }
+      $filterNote = if ($chkOpenOnly.Checked) { ' (open only)' } else { '' }
+      $lblStatus.Text = "Results: $($rows.Count) for '$($state.LastSearch)'$filterNote"
     }
-    $rows = & $getVisibleRows
-    $state.Rows = @($rows)
-    & $bindRowsToGrid $rows
-    & $updateActionButtons
-    if ([string]::IsNullOrWhiteSpace($state.LastSearch)) {
-      $filterNote = if ($chkOpenOnly.Checked) { ' (solo abiertos)' } else { '' }
-      $lblStatus.Text = "Preloaded $($rows.Count) rows from Excel$filterNote."
-      return
-    }
-    $filterNote = if ($chkOpenOnly.Checked) { ' (solo abiertos)' } else { '' }
-    $lblStatus.Text = "Results: $($rows.Count) for '$($state.LastSearch)'$filterNote"
   }).GetNewClosure())
 
-  $chkUltraFast.Add_CheckedChanged(({
-    $state.UltraFast = [bool]$chkUltraFast.Checked
-    $state.QueryCache = @{}
-    $state.AllRowsUniverse = @()
-    & $performSearch -ReloadFromExcel
-  }).GetNewClosure())
+  $state.UltraFast = $true
 
-  $grid.Add_SelectionChanged(({ & $updateActionButtons }.GetNewClosure()))
-  $grid.Add_SelectionChanged(({ & $refreshSelectionStatus }.GetNewClosure()))
-  $grid.Add_CellDoubleClick(({ & $applyAction 'checkin' }.GetNewClosure()))
+  $grid.Add_SelectionChanged(({
+        & $runSafeUi 'Dashboard Grid SelectionChanged Buttons' { & $updateActionButtons }
+      }).GetNewClosure())
+  $grid.Add_SelectionChanged(({
+        & $runSafeUi 'Dashboard Grid SelectionChanged Status' { & $refreshSelectionStatus }
+      }).GetNewClosure())
+  $grid.Add_CellDoubleClick(({
+        & $runSafeUi 'Dashboard Grid DoubleClick' { & $applyAction 'checkin' }
+      }).GetNewClosure())
 
   $btnRefresh.Add_Click(({
-    try {
+    & $runSafeUi 'Dashboard Refresh' {
       if (-not (& $ensureExcelReady)) { return }
       $state.Controls.Search.Text = $state.LastSearch
       & $performSearch -ReloadFromExcel
       $lblStatus.Text = 'Done: dashboard refreshed from Excel.'
-    } catch {
-      $err = $_.Exception.Message
-      try { Write-Log -Level ERROR -Message ("Dashboard refresh failed: " + $err) } catch {}
-      [System.Windows.Forms.MessageBox]::Show("Refresh failed: $err", 'Dashboard Error') | Out-Null
+      & $appendHistory 'Dashboard refreshed from Excel.'
     }
   }).GetNewClosure())
 
   $btnClear.Add_Click(({
-    if (-not (& $ensureExcelReady)) { return }
-    $state.Controls.Search.Text = ''
-    $state.LastSearch = ''
-    & $performSearch
+    & $runSafeUi 'Dashboard Clear' {
+      if (-not (& $ensureExcelReady)) { return }
+      $state.Controls.Search.Text = ''
+      $state.LastSearch = ''
+      & $performSearch
+    }
   }).GetNewClosure())
 
   $btnUseCheckInNote.Add_Click(({
-    if (-not (& $ensureExcelReady)) { return }
-    $row = & $getSelectedRow
-    if (-not $row) {
-      [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
-      return
+    & $runSafeUi 'Dashboard Use Check-In Note' {
+      if (-not (& $ensureExcelReady)) { return }
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
+        return
+      }
+      $state.Controls.Comment.Text = & $renderTemplateForRow -TemplateText $state.Templates.checkIn -rowItem $row
+      & $appendHistory ("Applied Check-In template for {0}" -f ("" + $row.RITM))
     }
-    $state.Controls.Comment.Text = & $renderTemplateForRow -TemplateText $state.Templates.checkIn -rowItem $row
   }).GetNewClosure())
   $btnUseCheckOutNote.Add_Click(({
-    if (-not (& $ensureExcelReady)) { return }
-    $row = & $getSelectedRow
-    if (-not $row) {
-      [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
-      return
+    & $runSafeUi 'Dashboard Use Check-Out Note' {
+      if (-not (& $ensureExcelReady)) { return }
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
+        return
+      }
+      $state.Controls.Comment.Text = & $renderTemplateForRow -TemplateText $state.Templates.checkOut -rowItem $row
+      & $appendHistory ("Applied Check-Out template for {0}" -f ("" + $row.RITM))
     }
-    $state.Controls.Comment.Text = & $renderTemplateForRow -TemplateText $state.Templates.checkOut -rowItem $row
   }).GetNewClosure())
   $btnOpenSnow.Add_Click(({
-    if (-not (& $ensureExcelReady)) { return }
-    $row = & $getSelectedRow
-    if (-not $row) {
-      [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
-      return
+    & $runSafeUi 'Dashboard Open ServiceNow' {
+      if (-not (& $ensureExcelReady)) { return }
+      $row = & $getSelectedRow
+      if (-not $row) {
+        [System.Windows.Forms.MessageBox]::Show('Select one row first.', 'Dashboard') | Out-Null
+        return
+      }
+      & $openRowInServiceNow $row
+      & $appendHistory ("Opened in ServiceNow: {0}" -f ("" + $row.RITM))
     }
-    & $openRowInServiceNow $row
   }).GetNewClosure())
-  $btnRecalc.Add_Click(({ & $recalculateRow }.GetNewClosure()))
-  $btnTemplateSettings.Add_Click(({ & $openTemplateManager }.GetNewClosure()))
-  $btnCheckIn.Add_Click(({ & $applyAction 'checkin' }.GetNewClosure()))
-  $btnCheckOut.Add_Click(({ & $applyAction 'checkout' }.GetNewClosure()))
+  $btnTemplateSettings.Add_Click(({
+        & $runSafeUi 'Dashboard Template Settings' { & $openTemplateManager }
+      }).GetNewClosure())
+  $btnCheckIn.Add_Click(({
+        & $runSafeUi 'Dashboard CheckIn' { & $applyAction 'checkin' }
+      }).GetNewClosure())
+  $btnCheckOut.Add_Click(({
+        & $runSafeUi 'Dashboard CheckOut' { & $applyAction 'checkout' }
+      }).GetNewClosure())
   $btnCloseCode.Add_Click(({
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar codigo' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'All' -MainForm $form
-    if (-not $r.Cancelled) {
-      $lblStatus.Text = $r.Message
-      try {
-        if (Get-Command -Name Close-SchumanOpenForms -ErrorAction SilentlyContinue) {
-          Close-SchumanOpenForms
-        } elseif ($form -and -not $form.IsDisposed) {
-          $form.Close()
-        }
-      } catch {}
+    & $runSafeUi 'Dashboard Close All' {
+      $r = Invoke-UiEmergencyClose -ActionLabel 'Close All' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe', 'winword.exe') -Owner $form -Mode 'All' -MainForm $form
+      if (-not $r.Cancelled) {
+        $lblStatus.Text = $r.Message
+        & $appendHistory $r.Message
+        try {
+          if (Get-Command -Name Close-SchumanOpenForms -ErrorAction SilentlyContinue) {
+            Close-SchumanOpenForms
+          } elseif ($form -and -not $form.IsDisposed) {
+            $form.Close()
+          }
+        } catch {}
+      }
     }
   }).GetNewClosure())
-  $btnCloseDocs.Add_Click(({
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Cerrar documentos' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form
-    if (-not $r.Cancelled) { $lblStatus.Text = $r.Message }
-  }).GetNewClosure())
+  # Close Documents button removed by design; merged into Close All.
 
   $form.add_FormClosed(({
     param($sender, $eventArgs)
@@ -1165,8 +1296,9 @@ function New-DashboardUI {
   & $bindRowsToGrid @()
   $lblStatus.Text = 'Loading initial Excel data...'
   [void]$form.Add_Shown(({
-    & $layoutDashboard
-    try {
+    & $runSafeUi 'Dashboard Shown' {
+      & $layoutDashboard
+      & $assignThemeRoles
       $applyThemeToControlTreeHandler = ${function:Apply-ThemeToControlTree}
       $themeVar = Get-Variable -Name CurrentMainTheme -Scope Global -ErrorAction SilentlyContinue
       $scaleVar = Get-Variable -Name CurrentMainFontScale -Scope Global -ErrorAction SilentlyContinue
@@ -1178,12 +1310,14 @@ function New-DashboardUI {
       if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
         Apply-UiRoundedButtonsRecursive -Root $form -Radius 10
       }
-    } catch {}
-    if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
-    & $preloadRows
-    & $updateSearchUserSuggestions
+      if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
+      & $preloadRows
+      & $updateSearchUserSuggestions
+    }
   }).GetNewClosure())
-  $form.Add_SizeChanged(({ & $layoutDashboard }.GetNewClosure()))
+  $form.Add_SizeChanged(({
+        & $runSafeUi 'Dashboard Resize' { & $layoutDashboard }
+      }).GetNewClosure())
 
   & $layoutDashboard
   & $updateActionButtons

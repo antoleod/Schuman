@@ -1,15 +1,15 @@
 ﻿# Integrations
 
 ## `src/Schuman.Automation/Integrations/Excel.ps1`
-- Lectura de tickets desde Excel (`Read-TicketsFromExcel`).
-- Escritura de resultados (`Write-TicketResultsToExcel`).
-- Busqueda dashboard (`Search-DashboardRows`).
-- Update de fila dashboard (`Update-DashboardRow`).
-- Todo con COM cleanup estricto (release + GC).
+- Reads tickets from Excel (`Read-TicketsFromExcel`).
+- Writes results (`Write-TicketResultsToExcel`).
+- Dashboard search (`Search-DashboardRows`).
+- Dashboard row update (`Update-DashboardRow`).
+- Strict COM cleanup (release + GC).
 
 ## `src/Schuman.Automation/Integrations/WebView2ServiceNow.ps1`
-- Inicializa WebView2 desde Teams Add-in (sin instalar nada).
-- Gestion de sesion SSO (`New-ServiceNowSession`, `Close-ServiceNowSession`).
-- Consultas JSONv2 (`Invoke-ServiceNowJsonv2Query`).
-- Lectura de tickets/tareas y resolucion de labels/cache.
-- Cambio de estado SCTASK en UI (`Set-ServiceNowTaskState`).
+- Initializes WebView2 from Teams Add-in (no extra installation required).
+- SSO session management (`New-ServiceNowSession`, `Close-ServiceNowSession`).
+- JSONv2 queries (`Invoke-ServiceNowJsonv2Query`).
+- Ticket/task retrieval plus label/cache resolution.
+- SCTASK state update from UI (`Set-ServiceNowTaskState`).

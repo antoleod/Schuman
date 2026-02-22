@@ -1,6 +1,7 @@
 ﻿{
-    "fontScale":  110,
     "accent":  "Red",
     "compact":  false,
-    "theme":  "Dark"
+    "excelPath":  "C:\\Users\\X1\\Documents\\Schuman\\Schuman List.xlsx",
+    "theme":  "Dark",
+    "fontScale":  110
 }
