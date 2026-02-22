@@ -56,6 +56,29 @@ function Write-UiTrace {
   catch {}
 }
 
+function global:Write-Log {
+  param(
+    [string]$Message,
+    [ValidateSet('INFO', 'WARN', 'ERROR')][string]$Level = 'INFO',
+    [string]$LogPath = ''
+  )
+  $msg = ("" + $Message).Trim()
+  if (-not $msg) { return }
+  $path = ("" + $LogPath).Trim()
+  if (-not $path) {
+    $path = Join-Path (Join-Path $env:TEMP 'Schuman') 'schuman-ui.log'
+  }
+  try {
+    $dir = Split-Path -Parent $path
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+      New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+  }
+  catch {}
+  $line = "[{0}] [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'), $Level, $msg
+  try { Add-Content -LiteralPath $path -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue } catch {}
+}
+
 Initialize-SchumanRuntime -RevalidateOnly
 Assert-SchumanRuntime -RequiredCommands @(
   'Get-UiFontName',
@@ -3125,39 +3148,42 @@ function Start-SchumanStartupInit {
 $script:DashboardForm = $null
 $script:GeneratorForm = $null
 
-$openDashboardWindow = {
+function global:Open-SchumanDashboard {
   param(
-    [string]$ExcelPathValue,
-    [System.Windows.Forms.IWin32Window]$Owner = $null
+    [System.Windows.Forms.IWin32Window]$OwnerForm = $null
   )
 
   Invoke-UiSafe -Context 'Open Dashboard Window' -Action {
     if ($script:DashboardForm -and -not $script:DashboardForm.IsDisposed) {
       try {
-        if ($script:DashboardForm.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) {
-          $script:DashboardForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
-        }
-        $script:DashboardForm.Show()
-        $script:DashboardForm.BringToFront()
+        $script:DashboardForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
         $script:DashboardForm.Activate()
+        $script:DashboardForm.BringToFront()
         return
       }
       catch {}
     }
 
-    $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $ExcelPathValue -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
-    $script:DashboardForm = $dash
-    [void]$dash.add_FormClosed(({
-          $script:DashboardForm = $null
-        }).GetNewClosure())
-    if ($Owner) {
-      [void]$dash.Show($Owner)
+    $excelForDashboard = ''
+    try { $excelForDashboard = ("" + $txtExcel.Text).Trim() } catch { $excelForDashboard = '' }
+    if (-not $excelForDashboard) { $excelForDashboard = '' }
+
+    try {
+      $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excelForDashboard -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
+      $script:DashboardForm = $dash
+      [void]$dash.add_FormClosed(({
+            $script:DashboardForm = $null
+          }).GetNewClosure())
+      if ($OwnerForm) { [void]$dash.Show($OwnerForm) } else { [void]$dash.Show() }
     }
-    else {
-      [void]$dash.Show()
+    catch {
+      $detail = ("" + $_.Exception.Message).Trim()
+      $stack = ("" + $_.ScriptStackTrace).Trim()
+      Write-Log -Level ERROR -Message ("Dashboard open failed: {0} | {1}" -f $detail, $stack)
+      [System.Windows.Forms.MessageBox]::Show('Unable to open Dashboard. See log.', 'Schuman') | Out-Null
     }
   }
-}.GetNewClosure()
+}
 
 $openModule = {
   param([string]$module)
@@ -3171,7 +3197,7 @@ $openModule = {
   Set-AppBusyState -isBusy $true -reason ("Opening {0}" -f $module)
   try {
     if ($module -eq 'Dashboard') {
-      & $openDashboardWindow -ExcelPathValue $excel -Owner $form
+      Open-SchumanDashboard -OwnerForm $form
     }
     else {
       if ($script:GeneratorForm -and -not $script:GeneratorForm.IsDisposed) {
@@ -3191,7 +3217,7 @@ $openModule = {
       $defaultOutput = Join-Path $projectRoot $globalConfig.Documents.OutputFolder
 
       $frm = Resolve-UiForm -UiResult (New-GeneratePdfUI -ExcelPath $excel -SheetName $SheetName -TemplatePath $defaultTemplate -OutputPath $defaultOutput -OnOpenDashboard {
-          & $openDashboardWindow -ExcelPathValue $excel
+          Open-SchumanDashboard -OwnerForm $script:GeneratorForm
         } -OnGenerate {
           param($argsObj)
           $selectedRows = @()
@@ -3389,6 +3415,7 @@ $btnLoadExcel.Add_Click(({
     }).GetNewClosure())
 
 $btnDashboard.Add_Click(({
+      Write-Log -Level INFO -Message 'CLICK: Open Dashboard from Main'
       Invoke-UiHandler -Context 'Open Dashboard' -Action $openDashboardAction
     }).GetNewClosure())
 $btnGenerate.Add_Click(({

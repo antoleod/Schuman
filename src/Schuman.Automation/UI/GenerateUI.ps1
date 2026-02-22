@@ -241,6 +241,22 @@ function Initialize-Controls {
   [void]$centerGrid.Controls.Add($listCard, 0, 1)
   $UI.ListCard = $listCard
 
+  $gridTopBar = New-Object System.Windows.Forms.Panel
+  $gridTopBar.Dock = [System.Windows.Forms.DockStyle]::Top
+  $gridTopBar.Height = 34
+  $gridTopBar.Padding = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
+  [void]$listCard.Controls.Add($gridTopBar)
+  $UI.GridTopBar = $gridTopBar
+
+  $UI.ChkSelectAll = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkSelectAll.Text = 'Select all'
+  $UI.ChkSelectAll.AutoSize = $true
+  $UI.ChkSelectAll.ThreeState = $true
+  $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Checked
+  $UI.ChkSelectAll.Anchor = 'Top,Left'
+  $UI.ChkSelectAll.Location = New-Object System.Drawing.Point(0, 6)
+  [void]$gridTopBar.Controls.Add($UI.ChkSelectAll)
+
   $grid = New-Object System.Windows.Forms.DataGridView
   $grid.Dock = [System.Windows.Forms.DockStyle]::Fill
   $grid.ReadOnly = $false
@@ -261,6 +277,7 @@ function Initialize-Controls {
   }
   catch {}
   [void]$listCard.Controls.Add($grid)
+  try { $listCard.Controls.SetChildIndex($gridTopBar, 0) } catch {}
   $UI.Grid = $grid
 
   $colGenerate = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
@@ -379,13 +396,6 @@ function Initialize-Controls {
   $optionsFlow.WrapContents = $true
   $optionsFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
   [void]$footerGrid.Controls.Add($optionsFlow, 2, 0)
-
-  $UI.ChkSelectAll = New-Object System.Windows.Forms.CheckBox
-  $UI.ChkSelectAll.Text = 'Select all'
-  $UI.ChkSelectAll.AutoSize = $true
-  $UI.ChkSelectAll.ThreeState = $true
-  $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Checked
-  [void]$optionsFlow.Controls.Add($UI.ChkSelectAll)
 
   $UI.ChkShowWord = New-Object System.Windows.Forms.CheckBox
   $UI.ChkShowWord.Text = 'Show Word after generation'
@@ -773,6 +783,7 @@ function Register-GenerateHandlers {
 
   $UI.BtnDashboard.Add_Click(({
     param($sender, $args)
+    try { Write-Log -Level INFO -Message 'CLICK: Open Dashboard from Generator' } catch {}
     Invoke-GenerateUiSafe -UI $UI -Context 'Open Dashboard' -Action {
       if ($UI.OnOpenDashboard) { & $UI.OnOpenDashboard; return }
       $UI.LblStatusText.Text = 'Dashboard callback not configured.'

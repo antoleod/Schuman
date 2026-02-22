@@ -2895,3 +2895,29 @@
 2026-02-22 21:02:19 [INFO] ServiceNow SSO confirmed.
 2026-02-22 21:14:10 [INFO] ServiceNow SSO confirmed.
 2026-02-22 21:16:11 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:22:55 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:26:18 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:31:12 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-22 21:31:14 [INFO] Tickets queued: total=8, filtered=8, scope=RitmOnly
+2026-02-22 21:31:15 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:31:15 [INFO] [1/8] Extracting RITM0496748
+2026-02-22 21:31:22 [INFO] RITM0496748 status='1' open_tasks=1 pi_source='none' pi=''
+2026-02-22 21:31:22 [INFO] PERF ticket_RITM0496748 took 7246ms
+2026-02-22 21:31:22 [INFO] [2/8] Extracting RITM0405052
+2026-02-22 21:31:28 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-22 21:31:28 [INFO] PERF ticket_RITM0405052 took 5985ms
+2026-02-22 21:31:28 [INFO] [3/8] Extracting RITM0400334
+2026-02-22 21:31:42 [INFO] RITM0433331 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 21:31:42 [INFO] PERF ticket_RITM0433331 took 6717ms
+2026-02-22 21:31:42 [INFO] [5/8] Extracting RITM0420972
+2026-02-22 21:31:53 [INFO] RITM0434588 status='2' open_tasks=1 pi_source='none' pi=''
+2026-02-22 21:31:53 [INFO] PERF ticket_RITM0434588 took 4463ms
+2026-02-22 21:31:53 [INFO] [7/8] Extracting RITM0434592
+2026-02-22 21:31:58 [INFO] RITM0434592 status='4' open_tasks=0 pi_source='none' pi=''
+2026-02-22 21:31:58 [INFO] PERF ticket_RITM0434592 took 4672ms
+2026-02-22 21:31:58 [INFO] [8/8] Extracting RITM0434593
+2026-02-22 21:32:01 [INFO] RITM0434593 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 21:32:01 [INFO] PERF ticket_RITM0434593 took 2859ms
+2026-02-22 21:32:01 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_213112\tickets_export.json
+2026-02-22 21:32:01 [INFO] Writing extracted data back to Excel.
+2026-02-22 21:32:03 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_213112\tickets_export.json

@@ -277,3 +277,14 @@ Cannot convert value "128161" to type "System.Char". Error: "Value was either to
 [2026-02-22 21:16:11] [INFO] Startup initialization started.
 [2026-02-22 21:16:11] [INFO] Startup initialization completed successfully (quick Excel validation mode).
 [2026-02-22 21:16:28] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:22:52] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:22:55] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:22:55] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:22:56] [INFO] Startup initialization started.
+[2026-02-22 21:22:56] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:26:16] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:26:19] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:26:19] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:26:19] [INFO] Startup initialization started.
+[2026-02-22 21:26:19] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:28:41] [INFO] Preloaded 12 rows from Excel.
