@@ -679,6 +679,35 @@ function global:Close-SchumanUiWindows {
   return [int]$closed
 }
 
+if (-not (Get-Variable -Name SchumanAppShuttingDown -Scope Script -ErrorAction SilentlyContinue)) {
+  [bool]$script:SchumanAppShuttingDown = $false
+}
+function global:Shutdown-SchumanApp {
+  param(
+    [System.Windows.Forms.Form]$CurrentForm = $null
+  )
+  if ($script:SchumanAppShuttingDown) { return }
+  $script:SchumanAppShuttingDown = $true
+  try {
+    try { Close-SchumanAllResources -Mode 'All' | Out-Null } catch {}
+
+    $forms = @()
+    try { $forms = @([System.Windows.Forms.Application]::OpenForms | ForEach-Object { $_ }) } catch { $forms = @() }
+    foreach ($openForm in $forms) {
+      if (-not $openForm -or $openForm.IsDisposed) { continue }
+      if ($CurrentForm -and ($openForm -eq $CurrentForm)) { continue }
+      try { $openForm.Close() } catch {}
+    }
+    if ($CurrentForm -and -not $CurrentForm.IsDisposed) {
+      try { $CurrentForm.Close() } catch {}
+    }
+    try { [System.Windows.Forms.Application]::Exit() } catch {}
+  }
+  finally {
+    $script:SchumanAppShuttingDown = $false
+  }
+}
+
 $globalConfig = Initialize-SchumanEnvironment -ProjectRoot $projectRoot
 $uiRunContext = New-RunContext -Config $globalConfig -RunName 'mainui'
 
@@ -3238,7 +3267,7 @@ $openModule = {
           }
         } -OnCloseAll {
           param($uiObj)
-          try { Close-SchumanUiWindows -MainForm $form -GeneratorForm $uiObj.Form | Out-Null } catch {}
+          try { Shutdown-SchumanApp -CurrentForm $uiObj.Form } catch {}
         }) -UiName 'New-GeneratePdfUI'
       $script:GeneratorForm = $frm
       [void]$frm.add_FormClosed(({
@@ -3271,19 +3300,8 @@ if (-not $saveMainExcelPathPreferenceHandler) { throw 'Excel preference save han
 if (-not $showExcelLoadErrorOnceHandler) { throw 'Excel load error handler is not available.' }
 $closeAllAction = {
   try {
-    $closedWindows = 0
-    try { $closedWindows = Close-SchumanUiWindows -MainForm $form -GeneratorForm $script:GeneratorForm } catch {}
-    $r = Close-SchumanAllResources -Mode 'All'
-    $closedProcCount = @($r.ClosedProcesses).Count
-    $errorsCount = @($r.Errors).Count
-    $summary = "Closed windows: $closedWindows. Closed owned processes: $closedProcCount. Closed owned documents: $($r.ClosedDocs). Errors: $errorsCount."
-    if ($status -and -not $status.IsDisposed) {
-      $status.Text = "Status: $summary"
-    }
-    if ($errorsCount -gt 0) {
-      Write-UiTrace -Level 'WARN' -Message ("Close All completed with errors: " + (($r.Errors -join ' | ')))
-    }
-    Show-UiInfo -Title 'Close All' -Message $summary
+    Write-Log -Level INFO -Message 'CLICK: Close All from Main'
+    Shutdown-SchumanApp -CurrentForm $form
   }
   catch {
     Show-UiError -Title 'Schuman' -Message 'Could not complete "Close All".' -Exception $_.Exception

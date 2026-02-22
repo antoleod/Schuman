@@ -806,6 +806,7 @@ function Register-GenerateHandlers {
     Invoke-GenerateUiSafe -UI $UI -Context 'Close All' -Action {
       if ($UI.OnCloseAll) {
         try { & $UI.OnCloseAll $UI } catch {}
+        return
       }
       $r = $null
       if (Get-Command -Name Close-SchumanAllResources -ErrorAction SilentlyContinue) {

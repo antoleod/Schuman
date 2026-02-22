@@ -260,33 +260,78 @@ function global:New-DashboardUI {
   $colTaskState.HeaderText = 'SCTASK State'
   [void]$grid.Columns.Add($colTaskState)
 
+  $workNoteHost = New-Object System.Windows.Forms.TableLayoutPanel
+  $workNoteHost.ColumnCount = 2
+  $workNoteHost.RowCount = 1
+  $workNoteHost.Margin = New-Object System.Windows.Forms.Padding(0)
+  $workNoteHost.Padding = New-Object System.Windows.Forms.Padding(0)
+  [void]$workNoteHost.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+  [void]$workNoteHost.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+
+  $workNoteLeft = New-Object System.Windows.Forms.TableLayoutPanel
+  $workNoteLeft.Dock = [System.Windows.Forms.DockStyle]::Fill
+  $workNoteLeft.ColumnCount = 1
+  $workNoteLeft.RowCount = 2
+  [void]$workNoteLeft.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  [void]$workNoteLeft.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  $workNoteLeft.Margin = New-Object System.Windows.Forms.Padding(0, 0, 6, 0)
+  [void]$workNoteHost.Controls.Add($workNoteLeft, 0, 0)
+
   $lblComment = New-Object System.Windows.Forms.Label
   $lblComment.Text = 'Work Note (editable before submit):'
-  $lblComment.Location = New-Object System.Drawing.Point(16, 470)
   $lblComment.AutoSize = $true
   $lblComment.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 170)
+  $lblComment.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
+  [void]$workNoteLeft.Controls.Add($lblComment, 0, 0)
 
   $txtComment = New-Object System.Windows.Forms.TextBox
-  $txtComment.Location = New-Object System.Drawing.Point(16, 492)
-  $txtComment.Size = New-Object System.Drawing.Size(1070, 130)
+  $txtComment.Dock = [System.Windows.Forms.DockStyle]::Fill
   $txtComment.Multiline = $true
   $txtComment.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
   $txtComment.Text = $defaultCheckIn
   $txtComment.BackColor = [System.Drawing.Color]::FromArgb(37, 37, 38)
   $txtComment.ForeColor = $cText
   $txtComment.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+  [void]$workNoteLeft.Controls.Add($txtComment, 0, 1)
+
+  $workNoteRight = New-Object System.Windows.Forms.TableLayoutPanel
+  $workNoteRight.Dock = [System.Windows.Forms.DockStyle]::Fill
+  $workNoteRight.ColumnCount = 1
+  $workNoteRight.RowCount = 3
+  [void]$workNoteRight.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  [void]$workNoteRight.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)))
+  [void]$workNoteRight.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  $workNoteRight.Margin = New-Object System.Windows.Forms.Padding(6, 0, 0, 0)
+  [void]$workNoteHost.Controls.Add($workNoteRight, 1, 0)
+
+  $lblNoteTools = New-Object System.Windows.Forms.Label
+  $lblNoteTools.Text = 'Note Templates:'
+  $lblNoteTools.AutoSize = $true
+  $lblNoteTools.ForeColor = [System.Drawing.Color]::FromArgb(170, 170, 170)
+  $lblNoteTools.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
+  [void]$workNoteRight.Controls.Add($lblNoteTools, 0, 0)
 
   $btnUseCheckInNote = New-Object System.Windows.Forms.Button
   $btnUseCheckInNote.Text = 'Use Check-In Note'
-  $btnUseCheckInNote.Location = New-Object System.Drawing.Point(16, 626)
   $btnUseCheckInNote.Size = New-Object System.Drawing.Size(160, 28)
+  $btnUseCheckInNote.Dock = [System.Windows.Forms.DockStyle]::Top
   & $btnStyle $btnUseCheckInNote $false
 
   $btnUseCheckOutNote = New-Object System.Windows.Forms.Button
   $btnUseCheckOutNote.Text = 'Use Check-Out Note'
-  $btnUseCheckOutNote.Location = New-Object System.Drawing.Point(188, 626)
   $btnUseCheckOutNote.Size = New-Object System.Drawing.Size(160, 28)
+  $btnUseCheckOutNote.Dock = [System.Windows.Forms.DockStyle]::Top
   & $btnStyle $btnUseCheckOutNote $false
+
+  $noteButtonsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+  $noteButtonsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
+  $noteButtonsPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::TopDown
+  $noteButtonsPanel.WrapContents = $false
+  $noteButtonsPanel.AutoSize = $true
+  $noteButtonsPanel.Margin = New-Object System.Windows.Forms.Padding(0)
+  [void]$noteButtonsPanel.Controls.Add($btnUseCheckInNote)
+  [void]$noteButtonsPanel.Controls.Add($btnUseCheckOutNote)
+  [void]$workNoteRight.Controls.Add($noteButtonsPanel, 0, 1)
 
   $btnCheckIn = New-Object System.Windows.Forms.Button
   $btnCheckIn.Text = 'CHECK-IN'
@@ -309,27 +354,6 @@ function global:New-DashboardUI {
   $btnCloseCode.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
   $btnCloseCode.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#FFFFFF')
 
-  $sepHistory = New-Object System.Windows.Forms.Panel
-  $sepHistory.Height = 1
-  $sepHistory.Width = 1070
-  $sepHistory.BackColor = $cBorder
-
-  $lblHistory = New-Object System.Windows.Forms.Label
-  $lblHistory.Text = 'Activity / History'
-  $lblHistory.AutoSize = $true
-  $lblHistory.ForeColor = $cMuted
-
-  $txtHistory = New-Object System.Windows.Forms.RichTextBox
-  $txtHistory.ReadOnly = $true
-  $txtHistory.Multiline = $true
-  $txtHistory.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
-  $txtHistory.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-  $txtHistory.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#0B1220')
-  $txtHistory.ForeColor = $cText
-  $txtHistory.DetectUrls = $false
-  $txtHistory.WordWrap = $false
-  $txtHistory.Font = New-Object System.Drawing.Font($fontName, 9.5)
-
   $lblStatus = New-Object System.Windows.Forms.Label
   $lblStatus.Text = 'Type to filter users. Nothing is loaded by default.'
   $lblStatus.Location = New-Object System.Drawing.Point(16, 668)
@@ -338,7 +362,7 @@ function global:New-DashboardUI {
 
   $form.Controls.AddRange(@(
       $lblSearch, $txtSearch, $btnRefresh, $btnClear, $btnOpenSnow, $btnTemplateSettings, $chkOpenOnly, $lblHint, $loadingBar,
-      $grid, $lblComment, $txtComment, $sepHistory, $lblHistory, $txtHistory, $btnUseCheckInNote, $btnUseCheckOutNote, $btnCheckIn, $btnCheckOut, $btnCloseCode, $lblStatus
+      $grid, $workNoteHost, $btnCheckIn, $btnCheckOut, $btnCloseCode, $lblStatus
     ))
 
   $layoutDashboard = ({
@@ -375,27 +399,15 @@ function global:New-DashboardUI {
 
     $gridTop = 96
     $bottomButtonsTop = $clientH - 54
-    $historyHeight = 96
-    $commentTop = [Math]::Max(($gridTop + 180), ($bottomButtonsTop - 282))
-    $commentHeight = [Math]::Max(72, $bottomButtonsTop - $commentTop - (34 + $historyHeight + 24))
+    $commentTop = [Math]::Max(($gridTop + 180), ($bottomButtonsTop - 210))
+    $commentHeight = [Math]::Max(120, $bottomButtonsTop - $commentTop - 16)
     $gridHeight = [Math]::Max(220, $commentTop - $gridTop - 14)
 
     $grid.Location = New-Object System.Drawing.Point($m, $gridTop)
     $grid.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), $gridHeight)
 
-    $lblComment.Location = New-Object System.Drawing.Point($m, ($commentTop + 2))
-    $txtComment.Location = New-Object System.Drawing.Point($m, ($commentTop + 24))
-    $txtComment.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), $commentHeight)
-
-    $historyTop = $txtComment.Bottom + 8
-    $sepHistory.Location = New-Object System.Drawing.Point($m, $historyTop)
-    $sepHistory.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), 1)
-    $lblHistory.Location = New-Object System.Drawing.Point($m, ($historyTop + 4))
-    $txtHistory.Location = New-Object System.Drawing.Point($m, ($lblHistory.Bottom + 4))
-    $txtHistory.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), $historyHeight)
-
-    $btnUseCheckInNote.Location = New-Object System.Drawing.Point($m, $bottomButtonsTop)
-    $btnUseCheckOutNote.Location = New-Object System.Drawing.Point(($btnUseCheckInNote.Right + 12), $bottomButtonsTop)
+    $workNoteHost.Location = New-Object System.Drawing.Point($m, ($commentTop + 2))
+    $workNoteHost.Size = New-Object System.Drawing.Size(($clientW - ($m * 2)), $commentHeight)
 
     $btnCloseCode.Location = New-Object System.Drawing.Point(($clientW - $m - $btnCloseCode.Width), $bottomButtonsTop)
     $btnCheckOut.Location = New-Object System.Drawing.Point(($btnCloseCode.Left - 10 - $btnCheckOut.Width), $bottomButtonsTop)
@@ -431,7 +443,6 @@ function global:New-DashboardUI {
       Grid = $grid
       OpenOnly = $chkOpenOnly
       Comment = $txtComment
-      History = $txtHistory
       Status = $lblStatus
       TemplateSettings = $btnTemplateSettings
       LoadingBar = $loadingBar
@@ -618,7 +629,7 @@ function global:New-DashboardUI {
       $isClosed = [bool]$life.IsClosed
     }
     $allowActions = ($excelReady -and -not $state.IsLoading)
-    $btnRefresh.Enabled = $allowActions
+    $btnRefresh.Enabled = $true
     $btnClear.Enabled = $allowActions
     $btnTemplateSettings.Enabled = $allowActions
     $btnCheckIn.Enabled = ($allowActions -and $hasValidRitm -and -not $isClosed)
@@ -1121,20 +1132,7 @@ function global:New-DashboardUI {
     param([string]$Line)
     $safeLine = ("" + $Line).Trim()
     if (-not $safeLine) { return }
-    $hist = $state.Controls.History
-    if (-not $hist -or $hist.IsDisposed) { return }
-    try {
-      $stamp = Get-Date -Format 'HH:mm:ss'
-      $hist.AppendText(("[{0}] {1}" -f $stamp, $safeLine) + [Environment]::NewLine)
-      $all = @($hist.Lines)
-      if ($all.Count -gt 500) {
-        $all = $all[($all.Count - 500)..($all.Count - 1)]
-        $hist.Lines = $all
-      }
-      $hist.SelectionStart = $hist.TextLength
-      $hist.ScrollToCaret()
-    }
-    catch {}
+    try { Write-Log -Level INFO -Message ("Dashboard: " + $safeLine) } catch {}
   }).GetNewClosure()
 
   $assignThemeRoles = ({
@@ -1211,7 +1209,14 @@ function global:New-DashboardUI {
 
   $btnRefresh.Add_Click(({
     & $runSafeUi 'Dashboard Refresh' {
-      if (-not (& $ensureExcelReady)) { return }
+      if ([string]::IsNullOrWhiteSpace(("" + $state.ExcelPath).Trim()) -or -not (Test-Path -LiteralPath $state.ExcelPath)) {
+        $lblStatus.Text = 'Excel not ready / Excel empty'
+        return
+      }
+      $state.QueryCache = @{}
+      $state.AllRows = @()
+      $state.AllRowsUniverse = @()
+      $state.ExcelStamp = 0L
       $state.Controls.Search.Text = $state.LastSearch
       & $performSearch -ReloadFromExcel
       $lblStatus.Text = 'Done: dashboard refreshed from Excel.'
@@ -1275,6 +1280,11 @@ function global:New-DashboardUI {
       }).GetNewClosure())
   $btnCloseCode.Add_Click(({
     & $runSafeUi 'Dashboard Close All' {
+      $shutdownCmd = Get-Command -Name Shutdown-SchumanApp -ErrorAction SilentlyContinue
+      if ($shutdownCmd) {
+        & $shutdownCmd.ScriptBlock -CurrentForm $form
+        return
+      }
       try { if (Get-Command -Name Close-SchumanUiWindows -ErrorAction SilentlyContinue) { Close-SchumanUiWindows -MainForm $null -GeneratorForm $null | Out-Null } } catch {}
       $r = $null
       if (Get-Command -Name Close-SchumanAllResources -ErrorAction SilentlyContinue) {
