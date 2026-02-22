@@ -73,8 +73,8 @@ function global:New-DashboardUI {
     param([string]$Name)
     return (Get-Command -Name $Name -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1)
   }).GetNewClosure()
-  $searchDashboardRowsHandler = ${function:Search-DashboardRows}
-  if (-not $searchDashboardRowsHandler) {
+  $searchDashboardRowsCommand = & $getFunctionCommand 'Search-DashboardRows'
+  if (-not $searchDashboardRowsCommand) {
     throw 'Search-DashboardRows is not available. Runtime initialization failed.'
   }
   $testClosedStateHandler = ${function:Test-ClosedState}
@@ -318,26 +318,29 @@ function global:New-DashboardUI {
   $btnUseCheckInNote = New-Object System.Windows.Forms.Button
   $btnUseCheckInNote.Text = 'Use Check-In Note'
   $btnUseCheckInNote.Size = New-Object System.Drawing.Size(220, 28)
-  $btnUseCheckInNote.Dock = [System.Windows.Forms.DockStyle]::Top
+  $btnUseCheckInNote.Dock = [System.Windows.Forms.DockStyle]::Fill
   $btnUseCheckInNote.Visible = $true
   & $btnStyle $btnUseCheckInNote $false
 
   $btnUseCheckOutNote = New-Object System.Windows.Forms.Button
   $btnUseCheckOutNote.Text = 'Use Check-Out Note'
   $btnUseCheckOutNote.Size = New-Object System.Drawing.Size(220, 28)
-  $btnUseCheckOutNote.Dock = [System.Windows.Forms.DockStyle]::Top
+  $btnUseCheckOutNote.Dock = [System.Windows.Forms.DockStyle]::Fill
   $btnUseCheckOutNote.Visible = $true
   & $btnStyle $btnUseCheckOutNote $false
 
-  $noteButtonsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+  $noteButtonsPanel = New-Object System.Windows.Forms.TableLayoutPanel
   $noteButtonsPanel.Dock = [System.Windows.Forms.DockStyle]::Top
-  $noteButtonsPanel.FlowDirection = [System.Windows.Forms.FlowDirection]::TopDown
-  $noteButtonsPanel.WrapContents = $false
-  $noteButtonsPanel.AutoSize = $true
+  $noteButtonsPanel.ColumnCount = 1
+  $noteButtonsPanel.RowCount = 2
+  [void]$noteButtonsPanel.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
+  [void]$noteButtonsPanel.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
+  $noteButtonsPanel.AutoSize = $false
+  $noteButtonsPanel.Height = 68
   $noteButtonsPanel.Margin = New-Object System.Windows.Forms.Padding(0)
   $noteButtonsPanel.Visible = $true
-  [void]$noteButtonsPanel.Controls.Add($btnUseCheckInNote)
-  [void]$noteButtonsPanel.Controls.Add($btnUseCheckOutNote)
+  [void]$noteButtonsPanel.Controls.Add($btnUseCheckInNote, 0, 0)
+  [void]$noteButtonsPanel.Controls.Add($btnUseCheckOutNote, 0, 1)
   [void]$workNoteRight.Controls.Add($noteButtonsPanel, 0, 1)
 
   $btnCheckIn = New-Object System.Windows.Forms.Button
@@ -691,13 +694,13 @@ function global:New-DashboardUI {
     if ($state.UltraFast) {
       if (-not $ForceReload -and $state.AllRowsUniverse.Count -eq 0 -and $key) {
         if ($state.QueryCache.ContainsKey($key)) { return @($state.QueryCache[$key]) }
-        $rowsQuick = @(& $searchDashboardRowsHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText $QueryText)
+        $rowsQuick = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText $QueryText)
         $state.QueryCache[$key] = @($rowsQuick)
         return @($rowsQuick)
       }
 
       if ($ForceReload -or ($state.AllRowsUniverse.Count -eq 0 -and -not $key)) {
-        $state.AllRowsUniverse = @(& $searchDashboardRowsHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText '')
+        $state.AllRowsUniverse = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText '')
         foreach ($r in $state.AllRowsUniverse) {
           $blob = "{0} {1} {2} {3} {4} {5} {6} {7} {8}" -f ("" + $r.RequestedFor), ("" + $r.RITM), ("" + $r.PI), ("" + $r.SCTASK), ("" + $r.DashboardStatus), ("" + $r.RITMState), ("" + $r.SCTASKState), ("" + $r.PresentTime), ("" + $r.ClosedTime)
           $r | Add-Member -NotePropertyName __search -NotePropertyValue $blob.ToLowerInvariant() -Force
@@ -712,7 +715,7 @@ function global:New-DashboardUI {
     }
 
     if ($state.QueryCache.ContainsKey($key)) { return @($state.QueryCache[$key]) }
-    $rows = @(& $searchDashboardRowsHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText $QueryText)
+    $rows = @(Search-DashboardRows -ExcelPath $state.ExcelPath -SheetName $state.SheetName -SearchText $QueryText)
     $state.QueryCache[$key] = @($rows)
     return @($rows)
   }).GetNewClosure()
@@ -830,9 +833,20 @@ function global:New-DashboardUI {
     }
     catch {
       $err = $_.Exception.Message
+      $stack = ''
+      $position = ''
+      try { $stack = ("" + $_.ScriptStackTrace).Trim() } catch {}
+      try { if ($_.InvocationInfo) { $position = ("" + $_.InvocationInfo.PositionMessage).Trim() } } catch {}
       $state.ExcelReady = $false
       & $updateActionButtons
-      try { Write-Log -Level ERROR -Message ("Dashboard search failed: " + $err) } catch {}
+      try {
+        if ($stack -or $position) {
+          Write-Log -Level ERROR -Message ("Dashboard search failed: {0} | {1} | {2}" -f $err, $position, $stack)
+        }
+        else {
+          Write-Log -Level ERROR -Message ("Dashboard search failed: " + $err)
+        }
+      } catch {}
       $globalShowUiError = & $getFunctionCommand 'global:Show-UiError'
       if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
         & $globalShowUiError.ScriptBlock -Title 'Dashboard Error' -Message 'Search failed.' -Exception $_.Exception
@@ -1122,9 +1136,8 @@ function global:New-DashboardUI {
 
   $runSafeUi = ({
     param([string]$ctx, [scriptblock]$act)
-    $safeCmd = & $getFunctionCommand 'Invoke-SafeUiAction'
-    if ($safeCmd -and $safeCmd.ScriptBlock) {
-      $null = & $safeCmd.ScriptBlock -ActionName $ctx -Action $act
+    if (Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue) {
+      $null = Invoke-SafeUiAction -ActionName $ctx -Action $act
       return
     }
     try { & $act } catch {

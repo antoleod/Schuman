@@ -56,6 +56,21 @@ function Write-UiTrace {
   catch {}
 }
 
+function Test-InvokableTarget {
+  param(
+    $Target,
+    [string]$Label = ''
+  )
+  if ($Target -is [scriptblock] -or $Target -is [System.Management.Automation.CommandInfo] -or $Target -is [string]) {
+    return $true
+  }
+  $targetType = if ($null -eq $Target) { '<null>' } else { $Target.GetType().FullName }
+  $safeLabel = ("" + $Label).Trim()
+  if (-not $safeLabel) { $safeLabel = 'unknown' }
+  Write-UiTrace -Level 'WARN' -Message ("Non-invokable target blocked ({0}): {1}" -f $safeLabel, $targetType)
+  return $false
+}
+
 function global:Write-Log {
   param(
     [string]$Message,
@@ -91,6 +106,7 @@ $script:GetUiFontNameHandler = ${function:Get-UiFontName}
 function Get-UiFontNameSafe {
   if ($script:GetUiFontNameHandler) {
     try {
+      if (-not (Test-InvokableTarget -Target $script:GetUiFontNameHandler -Label 'Get-UiFontNameSafe')) { return 'Segoe UI' }
       $name = ("" + (& $script:GetUiFontNameHandler)).Trim()
       if ($name) { return $name }
     }
@@ -102,7 +118,7 @@ $script:GetUiFontNameSafeHandler = ${function:Get-UiFontNameSafe}
 
 $script:ExternalInvokeUiEmergencyClose = $null
 try {
-  $existingEmergencyClose = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue
+  $existingEmergencyClose = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($existingEmergencyClose -and $existingEmergencyClose.ScriptBlock) {
     $script:ExternalInvokeUiEmergencyClose = $existingEmergencyClose.ScriptBlock
   }
@@ -126,7 +142,7 @@ function Initialize-UiEmergencyCloseDependency {
     try {
       if (-not (Test-Path -LiteralPath $file)) { continue }
       . $file
-      $cmd = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue
+      $cmd = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
       if ($cmd -and $cmd.ScriptBlock) {
         $script:ExternalInvokeUiEmergencyClose = $cmd.ScriptBlock
         return
@@ -318,7 +334,12 @@ function global:Invoke-UiEmergencyClose {
 
   $externalResult = $null
   if ($script:ExternalInvokeUiEmergencyClose) {
-    try { $externalResult = (& $script:ExternalInvokeUiEmergencyClose -ActionLabel $ActionLabel -ExecutableNames $ExecutableNames -Owner $Owner) } catch {}
+    try {
+      if (Test-InvokableTarget -Target $script:ExternalInvokeUiEmergencyClose -Label 'Invoke-UiEmergencyClose external') {
+        $externalResult = (& $script:ExternalInvokeUiEmergencyClose -ActionLabel $ActionLabel -ExecutableNames $ExecutableNames -Owner $Owner)
+      }
+    }
+    catch {}
   }
 
   $labelText = ("" + $ActionLabel).Trim().ToLowerInvariant()
@@ -1913,8 +1934,25 @@ function Resolve-UiForm {
 function Start-StartupSsoSession {
   param(
     [hashtable]$Config,
-    [hashtable]$RunContext
+    [hashtable]$RunContext,
+    $ExistingSession = $null,
+    [switch]$ForceRelogin
   )
+
+  if (-not $ForceRelogin -and $ExistingSession) {
+    try {
+      if (Test-ServiceNowSessionHealth -Session $ExistingSession) {
+        return $ExistingSession
+      }
+    }
+    catch {
+      try { Write-UiTrace -Level 'WARN' -Message ("ServiceNow session probe failed; relogin required: " + $_.Exception.Message) } catch {}
+    }
+  }
+
+  if ($ExistingSession) {
+    try { if (Get-Command -Name Close-ServiceNowSession -ErrorAction SilentlyContinue) { Close-ServiceNowSession -Session $ExistingSession } } catch {}
+  }
 
   try {
     return (New-ServiceNowSession -Config $Config -RunContext $RunContext)
@@ -1928,8 +1966,77 @@ function Start-StartupSsoSession {
   }
 }
 
-$startupSession = Start-StartupSsoSession -Config $globalConfig -RunContext $uiRunContext
-if (-not $startupSession) {
+function Test-ServiceNowSessionHealth {
+  param($Session)
+
+  if (-not $Session) { return $false }
+  if (-not $Session.WebView) { return $false }
+  if (-not (Get-Command -Name Invoke-WebViewScriptJson -CommandType Function -ErrorAction SilentlyContinue)) { return $false }
+
+  try {
+    $probe = Invoke-WebViewScriptJson -WebView $Session.WebView -Script @"
+(function(){
+  try {
+    var ts = Date.now();
+    var url = '/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id&sysparm_query=sys_idISNOTEMPTY&_ts=' + ts;
+    var x = new XMLHttpRequest();
+    x.open('GET', url, false);
+    x.withCredentials = true;
+    x.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    x.setRequestHeader('Pragma', 'no-cache');
+    x.setRequestHeader('Expires', '0');
+    x.send(null);
+    if (!(x.status >= 200 && x.status < 300)) {
+      return JSON.stringify({ ok:false, status:x.status, reason:'http' });
+    }
+    var body = {};
+    try { body = JSON.parse(x.responseText || '{}'); } catch(e) {}
+    var out = body.result;
+    var count = 0;
+    if (Array.isArray(out)) count = out.length;
+    else if (out) count = 1;
+    return JSON.stringify({ ok:(count > 0), status:x.status, count:count });
+  } catch (e) {
+    return JSON.stringify({ ok:false, reason:'exception', message:''+e });
+  }
+})();
+"@ -TimeoutMs 10000
+
+    if (-not $probe) { return $false }
+    return ([bool]$probe.ok)
+  }
+  catch {
+    try { Write-UiTrace -Level 'WARN' -Message ("ServiceNow health probe exception: " + $_.Exception.Message) } catch {}
+    return $false
+  }
+}
+
+$script:StartupSession = Start-StartupSsoSession -Config $globalConfig -RunContext $uiRunContext
+if (-not $script:StartupSession) {
+  return
+}
+
+function Ensure-ServiceNowConnectivity {
+  param(
+    [switch]$ForceRelogin
+  )
+
+  $needRelogin = [bool]$ForceRelogin
+  if (-not $needRelogin) {
+    $isHealthy = $false
+    try { $isHealthy = Test-ServiceNowSessionHealth -Session $script:StartupSession } catch { $isHealthy = $false }
+    if (-not $isHealthy) { $needRelogin = $true }
+  }
+
+  $script:StartupSession = Start-StartupSsoSession -Config $globalConfig -RunContext $uiRunContext -ExistingSession $script:StartupSession -ForceRelogin:$needRelogin
+  if (-not $script:StartupSession) {
+    try { Write-UiTrace -Level 'ERROR' -Message 'ServiceNow connectivity check failed.' } catch {}
+    return $false
+  }
+  return $true
+}
+
+if (-not (Ensure-ServiceNowConnectivity -ForceRelogin)) {
   return
 }
 
@@ -3181,6 +3288,11 @@ function global:Open-SchumanDashboard {
   param()
 
   Invoke-UiSafe -Context 'Open Dashboard Window' -Action {
+    if (-not (Ensure-ServiceNowConnectivity)) {
+      [System.Windows.Forms.MessageBox]::Show('ServiceNow connection is required. Please sign in again.', 'ServiceNow') | Out-Null
+      return
+    }
+
     if ($script:DashboardForm -and -not $script:DashboardForm.IsDisposed) {
       try {
         $script:DashboardForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
@@ -3196,7 +3308,7 @@ function global:Open-SchumanDashboard {
     if (-not $excelForDashboard) { $excelForDashboard = '' }
 
     try {
-      $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excelForDashboard -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
+      $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excelForDashboard -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $script:StartupSession) -UiName 'New-DashboardUI'
       $script:DashboardForm = $dash
       [void]$dash.add_FormClosed(({
             $script:DashboardForm = $null
@@ -3223,6 +3335,11 @@ $openModule = {
 
   Set-AppBusyState -isBusy $true -reason ("Opening {0}" -f $module)
   try {
+    if (-not (Ensure-ServiceNowConnectivity)) {
+      if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: ServiceNow connection required.' }
+      return
+    }
+
     if ($module -eq 'Dashboard') {
       Open-SchumanDashboard
     }
@@ -3249,19 +3366,54 @@ $openModule = {
           param($argsObj)
           $selectedRows = @()
           try { $selectedRows = @($argsObj.RowNumbers | ForEach-Object { [int]$_ }) } catch { $selectedRows = @() }
-          $okRun = Invoke-DocsGenerate -Excel $argsObj.ExcelPath -Sheet $SheetName -Template $argsObj.TemplatePath -Output $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf -RowNumbers $selectedRows
-          if ($okRun) {
+          if ($selectedRows.Count -le 0) {
             return [pscustomobject]@{
-              ok         = $true
-              message    = 'Documents generated successfully.'
-              outputPath = $argsObj.OutputPath
-              generatedCount = @($selectedRows).Count
+              ok             = $false
+              message        = 'No rows selected for generation.'
+              outputPath     = $argsObj.OutputPath
+              generatedCount = 0
             }
           }
-          return [pscustomobject]@{
-            ok      = $false
-            message = 'Document generation failed. Check logs under system/runs.'
-            generatedCount = 0
+          try {
+            $docRun = New-RunContext -Config $globalConfig -RunName 'docsgenerate_ui'
+            $files = @(Invoke-DocumentGenerationWorkflow -Config $globalConfig -RunContext $docRun -ExcelPath $argsObj.ExcelPath -SheetName $SheetName -TemplatePath $argsObj.TemplatePath -OutputDirectory $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf -RowNumbers $selectedRows)
+
+            if (-not [bool]$argsObj.SaveDocx) {
+              foreach ($f in $files) {
+                try {
+                  $docPath = ("" + $f.DocxPath).Trim()
+                  if ($docPath -and (Test-Path -LiteralPath $docPath)) {
+                    Remove-Item -LiteralPath $docPath -Force -ErrorAction SilentlyContinue
+                  }
+                }
+                catch {}
+              }
+            }
+
+            $count = @($files).Count
+            if ($count -gt 0) {
+              return [pscustomobject]@{
+                ok             = $true
+                message        = ("Documents generated successfully. Files: {0}" -f $count)
+                outputPath     = $argsObj.OutputPath
+                generatedCount = $count
+              }
+            }
+
+            return [pscustomobject]@{
+              ok             = $false
+              message        = 'No files were generated for the selected rows.'
+              outputPath     = $argsObj.OutputPath
+              generatedCount = 0
+            }
+          }
+          catch {
+            return [pscustomobject]@{
+              ok             = $false
+              message        = ("Document generation failed: {0}" -f $_.Exception.Message)
+              outputPath     = $argsObj.OutputPath
+              generatedCount = 0
+            }
           }
         } -OnCloseAll {
           param($uiObj)
@@ -3499,7 +3651,7 @@ $btnCleanTemp.Add_Click(({
 
 [void]$form.add_FormClosed(({
       try {
-        if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
+        if ($script:StartupSession) { Close-ServiceNowSession -Session $script:StartupSession }
       }
       catch {}
       try { Close-SchumanAllResources -Mode 'All' | Out-Null } catch {}

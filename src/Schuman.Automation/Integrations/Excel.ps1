@@ -328,7 +328,14 @@ function global:Search-DashboardRows {
     $nameCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Requested for', 'Name', 'User')
     $piCol = Resolve-HeaderColumn -HeaderMap $map -Names @('PI', 'Phone', 'Configuration Item', 'CI')
 
-    $rows = [int]($ws.UsedRange.Row + $ws.UsedRange.Rows.Count - 1)
+    $xlUp = -4162
+    $rows = 0
+    try {
+      $rows = [int]$ws.Cells.Item($ws.Rows.Count, $ritmCol).End($xlUp).Row
+    }
+    catch {
+      $rows = [int]($ws.UsedRange.Row + $ws.UsedRange.Rows.Count - 1)
+    }
     if ($rows -lt 2) { return }
 
     $getColValues = {
@@ -341,9 +348,36 @@ function global:Search-DashboardRows {
         $rng = $ws.Range($ws.Cells.Item(2, $ColumnIndex), $ws.Cells.Item($rows, $ColumnIndex))
         $vals = $rng.Value2
         if ($vals -is [System.Array]) {
-          $countRows = $vals.GetLength(0)
-          for ($i = 1; $i -le $countRows; $i++) {
-            $out[$i + 1] = ("" + $vals[$i, 1]).Trim()
+          $rank = 1
+          try { $rank = [int]$vals.Rank } catch { $rank = 1 }
+
+          if ($rank -eq 2) {
+            $lb0 = $vals.GetLowerBound(0)
+            $ub0 = $vals.GetUpperBound(0)
+            $lb1 = $vals.GetLowerBound(1)
+            for ($ri = $lb0; $ri -le $ub0; $ri++) {
+              $excelRow = 2 + ($ri - $lb0)
+              $cell = $null
+              try { $cell = $vals[$ri, $lb1] } catch { $cell = $null }
+              $out[$excelRow] = ("" + $cell).Trim()
+            }
+          }
+          elseif ($rank -eq 1) {
+            $lb = $vals.GetLowerBound(0)
+            $ub = $vals.GetUpperBound(0)
+            for ($ri = $lb; $ri -le $ub; $ri++) {
+              $excelRow = 2 + ($ri - $lb)
+              $cell = $null
+              try { $cell = $vals[$ri] } catch { $cell = $null }
+              $out[$excelRow] = ("" + $cell).Trim()
+            }
+          }
+          else {
+            $excelRow = 2
+            foreach ($cell in $vals) {
+              $out[$excelRow] = ("" + $cell).Trim()
+              $excelRow++
+            }
           }
         }
         else {
@@ -357,15 +391,15 @@ function global:Search-DashboardRows {
       return $out
     }
 
-    $ritmValues = & $getColValues $ritmCol
-    $nameValues = & $getColValues $nameCol
-    $statusValues = & $getColValues $statusCol
-    $ritmStateValues = & $getColValues $ritmStateCol
-    $taskStateValues = & $getColValues $taskStateCol
-    $presentValues = & $getColValues $presentCol
-    $closedValues = & $getColValues $closedCol
-    $taskValues = & $getColValues $taskCol
-    $piValues = & $getColValues $piCol
+    $ritmValues = $getColValues.Invoke($ritmCol)
+    $nameValues = $getColValues.Invoke($nameCol)
+    $statusValues = $getColValues.Invoke($statusCol)
+    $ritmStateValues = $getColValues.Invoke($ritmStateCol)
+    $taskStateValues = $getColValues.Invoke($taskStateCol)
+    $presentValues = $getColValues.Invoke($presentCol)
+    $closedValues = $getColValues.Invoke($closedCol)
+    $taskValues = $getColValues.Invoke($taskCol)
+    $piValues = $getColValues.Invoke($piCol)
 
     $queryNorm = $query.ToLowerInvariant()
     for ($r = 2; $r -le $rows; $r++) {

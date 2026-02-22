@@ -336,3 +336,75 @@ Cannot convert value "128161" to type "System.Char". Error: "Value was either to
 [2026-02-22 22:19:01] [INFO] Startup initialization started.
 [2026-02-22 22:19:02] [INFO] Startup initialization completed successfully (quick Excel validation mode).
 [2026-02-22 22:20:15] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 22:21:47] [ERROR] Select All: Select All failed.
+[2026-02-22 22:21:52] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 22:22:03] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 22:29:18] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:29:18] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:29:18] [INFO] Startup initialization started.
+[2026-02-22 22:29:18] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:30:33] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 22:30:37] [ERROR] Select All: Select All failed.
+[2026-02-22 22:30:41] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 22:30:48] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 22:30:51] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 22:33:04] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:33:04] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:33:04] [INFO] Startup initialization started.
+[2026-02-22 22:33:04] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:33:08] [ERROR] Load-Data: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index | at global:Search-DashboardRows, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Integrations\Excel.ps1: line 372
+at Load-Data, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 545
+at Export-Excel, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 570
+at global:New-GeneratePdfUI, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 1078
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3267
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3339
+at global:Invoke-SafeUiAction, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 99
+at global:Invoke-UiHandler, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 180
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3494
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3594
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
+[2026-02-22 22:35:55] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:35:55] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:35:55] [INFO] Startup initialization started.
+[2026-02-22 22:35:55] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:37:02] [ERROR] Load-Data: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index | at global:Search-DashboardRows, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Integrations\Excel.ps1: line 372
+at Load-Data, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 545
+at Export-Excel, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 570
+at global:New-GeneratePdfUI, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 1078
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3267
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3339
+at global:Invoke-SafeUiAction, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 99
+at global:Invoke-UiHandler, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 180
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3494
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3594
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
+[2026-02-22 22:37:31] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:37:31] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:37:31] [INFO] Startup initialization started.
+[2026-02-22 22:37:31] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:37:35] [ERROR] Load-Data: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index | at global:Search-DashboardRows, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Integrations\Excel.ps1: line 406
+at Load-Data, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 547
+at Export-Excel, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 572
+at global:New-GeneratePdfUI, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 1084
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3267
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3339
+at global:Invoke-SafeUiAction, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 99
+at global:Invoke-UiHandler, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 180
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3494
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3594
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
+[2026-02-22 22:39:18] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:39:18] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:39:18] [INFO] Startup initialization started.
+[2026-02-22 22:39:18] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:42:56] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:42:56] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:42:56] [INFO] Startup initialization started.
+[2026-02-22 22:42:56] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:46:59] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:46:59] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:46:59] [INFO] Startup initialization started.
+[2026-02-22 22:46:59] [INFO] Startup initialization completed successfully (quick Excel validation mode).

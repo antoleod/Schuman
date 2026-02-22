@@ -249,22 +249,6 @@ function Initialize-Controls {
   [void]$centerGrid.Controls.Add($listCard, 0, 1)
   $UI.ListCard = $listCard
 
-  $gridTopBar = New-Object System.Windows.Forms.Panel
-  $gridTopBar.Dock = [System.Windows.Forms.DockStyle]::Top
-  $gridTopBar.Height = 34
-  $gridTopBar.Padding = New-Object System.Windows.Forms.Padding(0, 0, 0, 6)
-  [void]$listCard.Controls.Add($gridTopBar)
-  $UI.GridTopBar = $gridTopBar
-
-  $UI.ChkSelectAll = New-Object System.Windows.Forms.CheckBox
-  $UI.ChkSelectAll.Text = 'Select all'
-  $UI.ChkSelectAll.AutoSize = $true
-  $UI.ChkSelectAll.ThreeState = $true
-  $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Checked
-  $UI.ChkSelectAll.Anchor = 'Top,Left'
-  $UI.ChkSelectAll.Location = New-Object System.Drawing.Point(0, 6)
-  [void]$gridTopBar.Controls.Add($UI.ChkSelectAll)
-
   $grid = New-Object System.Windows.Forms.DataGridView
   $grid.Dock = [System.Windows.Forms.DockStyle]::Fill
   $grid.ReadOnly = $false
@@ -286,7 +270,6 @@ function Initialize-Controls {
   }
   catch {}
   [void]$listCard.Controls.Add($grid)
-  try { $listCard.Controls.SetChildIndex($gridTopBar, 0) } catch {}
   $UI.Grid = $grid
 
   $colGenerate = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
@@ -296,7 +279,7 @@ function Initialize-Controls {
   $colGenerate.FillWeight = 8
   [void]$grid.Columns.Add($colGenerate)
 
-  foreach ($columnName in @('Row', 'Ticket', 'User', 'File', 'Status', 'Message', 'Progress')) {
+  foreach ($columnName in @('Row', 'Ticket', 'User', 'PI', 'File', 'Status', 'Message', 'Progress')) {
     $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
     $col.Name = $columnName
     $col.DataPropertyName = $columnName
@@ -305,6 +288,7 @@ function Initialize-Controls {
       'Row' { $col.HeaderText = 'Row #'; $col.FillWeight = 8 }
       'Ticket' { $col.HeaderText = 'Ticket/RITM'; $col.FillWeight = 16 }
       'User' { $col.HeaderText = 'User'; $col.FillWeight = 16 }
+      'PI' { $col.HeaderText = 'PI'; $col.FillWeight = 14 }
       'File' { $col.HeaderText = 'Output File'; $col.FillWeight = 24 }
       'Status' { $col.HeaderText = 'Status'; $col.FillWeight = 12 }
       'Message' { $col.HeaderText = 'Message'; $col.FillWeight = 24 }
@@ -361,6 +345,14 @@ function Initialize-Controls {
   $UI.BtnStart.Height = 30
   $UI.BtnStart.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
   [void]$buttonFlow.Controls.Add($UI.BtnStart)
+
+  $UI.ChkSelectAll = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkSelectAll.Text = 'Select all'
+  $UI.ChkSelectAll.AutoSize = $true
+  $UI.ChkSelectAll.ThreeState = $true
+  $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Checked
+  $UI.ChkSelectAll.Margin = New-Object System.Windows.Forms.Padding(10, 6, 8, 0)
+  [void]$buttonFlow.Controls.Add($UI.ChkSelectAll)
 
   $UI.BtnStop = New-Object System.Windows.Forms.Button
   $UI.BtnStop.Text = 'Stop'
@@ -430,9 +422,15 @@ function Ensure-GenerateGridHeaders {
   param([hashtable]$UI)
 
   if (-not $UI -or -not $UI.Grid) { return }
+  $UI.Grid.AutoGenerateColumns = $false
   $UI.Grid.ColumnHeadersVisible = $true
+  $UI.Grid.EnableHeadersVisualStyles = $false
+  $UI.Grid.ColumnHeadersHeightSizeMode = [System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode]::EnableResizing
+  if ($UI.Grid.ColumnHeadersHeight -lt 30) { $UI.Grid.ColumnHeadersHeight = 36 }
+  $UI.Grid.ColumnHeadersDefaultCellStyle.WrapMode = [System.Windows.Forms.DataGridViewTriState]::False
+  $UI.Grid.ColumnHeadersDefaultCellStyle.Alignment = [System.Windows.Forms.DataGridViewContentAlignment]::MiddleLeft
 
-  $headers = @{
+  $requiredHeaders = [ordered]@{
     Generate = 'Generate'
     Row = 'Row #'
     Ticket = 'Ticket/RITM'
@@ -442,11 +440,48 @@ function Ensure-GenerateGridHeaders {
     Message = 'Message'
     Progress = 'Progress'
   }
+  $optionalHeaders = [ordered]@{
+    PI = 'PI'
+  }
 
-  foreach ($columnName in $headers.Keys) {
+  foreach ($columnName in $requiredHeaders.Keys) {
     try {
       $col = $UI.Grid.Columns[$columnName]
-      if ($col) { $col.HeaderText = $headers[$columnName] }
+      if (-not $col) {
+        if ($columnName -eq 'Generate') {
+          $col = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
+          $col.Name = 'Generate'
+          $col.DataPropertyName = 'Generate'
+        }
+        else {
+          $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+          $col.Name = $columnName
+          $col.DataPropertyName = $columnName
+          $col.ReadOnly = $true
+        }
+        [void]$UI.Grid.Columns.Add($col)
+      }
+      $col.HeaderText = $requiredHeaders[$columnName]
+      $col.Visible = $true
+    } catch {}
+  }
+
+  foreach ($columnName in $optionalHeaders.Keys) {
+    try {
+      $col = $UI.Grid.Columns[$columnName]
+      if ($col) {
+        $col.HeaderText = $optionalHeaders[$columnName]
+        $col.Visible = $true
+      }
+    } catch {}
+  }
+
+  $displayOrder = @('Generate', 'Row', 'Ticket', 'User', 'PI', 'File', 'Status', 'Message', 'Progress')
+  for ($i = 0; $i -lt $displayOrder.Count; $i++) {
+    $name = $displayOrder[$i]
+    try {
+      $col = $UI.Grid.Columns[$name]
+      if ($col -and $col.Visible) { $col.DisplayIndex = $i }
     } catch {}
   }
 }
@@ -492,15 +527,53 @@ function Update-Grid {
   }
 }
 
+function Resolve-GenerateExcelPath {
+  param([hashtable]$UI)
+
+  $candidate = ''
+  try { $candidate = ("" + $UI.ExcelPath).Trim() } catch { $candidate = '' }
+  if ($candidate -and (Test-Path -LiteralPath $candidate)) { return $candidate }
+
+  $projectRoot = ''
+  try { $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) } catch { $projectRoot = '' }
+  if ($projectRoot) {
+    $prefPath = Join-Path $projectRoot 'system\db\ui-preferences.json'
+    if (Test-Path -LiteralPath $prefPath) {
+      try {
+        $json = Get-Content -LiteralPath $prefPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if ($json -and $json.PSObject.Properties['excelPath']) {
+          $prefExcel = ("" + $json.excelPath).Trim()
+          if ($prefExcel -and (Test-Path -LiteralPath $prefExcel)) {
+            return $prefExcel
+          }
+        }
+      }
+      catch {}
+    }
+
+    $defaultExcel = Join-Path $projectRoot 'Schuman List.xlsx'
+    if (Test-Path -LiteralPath $defaultExcel) { return $defaultExcel }
+  }
+
+  return ''
+}
+
 function Load-Data {
   param([hashtable]$UI)
 
-  if (-not $UI.ContainsKey('ExcelPath') -or [string]::IsNullOrWhiteSpace($UI.ExcelPath)) { return @() }
-  if (-not (Test-Path -LiteralPath $UI.ExcelPath)) { return @() }
-  if (-not (Get-Command -Name Search-DashboardRows -ErrorAction SilentlyContinue)) { return @() }
+  $resolvedExcel = Resolve-GenerateExcelPath -UI $UI
+  if (-not $resolvedExcel) { return @() }
+  $UI.ExcelPath = $resolvedExcel
 
   $results = New-Object System.Collections.Generic.List[object]
-  $rows = @(Search-DashboardRows -ExcelPath $UI.ExcelPath -SheetName $UI.SheetName -SearchText '')
+  $rows = @()
+  try {
+    $rows = @(Search-DashboardRows -ExcelPath $UI.ExcelPath -SheetName $UI.SheetName -SearchText '')
+  }
+  catch {
+    Write-Log -Level ERROR -Message ("Load-Data/Search-DashboardRows failed: " + $_.Exception.Message)
+    throw
+  }
   foreach ($r in $rows) {
     $ticket = ("" + $r.RITM).Trim()
     if (-not $ticket) { continue }
@@ -520,6 +593,7 @@ function Load-Data {
         Progress = '0%'
       }) | Out-Null
   }
+  Write-Log -Level INFO -Message ("Load-Data completed. Excel='{0}', rows={1}" -f $UI.ExcelPath, @($results).Count)
   return @($results.ToArray())
 }
 
@@ -634,7 +708,11 @@ function Set-GenerateUiTheme {
   $UI.Grid.EnableHeadersVisualStyles = $false
   $UI.Grid.RowHeadersVisible = $false
   $UI.Grid.ColumnHeadersDefaultCellStyle.BackColor = $palette.Card
-  $UI.Grid.ColumnHeadersDefaultCellStyle.ForeColor = $palette.Text
+  $UI.Grid.ColumnHeadersDefaultCellStyle.ForeColor = $palette.Sub
+  $UI.Grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = $palette.Card
+  $UI.Grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = $palette.Sub
+  $UI.Grid.ColumnHeadersHeightSizeMode = [System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode]::EnableResizing
+  if ($UI.Grid.ColumnHeadersHeight -lt 30) { $UI.Grid.ColumnHeadersHeight = 36 }
   $UI.Grid.DefaultCellStyle.BackColor = $palette.Input
   $UI.Grid.DefaultCellStyle.ForeColor = $palette.Text
   $UI.Grid.DefaultCellStyle.SelectionBackColor = $palette.Selection
@@ -943,6 +1021,12 @@ function Register-GenerateHandlers {
         Append-GenerateLog -UI $UI -Line 'Select at least one row to generate.'
         return
       }
+      if ((-not [bool]$UI.ChkSaveDocx.Checked) -and (-not [bool]$UI.ChkSavePdf.Checked)) {
+        $UI.LblStatusText.Text = 'Choose at least one format (DOCX or PDF).'
+        Set-StatusPill -UI $UI -Text 'Choose Format' -State error
+        Append-GenerateLog -UI $UI -Line 'Generation cancelled: both Save DOCX and Save PDF are unchecked.'
+        return
+      }
       $UI.BtnStart.Enabled = $false
       $UI.BtnDashboard.Enabled = $false
       try {
@@ -952,7 +1036,9 @@ function Register-GenerateHandlers {
 
         $selectedRowNumbers = @($selectedRows | ForEach-Object { [int]$_.Row })
         $result = Generate-PDF -UI $UI -SelectedRowNumbers $selectedRowNumbers
-        if ($result -and $result.ok -eq $true) {
+        $generatedCount = 0
+        try { if ($result -and $result.generatedCount -ne $null) { $generatedCount = [int]$result.generatedCount } } catch { $generatedCount = 0 }
+        if ($result -and $result.ok -eq $true -and $generatedCount -gt 0) {
           $UI.LblStatusText.Text = 'Generation complete.'
           Set-StatusPill -UI $UI -Text 'Done' -State done
           $msg = if ($result.message) { "" + $result.message } else { 'Documents generated successfully.' }
@@ -974,7 +1060,7 @@ function Register-GenerateHandlers {
             $dr['Progress'] = '100%'
             $savedCount++
           }
-          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: 0 | Errors: 0" -f $selectedRows.Count, $savedCount)
+          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: {2} | Errors: 0" -f $selectedRows.Count, $savedCount, [Math]::Max(0, ($selectedRows.Count - $savedCount)))
         }
         else {
           $msg = if ($result -and $result.message) { "" + $result.message } else { 'Generation failed without details.' }
@@ -1037,7 +1123,12 @@ function global:New-GeneratePdfUI {
     }
   }
   catch {
-    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason 'Excel still loading...'
+    $msg = 'Excel still loading...'
+    try {
+      $msgEx = ("" + $_.Exception.Message).Trim()
+      if ($msgEx) { $msg = $msgEx }
+    } catch {}
+    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason $msg
     Show-UiError -Context 'Load-Data' -ErrorRecord $_
   }
 
