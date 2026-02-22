@@ -23,6 +23,33 @@ function Write-Log {
   catch {}
 }
 
+function Get-GenerateDiagnosticMode {
+  try {
+    $envVal = ("" + $env:SCHUMAN_DIAGNOSTIC).Trim().ToLowerInvariant()
+    if ($envVal -in @('1', 'true', 'yes', 'on')) { return $true }
+  }
+  catch {}
+
+  try {
+    $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    if ($projectRoot) {
+      $flagPath = Join-Path $projectRoot 'system\db\generate-diagnostic.flag'
+      if (Test-Path -LiteralPath $flagPath) { return $true }
+    }
+  }
+  catch {}
+
+  return $false
+}
+
+function Write-GenerateDiagnosticLog {
+  param([string]$Message)
+  if (-not (Get-GenerateDiagnosticMode)) { return }
+  $msg = ("" + $Message).Trim()
+  if (-not $msg) { return }
+  Write-Log -Level INFO -Message ("[DIAG] " + $msg)
+}
+
 function Show-UiError {
   param(
     [string]$Context,
@@ -563,14 +590,28 @@ function Test-GenerateRowAlreadyExported {
   param(
     [hashtable]$UI,
     [string]$Ticket,
-    [string]$User
+    [string]$User,
+    [bool]$RequireDocx = $true,
+    [bool]$RequirePdf = $true
   )
   $paths = Get-GenerateExpectedPaths -UI $UI -Ticket $Ticket -User $User
   $docxExists = $false
   $pdfExists = $false
   try { if ($paths.Docx) { $docxExists = Test-Path -LiteralPath $paths.Docx } } catch {}
   try { if ($paths.Pdf) { $pdfExists = Test-Path -LiteralPath $paths.Pdf } } catch {}
-  $exists = ($docxExists -or $pdfExists)
+  $exists = $false
+  if ($RequireDocx -and $RequirePdf) {
+    $exists = ($docxExists -and $pdfExists)
+  }
+  elseif ($RequireDocx) {
+    $exists = $docxExists
+  }
+  elseif ($RequirePdf) {
+    $exists = $pdfExists
+  }
+  else {
+    $exists = ($docxExists -or $pdfExists)
+  }
   return [pscustomobject]@{
     Exists = [bool]$exists
     DocxExists = [bool]$docxExists
@@ -694,10 +735,6 @@ function Generate-PDF {
     [int[]]$SelectedRowNumbers = @()
   )
 
-  if (-not $UI.ContainsKey('OnGenerate') -or -not $UI.OnGenerate) {
-    throw 'Generate callback not configured.'
-  }
-
   $argsObj = [pscustomobject]@{
     ExcelPath = $UI.ExcelPath
     TemplatePath = $UI.TemplatePath
@@ -707,12 +744,62 @@ function Generate-PDF {
     ShowWord = [bool]$UI.ChkShowWord.Checked
     RowNumbers = @($SelectedRowNumbers)
   }
+  Write-GenerateDiagnosticLog -Message ("Generate-PDF args: Excel='{0}' Template='{1}' Output='{2}' SavePdf={3} SaveDocx={4} Rows={5}" -f $argsObj.ExcelPath, $argsObj.TemplatePath, $argsObj.OutputPath, [bool]$argsObj.ExportPdf, [bool]$argsObj.SaveDocx, (@($argsObj.RowNumbers).Count))
 
   if (-not (Test-Path -LiteralPath $argsObj.ExcelPath)) { throw 'Excel file not found.' }
   if (-not (Test-Path -LiteralPath $argsObj.TemplatePath)) { throw 'Template file not found.' }
   if ([string]::IsNullOrWhiteSpace($argsObj.OutputPath)) { throw 'Output folder is required.' }
 
-  return (& $UI.OnGenerate $argsObj)
+  $projectRoot = ''
+  try { $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) } catch { $projectRoot = '' }
+  if (-not $projectRoot) { throw 'Unable to resolve project root for document generation.' }
+
+  $coreGenerate = Get-Command -Name Invoke-DocumentGenerationWorkflow -ErrorAction SilentlyContinue | Select-Object -First 1
+  $newRunContextCmd = Get-Command -Name New-RunContext -ErrorAction SilentlyContinue | Select-Object -First 1
+  $initEnvCmd = Get-Command -Name Initialize-SchumanEnvironment -ErrorAction SilentlyContinue | Select-Object -First 1
+  Write-GenerateDiagnosticLog -Message ("Generate-PDF command availability: Core={0} RunContext={1} InitEnv={2}" -f [bool]$coreGenerate, [bool]$newRunContextCmd, [bool]$initEnvCmd)
+
+  if ($coreGenerate -and $newRunContextCmd -and $initEnvCmd) {
+    $config = Initialize-SchumanEnvironment -ProjectRoot $projectRoot
+    $docRun = New-RunContext -Config $config -RunName 'docsgenerate_ui'
+    $files = @(Invoke-DocumentGenerationWorkflow -Config $config -RunContext $docRun -ExcelPath $argsObj.ExcelPath -SheetName $UI.SheetName -TemplatePath $argsObj.TemplatePath -OutputDirectory $argsObj.OutputPath -ExportPdf:$([bool]$argsObj.ExportPdf) -RowNumbers @($argsObj.RowNumbers))
+    Write-GenerateDiagnosticLog -Message ("Generate-PDF core completed. Files={0}" -f (@($files).Count))
+
+    if (-not [bool]$argsObj.SaveDocx) {
+      foreach ($f in $files) {
+        try {
+          $docPath = ("" + $f.DocxPath).Trim()
+          if ($docPath -and (Test-Path -LiteralPath $docPath)) {
+            Remove-Item -LiteralPath $docPath -Force -ErrorAction SilentlyContinue
+          }
+        }
+        catch {}
+      }
+    }
+
+    $count = @($files).Count
+    if ($count -gt 0) {
+      return [pscustomobject]@{
+        ok             = $true
+        message        = ("Documents generated successfully. Files: {0}" -f $count)
+        outputPath     = $argsObj.OutputPath
+        generatedCount = $count
+      }
+    }
+
+    return [pscustomobject]@{
+      ok             = $false
+      message        = 'No files were generated for the selected rows.'
+      outputPath     = $argsObj.OutputPath
+      generatedCount = 0
+    }
+  }
+
+  if ($UI.ContainsKey('OnGenerate') -and $UI.OnGenerate) {
+    Write-GenerateDiagnosticLog -Message 'Generate-PDF using fallback OnGenerate callback.'
+    return (& $UI.OnGenerate $argsObj)
+  }
+  throw 'Generate callback not configured and core workflow command is unavailable.'
 }
 
 function Set-GenerateUiTheme {
@@ -924,33 +1011,6 @@ function Get-CheckedGenerateRows {
   $picked = New-Object System.Collections.Generic.List[object]
   if (-not $UI) { return @() }
   try {
-    if ($UI.Grid -and $UI.Grid.Rows) {
-      for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
-        $gr = $UI.Grid.Rows[$i]
-        if (-not $gr -or $gr.IsNewRow) { continue }
-        $checked = $false
-        try {
-          $cell = $gr.Cells['Generate']
-          if ($null -ne $cell -and $null -ne $cell.Value) {
-            $checked = [bool]$cell.Value
-          }
-        } catch { $checked = $false }
-        if (-not $checked) { continue }
-
-        $rowNum = 0
-        $rowText = ''
-        try { $rowText = ("" + $gr.Cells['Row'].Value).Trim() } catch { $rowText = '' }
-        if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
-        $picked.Add([pscustomobject]@{
-            Row = $rowNum
-            Ticket = ("" + $gr.Cells['Ticket'].Value).Trim()
-            User = ("" + $gr.Cells['User'].Value).Trim()
-            PI = ("" + $gr.Cells['PI'].Value).Trim()
-          }) | Out-Null
-      }
-      return @($picked.ToArray())
-    }
-
     if (-not $UI.GridTable) { return @() }
     for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
       $dr = $UI.GridTable.Rows[$i]
@@ -984,23 +1044,6 @@ function Get-AllGenerateRows {
   $picked = New-Object System.Collections.Generic.List[object]
   if (-not $UI) { return @() }
   try {
-    if ($UI.Grid -and $UI.Grid.Rows) {
-      for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
-        $gr = $UI.Grid.Rows[$i]
-        if (-not $gr -or $gr.IsNewRow) { continue }
-        $rowNum = 0
-        $rowText = ''
-        try { $rowText = ("" + $gr.Cells['Row'].Value).Trim() } catch { $rowText = '' }
-        if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
-        $picked.Add([pscustomobject]@{
-            Row = $rowNum
-            Ticket = ("" + $gr.Cells['Ticket'].Value).Trim()
-            User = ("" + $gr.Cells['User'].Value).Trim()
-            PI = ("" + $gr.Cells['PI'].Value).Trim()
-          }) | Out-Null
-      }
-      return @($picked.ToArray())
-    }
     if ($UI.GridTable) {
       for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
         $dr = $UI.GridTable.Rows[$i]
@@ -1031,22 +1074,7 @@ function Update-GenerateSelectAllState {
   try {
     $total = 0
     $checked = 0
-    if ($UI.Grid -and $UI.Grid.Rows) {
-      for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
-        $gr = $UI.Grid.Rows[$i]
-        if (-not $gr -or $gr.IsNewRow) { continue }
-        $total++
-        $isChecked = $false
-        try {
-          $cell = $gr.Cells['Generate']
-          if ($null -ne $cell -and $null -ne $cell.Value) {
-            $isChecked = [bool]$cell.Value
-          }
-        } catch { $isChecked = $false }
-        if ($isChecked) { $checked++ }
-      }
-    }
-    elseif ($UI.GridTable) {
+    if ($UI.GridTable) {
       $total = [int]$UI.GridTable.Rows.Count
       for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
         $dr = $UI.GridTable.Rows[$i]
@@ -1103,6 +1131,9 @@ function Invoke-GenerateUiSafe {
       }
       else {
         Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $errMsg)
+      }
+      if (Get-GenerateDiagnosticMode) {
+        try { Write-Log -Level ERROR -Message ("[DIAG] {0} full exception: {1}" -f $ctx, $_.ToString()) } catch {}
       }
     } catch {}
     Show-UiError -Context $ctx -ErrorRecord $_
@@ -1171,19 +1202,19 @@ function Register-GenerateHandlers {
       $checkValue = [bool]$UI.ChkSelectAll.Checked
       $UI.BulkSelectToggle = $true
       try {
-        try { if ($UI.Grid -and $UI.Grid.IsCurrentCellDirty) { $UI.Grid.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit) } } catch {}
-        if ($UI.Grid -and $UI.Grid.Rows) {
-          for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
-            $gr = $UI.Grid.Rows[$i]
-            if (-not $gr -or $gr.IsNewRow) { continue }
-            try { $gr.Cells['Generate'].Value = $checkValue } catch {}
-          }
-        }
-        elseif ($UI.GridTable) {
+        if ($UI.GridTable) {
           for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
             $dr = $UI.GridTable.Rows[$i]
             if (-not $dr) { continue }
             try { $dr['Generate'] = $checkValue } catch {}
+          }
+        }
+        elseif ($UI.Grid -and $UI.Grid.Rows) {
+          try { if ($UI.Grid.IsCurrentCellDirty) { $UI.Grid.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit) } } catch {}
+          for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
+            $gr = $UI.Grid.Rows[$i]
+            if (-not $gr -or $gr.IsNewRow) { continue }
+            try { $gr.Cells['Generate'].Value = $checkValue } catch {}
           }
         }
       }
@@ -1319,48 +1350,28 @@ function Register-GenerateHandlers {
       }
       $UI.BtnStart.Enabled = $false
       $UI.BtnDashboard.Enabled = $false
-      Start-GenerateProgressAnimation -UI $UI
       try {
+        Start-GenerateProgressAnimation -UI $UI
         $UI.LblStatusText.Text = ("Generating documents for {0} selected row(s)..." -f $selectedRows.Count)
         Set-StatusPill -UI $UI -Text 'Running' -State running
         Append-GenerateLog -UI $UI -Line ("Starting document generation for {0} selected row(s)." -f $selectedRows.Count)
-        $alreadyDoneRows = New-Object System.Collections.Generic.List[int]
-        $rowsToGenerate = New-Object System.Collections.Generic.List[int]
+        $selectedRowMap = @{}
         foreach ($item in $selectedRows) {
           $rnum = 0
           if (-not [int]::TryParse(("" + $item.Row).Trim(), [ref]$rnum)) { continue }
-          $existing = Test-GenerateRowAlreadyExported -UI $UI -Ticket $item.Ticket -User $item.User
-          if ($existing.Exists) {
-            $alreadyDoneRows.Add($rnum) | Out-Null
-          }
-          else {
-            $rowsToGenerate.Add($rnum) | Out-Null
-          }
+          $selectedRowMap[[string]$rnum] = $true
         }
-
-        foreach ($dr in @($UI.GridTable.Rows)) {
-          if (-not $dr) { continue }
-          $rowN = 0
-          if (-not [int]::TryParse(("" + $dr['Row']).Trim(), [ref]$rowN)) { continue }
-          if ($alreadyDoneRows.Contains($rowN)) {
-            $dr['Generate'] = $false
-            $dr['Status'] = 'Done'
-            $dr['Message'] = 'Already exported in WORD files'
-            $dr['Progress'] = '100%'
-          }
+        $selectedRowNumbers = @(
+          $selectedRowMap.Keys |
+          ForEach-Object {
+            $n = 0
+            if ([int]::TryParse(("" + $_).Trim(), [ref]$n)) { $n }
+          } |
+          Sort-Object
+        )
+        if ($selectedRowNumbers.Count -eq 0) {
+          throw 'No valid Excel row numbers were found in selected grid rows.'
         }
-
-        if ($rowsToGenerate.Count -eq 0) {
-          Stop-GenerateProgressAnimation -UI $UI -FinalPercent 100
-          $UI.LblStatusText.Text = 'All selected files already exist.'
-          Set-StatusPill -UI $UI -Text 'Done' -State done
-          Append-GenerateLog -UI $UI -Line 'No new files to generate; all selected rows were already exported.'
-          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: 0 | Errors: 0" -f $selectedRows.Count, $selectedRows.Count)
-          Update-GenerateSelectAllState -UI $UI
-          return
-        }
-
-        $selectedRowNumbers = @($rowsToGenerate.ToArray())
         $result = Generate-PDF -UI $UI -SelectedRowNumbers $selectedRowNumbers
         $generatedCount = 0
         try { if ($result -and $result.generatedCount -ne $null) { $generatedCount = [int]$result.generatedCount } } catch { $generatedCount = 0 }
@@ -1373,25 +1384,31 @@ function Register-GenerateHandlers {
           if ($result.outputPath) { $UI.OutputPath = ("" + $result.outputPath).Trim() }
           Update-OutputButton -UI $UI
           $savedCount = 0
-          foreach ($dr in @($UI.GridTable.Rows)) {
-            if (-not $dr) { continue }
-            $checked = $false
-            try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
-            if (-not $checked) { continue }
-            $rnum = 0
-            if (-not [int]::TryParse(("" + $dr['Row']).Trim(), [ref]$rnum)) { continue }
-            if (-not $rowsToGenerate.Contains($rnum)) { continue }
-            $pi = ("" + $dr['PI']).Trim()
-            if (-not $pi) { $pi = '-' }
-            $pathText = ("" + $UI.OutputPath).Trim()
-            if ($pathText) { $dr['File'] = ("{0} | PI: {1}" -f $pathText, $pi) } else { $dr['File'] = ("PI: {0}" -f $pi) }
-            $dr['Status'] = 'Done'
-            $dr['Message'] = $msg
-            $dr['Progress'] = '100%'
-            $dr['Generate'] = $false
-            $savedCount++
+          try {
+            foreach ($dr in @($UI.GridTable.Rows)) {
+              if (-not $dr) { continue }
+              $checked = $false
+              try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
+              if (-not $checked) { continue }
+              $rnum = 0
+              if (-not [int]::TryParse(("" + $dr['Row']).Trim(), [ref]$rnum)) { continue }
+              if (-not $selectedRowMap.ContainsKey([string]$rnum)) { continue }
+              $pi = ("" + $dr['PI']).Trim()
+              if (-not $pi) { $pi = '-' }
+              $pathText = ("" + $UI.OutputPath).Trim()
+              if ($pathText) { $dr['File'] = ("{0} | PI: {1}" -f $pathText, $pi) } else { $dr['File'] = ("PI: {0}" -f $pi) }
+              $dr['Status'] = 'Done'
+              $dr['Message'] = $msg
+              $dr['Progress'] = '100%'
+              $dr['Generate'] = $false
+              $savedCount++
+            }
           }
-          $savedTotal = $savedCount + $alreadyDoneRows.Count
+          catch {
+            Write-Log -Level WARN -Message ("Generate UI row update failed after successful generation: " + $_.Exception.Message)
+          }
+          $savedTotal = [Math]::Max($savedCount, $generatedCount)
+          if ($savedTotal -gt $selectedRows.Count) { $savedTotal = $selectedRows.Count }
           $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: {2} | Errors: 0" -f $selectedRows.Count, $savedTotal, [Math]::Max(0, ($selectedRows.Count - $savedTotal)))
           Update-GenerateSelectAllState -UI $UI
         }
@@ -1413,6 +1430,9 @@ function Register-GenerateHandlers {
         $errStack = ''
         try { $errStack = ("" + $_.ScriptStackTrace).Trim() } catch {}
         Append-GenerateLog -UI $UI -Line ("ERROR: " + $errMsg)
+        if (Get-GenerateDiagnosticMode) {
+          try { Append-GenerateLog -UI $UI -Line ("DIAG: " + $_.ToString()) } catch {}
+        }
         try {
           if ($errStack) {
             Write-Log -Level ERROR -Message ("Generate Documents failed: {0} | {1}" -f $errMsg, $errStack)
@@ -1420,12 +1440,15 @@ function Register-GenerateHandlers {
           else {
             Write-Log -Level ERROR -Message ("Generate Documents failed: " + $errMsg)
           }
+          if (Get-GenerateDiagnosticMode) {
+            try { Write-Log -Level ERROR -Message ("[DIAG] Generate Documents full exception: " + $_.ToString()) } catch {}
+          }
         } catch {}
         $selCount = 1
         try { $selCount = @(Get-CheckedGenerateRows -UI $UI).Count } catch {}
         if ($selCount -lt 1) { $selCount = 1 }
         $UI.LblMetrics.Text = ("Total: {0} | Saved: 0 | Skipped: 0 | Errors: {0}" -f $selCount)
-        Show-UiError -Context 'Generate-PDF' -ErrorRecord $_
+        try { Show-UiError -Context 'Generate-PDF' -ErrorRecord $_ } catch {}
       }
       finally {
         if ($UI.Grid) { try { $UI.Grid.Refresh() } catch {} }

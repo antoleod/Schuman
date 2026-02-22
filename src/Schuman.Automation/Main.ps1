@@ -3380,7 +3380,7 @@ $openModule = {
           }
           try {
             $docRun = New-RunContext -Config $globalConfig -RunName 'docsgenerate_ui'
-            $files = @(Invoke-DocumentGenerationWorkflow -Config $globalConfig -RunContext $docRun -ExcelPath $argsObj.ExcelPath -SheetName $SheetName -TemplatePath $argsObj.TemplatePath -OutputDirectory $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf -RowNumbers $selectedRows)
+            $files = @(Invoke-DocumentGenerationWorkflow -Config $globalConfig -RunContext $docRun -ExcelPath $argsObj.ExcelPath -SheetName $SheetName -TemplatePath $argsObj.TemplatePath -OutputDirectory $argsObj.OutputPath -ExportPdf:$([bool]$argsObj.ExportPdf) -RowNumbers $selectedRows)
 
             if (-not [bool]$argsObj.SaveDocx) {
               foreach ($f in $files) {

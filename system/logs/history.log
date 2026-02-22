@@ -3094,3 +3094,41 @@
 2026-02-23 00:11:14 [INFO] Skipping row 2: output already exists (RITM0496748_Juan Carlos DIOSES).
 2026-02-23 00:11:14 [INFO] Document generation completed. Files=1
 2026-02-23 00:12:39 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:19:23 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:21:06 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:23:02 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:23:06 [INFO] Skipping row 4: output already exists (RITM0400334_Devrim ATES).
+2026-02-23 00:23:06 [INFO] Document generation completed. Files=1
+2026-02-23 00:24:05 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:24:13 [INFO] Document generation completed. Files=1
+2026-02-23 00:24:42 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:26:11 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:26:26 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-23 00:26:28 [INFO] Tickets queued: total=8, filtered=8, scope=RitmOnly
+2026-02-23 00:26:29 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:26:29 [INFO] [1/8] Extracting RITM0496748
+2026-02-23 00:26:37 [INFO] RITM0496748 status='1' open_tasks=1 pi_source='none' pi=''
+2026-02-23 00:26:37 [INFO] PERF ticket_RITM0496748 took 7688ms
+2026-02-23 00:26:37 [INFO] [2/8] Extracting RITM0405052
+2026-02-23 00:26:43 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-23 00:26:43 [INFO] PERF ticket_RITM0405052 took 6481ms
+2026-02-23 00:26:43 [INFO] [3/8] Extracting RITM0400334
+2026-02-23 00:26:55 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:27:07 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:28:00 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:28:09 [INFO] Document generation completed. Files=1
+2026-02-23 00:30:02 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:30:04 [INFO] Skipping row 4: output already exists (RITM0400334_Devrim ATES).
+2026-02-23 00:30:04 [INFO] Document generation completed. Files=1
+2026-02-23 00:31:09 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:32:20 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:35:58 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:36:08 [INFO] Document generation completed. Files=1
+2026-02-23 00:36:53 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:38:54 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:39:05 [INFO] Document generation completed. Files=1
+2026-02-23 00:39:36 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:41:33 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:41:44 [INFO] Document generation completed. Files=1
+2026-02-23 00:42:19 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:43:09 [INFO] ServiceNow SSO confirmed.
