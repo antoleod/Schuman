@@ -2991,3 +2991,106 @@
 2026-02-22 22:48:13 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_224722\tickets_export.json
 2026-02-22 22:48:13 [INFO] Writing extracted data back to Excel.
 2026-02-22 22:48:15 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_224722\tickets_export.json
+2026-02-22 23:05:43 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:14:02 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:14:04 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:14:56 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-22 23:14:58 [INFO] Tickets queued: total=8, filtered=8, scope=All
+2026-02-22 23:15:42 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:15:42 [INFO] [1/8] Extracting RITM0496748
+2026-02-22 23:15:50 [INFO] RITM0496748 status='1' open_tasks=1 pi_source='none' pi=''
+2026-02-22 23:15:50 [INFO] PERF ticket_RITM0496748 took 8128ms
+2026-02-22 23:15:50 [INFO] [2/8] Extracting RITM0405052
+2026-02-22 23:15:57 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-22 23:15:57 [INFO] PERF ticket_RITM0405052 took 6274ms
+2026-02-22 23:15:57 [INFO] [3/8] Extracting RITM0400334
+2026-02-22 23:16:03 [INFO] RITM0400334 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:16:03 [INFO] PERF ticket_RITM0400334 took 6374ms
+2026-02-22 23:16:03 [INFO] [4/8] Extracting RITM0433331
+2026-02-22 23:16:09 [INFO] RITM0433331 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:16:09 [INFO] PERF ticket_RITM0433331 took 5924ms
+2026-02-22 23:16:09 [INFO] [5/8] Extracting RITM0420972
+2026-02-22 23:16:15 [INFO] RITM0420972 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:16:15 [INFO] PERF ticket_RITM0420972 took 6126ms
+2026-02-22 23:16:15 [INFO] [6/8] Extracting RITM0434588
+2026-02-22 23:16:20 [INFO] RITM0434588 status='2' open_tasks=1 pi_source='none' pi=''
+2026-02-22 23:16:20 [INFO] PERF ticket_RITM0434588 took 4867ms
+2026-02-22 23:16:20 [INFO] [7/8] Extracting RITM0434592
+2026-02-22 23:16:25 [INFO] RITM0434592 status='4' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:16:25 [INFO] PERF ticket_RITM0434592 took 4666ms
+2026-02-22 23:16:25 [INFO] [8/8] Extracting RITM0434593
+2026-02-22 23:16:28 [INFO] RITM0434593 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:16:28 [INFO] PERF ticket_RITM0434593 took 3104ms
+2026-02-22 23:16:28 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_231456\tickets_export.json
+2026-02-22 23:16:28 [INFO] Writing extracted data back to Excel.
+2026-02-22 23:16:30 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_231456\tickets_export.json
+2026-02-22 23:16:36 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:16:55 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:16:56 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:00 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:11 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:21 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:22 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:26 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:49 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:17:50 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:26:03 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:31:15 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:37:58 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:38:00 [INFO] Dashboard search query='RITM0496748' => 1 row(s)
+2026-02-22 23:38:07 [INFO] Document generation completed. Files=1
+2026-02-22 23:39:10 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:40:03 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-22 23:40:05 [INFO] Tickets queued: total=8, filtered=8, scope=RitmOnly
+2026-02-22 23:40:06 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:40:06 [INFO] [1/8] Extracting RITM0496748
+2026-02-22 23:40:14 [INFO] RITM0496748 status='1' open_tasks=1 pi_source='none' pi=''
+2026-02-22 23:40:14 [INFO] PERF ticket_RITM0496748 took 7913ms
+2026-02-22 23:40:14 [INFO] [2/8] Extracting RITM0405052
+2026-02-22 23:40:21 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-22 23:40:21 [INFO] PERF ticket_RITM0405052 took 6488ms
+2026-02-22 23:40:21 [INFO] [3/8] Extracting RITM0400334
+2026-02-22 23:40:34 [INFO] RITM0433331 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:40:34 [INFO] PERF ticket_RITM0433331 took 6271ms
+2026-02-22 23:40:34 [INFO] [5/8] Extracting RITM0420972
+2026-02-22 23:40:45 [INFO] RITM0434588 status='2' open_tasks=1 pi_source='none' pi=''
+2026-02-22 23:40:45 [INFO] PERF ticket_RITM0434588 took 4683ms
+2026-02-22 23:40:46 [INFO] [7/8] Extracting RITM0434592
+2026-02-22 23:40:50 [INFO] RITM0434592 status='4' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:40:50 [INFO] PERF ticket_RITM0434592 took 4801ms
+2026-02-22 23:40:50 [INFO] [8/8] Extracting RITM0434593
+2026-02-22 23:40:54 [INFO] RITM0434593 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 23:40:54 [INFO] PERF ticket_RITM0434593 took 3132ms
+2026-02-22 23:40:54 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_234003\tickets_export.json
+2026-02-22 23:40:54 [INFO] Writing extracted data back to Excel.
+2026-02-22 23:40:55 [INFO] Writeback summary: matched=12, updated=0, skipped=12
+2026-02-22 23:40:55 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_234003\tickets_export.json
+2026-02-22 23:42:07 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:42:18 [INFO] Document generation completed. Files=1
+2026-02-22 23:44:14 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:44:23 [INFO] Document generation completed. Files=1
+2026-02-22 23:45:43 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:45:55 [INFO] Document generation completed. Files=1
+2026-02-22 23:46:01 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:46:16 [INFO] Document generation completed. Files=1
+2026-02-22 23:48:55 [INFO] Generating documents from 'c:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:49:01 [INFO] Document generation completed. Files=1
+2026-02-22 23:49:47 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:51:57 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:56:27 [INFO] Generating documents from 'c:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-22 23:56:33 [INFO] Document generation completed. Files=1
+2026-02-22 23:57:31 [INFO] ServiceNow SSO confirmed.
+2026-02-22 23:59:24 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:02:05 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:02:12 [INFO] Document generation completed. Files=1
+2026-02-23 00:02:56 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:05:28 [INFO] Generating documents from 'c:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:05:40 [INFO] Document generation completed. Files=1
+2026-02-23 00:05:57 [INFO] ServiceNow SSO confirmed.
+2026-02-23 00:10:17 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:10:39 [INFO] Generating documents from 'C:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:10:40 [ERROR] The process cannot access the file 'C:\Users\X1\Documents\Schuman\WORD files\RITM0496748_Juan Carlos DIOSES.docx' because it is being used by another process.
+2026-02-23 00:11:11 [INFO] Generating documents from 'c:\Users\X1\Documents\Schuman\Reception_ITequipment.docx'
+2026-02-23 00:11:14 [INFO] Skipping row 2: output already exists (RITM0496748_Juan Carlos DIOSES).
+2026-02-23 00:11:14 [INFO] Document generation completed. Files=1
+2026-02-23 00:12:39 [INFO] ServiceNow SSO confirmed.

@@ -527,6 +527,58 @@ function Update-Grid {
   }
 }
 
+function Get-GenerateSafeFileName {
+  param([string]$Text)
+  $name = ("" + $Text).Trim()
+  if (-not $name) { $name = 'Unknown' }
+  $invalid = [System.IO.Path]::GetInvalidFileNameChars()
+  foreach ($ch in $invalid) { $name = $name.Replace($ch, '_') }
+  $name = [System.Text.RegularExpressions.Regex]::Replace($name, '\s+', ' ').Trim()
+  if ($name.Length -gt 80) { $name = $name.Substring(0, 80).Trim() }
+  if (-not $name) { $name = 'Unknown' }
+  return $name
+}
+
+function Get-GenerateExpectedPaths {
+  param(
+    [hashtable]$UI,
+    [string]$Ticket,
+    [string]$User
+  )
+  $outDir = ("" + $UI.OutputPath).Trim()
+  if (-not $outDir) { return [pscustomobject]@{ Docx=''; Pdf='' } }
+  $ticketValue = ("" + $Ticket).Trim()
+  if (-not $ticketValue) { $ticketValue = 'UNKNOWN_TICKET' }
+  $nameSource = ("" + $User).Trim()
+  if (-not $nameSource) { $nameSource = $ticketValue }
+  $safeName = Get-GenerateSafeFileName -Text $nameSource
+  $baseFile = "{0}_{1}" -f $ticketValue, $safeName
+  return [pscustomobject]@{
+    Docx = [System.IO.Path]::GetFullPath((Join-Path $outDir ("$baseFile.docx")))
+    Pdf = [System.IO.Path]::GetFullPath((Join-Path $outDir ("$baseFile.pdf")))
+  }
+}
+
+function Test-GenerateRowAlreadyExported {
+  param(
+    [hashtable]$UI,
+    [string]$Ticket,
+    [string]$User
+  )
+  $paths = Get-GenerateExpectedPaths -UI $UI -Ticket $Ticket -User $User
+  $docxExists = $false
+  $pdfExists = $false
+  try { if ($paths.Docx) { $docxExists = Test-Path -LiteralPath $paths.Docx } } catch {}
+  try { if ($paths.Pdf) { $pdfExists = Test-Path -LiteralPath $paths.Pdf } } catch {}
+  $exists = ($docxExists -or $pdfExists)
+  return [pscustomobject]@{
+    Exists = [bool]$exists
+    DocxExists = [bool]$docxExists
+    PdfExists = [bool]$pdfExists
+    Paths = $paths
+  }
+}
+
 function Resolve-GenerateExcelPath {
   param([hashtable]$UI)
 
@@ -567,33 +619,67 @@ function Load-Data {
 
   $results = New-Object System.Collections.Generic.List[object]
   $rows = @()
-  try {
-    $rows = @(Search-DashboardRows -ExcelPath $UI.ExcelPath -SheetName $UI.SheetName -SearchText '')
+  $docReader = Get-Command -Name Read-DocumentRowsFromExcel -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($docReader -and $docReader.ScriptBlock) {
+    try {
+      $rows = @(Read-DocumentRowsFromExcel -ExcelPath $UI.ExcelPath -SheetName $UI.SheetName)
+    }
+    catch {
+      Write-Log -Level ERROR -Message ("Load-Data/Read-DocumentRowsFromExcel failed: " + $_.Exception.Message)
+      $rows = @()
+    }
   }
-  catch {
-    Write-Log -Level ERROR -Message ("Load-Data/Search-DashboardRows failed: " + $_.Exception.Message)
-    throw
+  if (@($rows).Count -eq 0) {
+    try {
+      $rows = @(Search-DashboardRows -ExcelPath $UI.ExcelPath -SheetName $UI.SheetName -SearchText '')
+    }
+    catch {
+      Write-Log -Level ERROR -Message ("Load-Data/Search-DashboardRows failed: " + $_.Exception.Message)
+      throw
+    }
   }
   foreach ($r in $rows) {
     $ticket = ("" + $r.RITM).Trim()
-    if (-not $ticket) { continue }
+    if (-not $ticket) { $ticket = 'UNKNOWN_TICKET' }
+    $user = ("" + $r.RequestedFor).Trim()
     $pi = ("" + $r.PI).Trim()
     if (-not $pi) { $pi = '-' }
-    $status = ("" + $r.DashboardStatus).Trim()
+    $status = ''
+    $statusProp = $r.PSObject.Properties['DashboardStatus']
+    if ($statusProp) { $status = ("" + $statusProp.Value).Trim() }
     if (-not $status) { $status = 'Ready' }
     $message = if ($status -eq 'Ready') { 'Preloaded from Excel' } else { 'Preloaded from Excel status' }
+    $fileText = ("PI: {0}" -f $pi)
+    $progressText = '0%'
+    $checkDefault = $true
+
+    $existing = Test-GenerateRowAlreadyExported -UI $UI -Ticket $ticket -User $user
+    if ($existing.Exists) {
+      $status = 'Done'
+      $message = 'Already exported in WORD files'
+      $progressText = '100%'
+      $checkDefault = $false
+      $parts = @()
+      if ($existing.DocxExists) { $parts += 'DOCX' }
+      if ($existing.PdfExists) { $parts += 'PDF' }
+      $fileText = (($parts -join '+') + " | " + [System.IO.Path]::GetFileName($existing.Paths.Docx))
+    }
+
     $results.Add([pscustomobject]@{
+        Generate = $checkDefault
         Row = ("" + $r.Row)
         Ticket = $ticket
-        User = ("" + $r.RequestedFor)
+        User = $user
         PI = $pi
-        File = ("PI: {0}" -f $pi)
+        File = $fileText
         Status = $status
         Message = $message
-        Progress = '0%'
+        Progress = $progressText
       }) | Out-Null
   }
-  Write-Log -Level INFO -Message ("Load-Data completed. Excel='{0}', rows={1}" -f $UI.ExcelPath, @($results).Count)
+  $excelText = ("" + $UI.ExcelPath).Trim()
+  $resultCount = [int]$results.Count
+  Write-Log -Level INFO -Message ("Load-Data completed. Excel='{0}', rows={1}" -f $excelText, $resultCount)
   return @($results.ToArray())
 }
 
@@ -760,6 +846,65 @@ function Set-StatusPill {
   $UI.LblStatusPill.ForeColor = $palette.BadgeText
 }
 
+function Set-GenerateProgress {
+  param(
+    [hashtable]$UI,
+    [int]$Percent
+  )
+  if (-not $UI -or -not $UI.ProgressFill -or -not $UI.ProgressHost) { return }
+  $p = [Math]::Max(0, [Math]::Min(100, [int]$Percent))
+  $hostW = [Math]::Max(1, [int]$UI.ProgressHost.ClientSize.Width)
+  $newW = [Math]::Max(0, [int][Math]::Floor($hostW * ($p / 100.0)))
+  try { $UI.ProgressFill.Width = $newW } catch {}
+}
+
+function Start-GenerateProgressAnimation {
+  param([hashtable]$UI)
+  if (-not $UI) { return }
+  try {
+    if ($UI.ProgressTimer) {
+      try { $UI.ProgressTimer.Stop() } catch {}
+      try { $UI.ProgressTimer.Dispose() } catch {}
+      $UI.ProgressTimer = $null
+    }
+  } catch {}
+  $UI.ProgressAnimDirection = 1
+  $UI.ProgressAnimPercent = 8
+  Set-GenerateProgress -UI $UI -Percent 8
+  $timer = New-Object System.Windows.Forms.Timer
+  $timer.Interval = 120
+  $timer.Add_Tick(({
+      try {
+        $val = [int]$UI.ProgressAnimPercent
+        $dir = [int]$UI.ProgressAnimDirection
+        $val += (8 * $dir)
+        if ($val -ge 92) { $val = 92; $dir = -1 }
+        elseif ($val -le 12) { $val = 12; $dir = 1 }
+        $UI.ProgressAnimPercent = $val
+        $UI.ProgressAnimDirection = $dir
+        Set-GenerateProgress -UI $UI -Percent $val
+      } catch {}
+    }).GetNewClosure())
+  $UI.ProgressTimer = $timer
+  try { $timer.Start() } catch {}
+}
+
+function Stop-GenerateProgressAnimation {
+  param(
+    [hashtable]$UI,
+    [int]$FinalPercent = 0
+  )
+  if (-not $UI) { return }
+  try {
+    if ($UI.ProgressTimer) {
+      try { $UI.ProgressTimer.Stop() } catch {}
+      try { $UI.ProgressTimer.Dispose() } catch {}
+      $UI.ProgressTimer = $null
+    }
+  } catch {}
+  Set-GenerateProgress -UI $UI -Percent $FinalPercent
+}
+
 function Append-GenerateLog {
   param([hashtable]$UI, [string]$Line)
   $text = if ($null -eq $Line) { '' } else { [string]$Line }
@@ -777,13 +922,44 @@ function Update-OutputButton {
 function Get-CheckedGenerateRows {
   param([hashtable]$UI)
   $picked = New-Object System.Collections.Generic.List[object]
-  if (-not $UI -or -not $UI.GridTable) { return @() }
+  if (-not $UI) { return @() }
   try {
+    if ($UI.Grid -and $UI.Grid.Rows) {
+      for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
+        $gr = $UI.Grid.Rows[$i]
+        if (-not $gr -or $gr.IsNewRow) { continue }
+        $checked = $false
+        try {
+          $cell = $gr.Cells['Generate']
+          if ($null -ne $cell -and $null -ne $cell.Value) {
+            $checked = [bool]$cell.Value
+          }
+        } catch { $checked = $false }
+        if (-not $checked) { continue }
+
+        $rowNum = 0
+        $rowText = ''
+        try { $rowText = ("" + $gr.Cells['Row'].Value).Trim() } catch { $rowText = '' }
+        if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
+        $picked.Add([pscustomobject]@{
+            Row = $rowNum
+            Ticket = ("" + $gr.Cells['Ticket'].Value).Trim()
+            User = ("" + $gr.Cells['User'].Value).Trim()
+            PI = ("" + $gr.Cells['PI'].Value).Trim()
+          }) | Out-Null
+      }
+      return @($picked.ToArray())
+    }
+
+    if (-not $UI.GridTable) { return @() }
     for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
       $dr = $UI.GridTable.Rows[$i]
       if (-not $dr) { continue }
       $checked = $false
-      try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
+      try {
+        $cell = $dr['Generate']
+        if ($null -ne $cell) { $checked = [bool]$cell }
+      } catch { $checked = $false }
       if (-not $checked) { continue }
 
       $rowNum = 0
@@ -803,24 +979,90 @@ function Get-CheckedGenerateRows {
   return @($picked.ToArray())
 }
 
+function Get-AllGenerateRows {
+  param([hashtable]$UI)
+  $picked = New-Object System.Collections.Generic.List[object]
+  if (-not $UI) { return @() }
+  try {
+    if ($UI.Grid -and $UI.Grid.Rows) {
+      for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
+        $gr = $UI.Grid.Rows[$i]
+        if (-not $gr -or $gr.IsNewRow) { continue }
+        $rowNum = 0
+        $rowText = ''
+        try { $rowText = ("" + $gr.Cells['Row'].Value).Trim() } catch { $rowText = '' }
+        if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
+        $picked.Add([pscustomobject]@{
+            Row = $rowNum
+            Ticket = ("" + $gr.Cells['Ticket'].Value).Trim()
+            User = ("" + $gr.Cells['User'].Value).Trim()
+            PI = ("" + $gr.Cells['PI'].Value).Trim()
+          }) | Out-Null
+      }
+      return @($picked.ToArray())
+    }
+    if ($UI.GridTable) {
+      for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
+        $dr = $UI.GridTable.Rows[$i]
+        if (-not $dr) { continue }
+        $rowNum = 0
+        $rowText = ("" + $dr['Row']).Trim()
+        if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
+        $picked.Add([pscustomobject]@{
+            Row = $rowNum
+            Ticket = ("" + $dr['Ticket']).Trim()
+            User = ("" + $dr['User']).Trim()
+            PI = ("" + $dr['PI']).Trim()
+          }) | Out-Null
+      }
+    }
+  }
+  catch {
+    Write-Log -Level ERROR -Message ("Get-AllGenerateRows failed: " + $_.Exception.Message)
+  }
+  return @($picked.ToArray())
+}
+
 function Update-GenerateSelectAllState {
   param([hashtable]$UI)
-  if (-not $UI -or -not $UI.ChkSelectAll -or -not $UI.GridTable) { return }
+  if (-not $UI -or -not $UI.ChkSelectAll) { return }
   if ([bool]$UI.BulkSelectToggle) { return }
   $UI.SelectAllSyncing = $true
   try {
-    $total = [int]$UI.GridTable.Rows.Count
+    $total = 0
+    $checked = 0
+    if ($UI.Grid -and $UI.Grid.Rows) {
+      for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
+        $gr = $UI.Grid.Rows[$i]
+        if (-not $gr -or $gr.IsNewRow) { continue }
+        $total++
+        $isChecked = $false
+        try {
+          $cell = $gr.Cells['Generate']
+          if ($null -ne $cell -and $null -ne $cell.Value) {
+            $isChecked = [bool]$cell.Value
+          }
+        } catch { $isChecked = $false }
+        if ($isChecked) { $checked++ }
+      }
+    }
+    elseif ($UI.GridTable) {
+      $total = [int]$UI.GridTable.Rows.Count
+      for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
+        $dr = $UI.GridTable.Rows[$i]
+        if (-not $dr) { continue }
+        $isChecked = $false
+        try {
+          $cell = $dr['Generate']
+          if ($null -ne $cell) { $isChecked = [bool]$cell }
+        } catch { $isChecked = $false }
+        if ($isChecked) { $checked++ }
+      }
+    }
+
     if ($total -le 0) {
       $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Unchecked
       return
-    }
-    $checked = 0
-    for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
-      $dr = $UI.GridTable.Rows[$i]
-      if (-not $dr) { continue }
-      $isChecked = $false
-      try { $isChecked = [bool]$dr['Generate'] } catch { $isChecked = $false }
-      if ($isChecked) { $checked++ }
     }
     if ($checked -eq 0) {
       $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Unchecked
@@ -843,17 +1085,28 @@ function Invoke-GenerateUiSafe {
     [string]$Context,
     [scriptblock]$Action
   )
-  $safeCmd = Get-Command -Name Invoke-UiSafe -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($safeCmd -and $safeCmd.ScriptBlock) {
-    $null = & $safeCmd.ScriptBlock -Context $Context -Action $Action
-    return
+  $ctx = ("" + $Context).Trim()
+  if (-not $ctx) { $ctx = 'Generate UI Action' }
+  if (-not $Action) { return }
+  try {
+    & $Action
   }
-  $legacySafeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($legacySafeCmd -and $legacySafeCmd.ScriptBlock) {
-    $null = & $legacySafeCmd.ScriptBlock -Context $Context -Action $Action
-    return
+  catch {
+    $errMsg = ''
+    $errStack = ''
+    try { $errMsg = ("" + $_.Exception.Message).Trim() } catch { $errMsg = '' }
+    if (-not $errMsg) { $errMsg = 'Unhandled exception.' }
+    try { $errStack = ("" + $_.ScriptStackTrace).Trim() } catch { $errStack = '' }
+    try {
+      if ($errStack) {
+        Write-Log -Level ERROR -Message ("{0}: {1} | {2}" -f $ctx, $errMsg, $errStack)
+      }
+      else {
+        Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $errMsg)
+      }
+    } catch {}
+    Show-UiError -Context $ctx -ErrorRecord $_
   }
-  try { & $Action } catch { Show-UiError -Context $Context -ErrorRecord $_ }
 }
 
 function Register-GenerateHandlers {
@@ -889,19 +1142,49 @@ function Register-GenerateHandlers {
     } catch {}
   }).GetNewClosure())
 
-  $UI.ChkSelectAll.Add_CheckStateChanged(({
+  $UI.Grid.Add_CellFormatting(({
+    param($sender, $args)
+    try {
+      if ($args.RowIndex -lt 0 -or $args.ColumnIndex -lt 0) { return }
+      $col = $sender.Columns[$args.ColumnIndex]
+      if (-not $col -or $col.Name -ne 'Status') { return }
+      $valueText = ("" + $args.Value).Trim().ToLowerInvariant()
+      if ($valueText -eq 'done') {
+        $args.CellStyle.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#14532D')
+        $args.CellStyle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#ECFDF5')
+      }
+      elseif ($valueText -eq 'error' -or $valueText -eq 'failed') {
+        $args.CellStyle.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
+        $args.CellStyle.ForeColor = [System.Drawing.ColorTranslator]::FromHtml('#FEF2F2')
+      }
+      else {
+        $args.CellStyle.BackColor = $sender.DefaultCellStyle.BackColor
+        $args.CellStyle.ForeColor = $sender.DefaultCellStyle.ForeColor
+      }
+    } catch {}
+  }).GetNewClosure())
+
+  $UI.ChkSelectAll.Add_Click(({
     param($sender, $args)
     Invoke-GenerateUiSafe -UI $UI -Context 'Select All' -Action {
       if ([bool]$UI.SelectAllSyncing) { return }
-      $state = $UI.ChkSelectAll.CheckState
-      if ($state -eq [System.Windows.Forms.CheckState]::Indeterminate) { return }
-      $checkValue = ($state -eq [System.Windows.Forms.CheckState]::Checked)
+      $checkValue = [bool]$UI.ChkSelectAll.Checked
       $UI.BulkSelectToggle = $true
       try {
-        for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
-          $dr = $UI.GridTable.Rows[$i]
-          if (-not $dr) { continue }
-          $dr['Generate'] = $checkValue
+        try { if ($UI.Grid -and $UI.Grid.IsCurrentCellDirty) { $UI.Grid.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit) } } catch {}
+        if ($UI.Grid -and $UI.Grid.Rows) {
+          for ($i = 0; $i -lt $UI.Grid.Rows.Count; $i++) {
+            $gr = $UI.Grid.Rows[$i]
+            if (-not $gr -or $gr.IsNewRow) { continue }
+            try { $gr.Cells['Generate'].Value = $checkValue } catch {}
+          }
+        }
+        elseif ($UI.GridTable) {
+          for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
+            $dr = $UI.GridTable.Rows[$i]
+            if (-not $dr) { continue }
+            try { $dr['Generate'] = $checkValue } catch {}
+          }
         }
       }
       finally {
@@ -1016,10 +1299,17 @@ function Register-GenerateHandlers {
       }
       $selectedRows = @(Get-CheckedGenerateRows -UI $UI)
       if ($selectedRows.Count -eq 0) {
-        $UI.LblStatusText.Text = 'Select at least one row to generate.'
-        Set-StatusPill -UI $UI -Text 'Select Rows' -State error
-        Append-GenerateLog -UI $UI -Line 'Select at least one row to generate.'
-        return
+        $fallbackRows = @(Get-AllGenerateRows -UI $UI)
+        if ($fallbackRows.Count -gt 0) {
+          $selectedRows = @($fallbackRows)
+          Append-GenerateLog -UI $UI -Line ("No rows checked; using all visible rows ({0}) like legacy flow." -f $selectedRows.Count)
+        }
+        else {
+          $UI.LblStatusText.Text = 'Select at least one row to generate.'
+          Set-StatusPill -UI $UI -Text 'Select Rows' -State error
+          Append-GenerateLog -UI $UI -Line 'Select at least one row to generate.'
+          return
+        }
       }
       if ((-not [bool]$UI.ChkSaveDocx.Checked) -and (-not [bool]$UI.ChkSavePdf.Checked)) {
         $UI.LblStatusText.Text = 'Choose at least one format (DOCX or PDF).'
@@ -1029,16 +1319,53 @@ function Register-GenerateHandlers {
       }
       $UI.BtnStart.Enabled = $false
       $UI.BtnDashboard.Enabled = $false
+      Start-GenerateProgressAnimation -UI $UI
       try {
         $UI.LblStatusText.Text = ("Generating documents for {0} selected row(s)..." -f $selectedRows.Count)
         Set-StatusPill -UI $UI -Text 'Running' -State running
         Append-GenerateLog -UI $UI -Line ("Starting document generation for {0} selected row(s)." -f $selectedRows.Count)
+        $alreadyDoneRows = New-Object System.Collections.Generic.List[int]
+        $rowsToGenerate = New-Object System.Collections.Generic.List[int]
+        foreach ($item in $selectedRows) {
+          $rnum = 0
+          if (-not [int]::TryParse(("" + $item.Row).Trim(), [ref]$rnum)) { continue }
+          $existing = Test-GenerateRowAlreadyExported -UI $UI -Ticket $item.Ticket -User $item.User
+          if ($existing.Exists) {
+            $alreadyDoneRows.Add($rnum) | Out-Null
+          }
+          else {
+            $rowsToGenerate.Add($rnum) | Out-Null
+          }
+        }
 
-        $selectedRowNumbers = @($selectedRows | ForEach-Object { [int]$_.Row })
+        foreach ($dr in @($UI.GridTable.Rows)) {
+          if (-not $dr) { continue }
+          $rowN = 0
+          if (-not [int]::TryParse(("" + $dr['Row']).Trim(), [ref]$rowN)) { continue }
+          if ($alreadyDoneRows.Contains($rowN)) {
+            $dr['Generate'] = $false
+            $dr['Status'] = 'Done'
+            $dr['Message'] = 'Already exported in WORD files'
+            $dr['Progress'] = '100%'
+          }
+        }
+
+        if ($rowsToGenerate.Count -eq 0) {
+          Stop-GenerateProgressAnimation -UI $UI -FinalPercent 100
+          $UI.LblStatusText.Text = 'All selected files already exist.'
+          Set-StatusPill -UI $UI -Text 'Done' -State done
+          Append-GenerateLog -UI $UI -Line 'No new files to generate; all selected rows were already exported.'
+          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: 0 | Errors: 0" -f $selectedRows.Count, $selectedRows.Count)
+          Update-GenerateSelectAllState -UI $UI
+          return
+        }
+
+        $selectedRowNumbers = @($rowsToGenerate.ToArray())
         $result = Generate-PDF -UI $UI -SelectedRowNumbers $selectedRowNumbers
         $generatedCount = 0
         try { if ($result -and $result.generatedCount -ne $null) { $generatedCount = [int]$result.generatedCount } } catch { $generatedCount = 0 }
         if ($result -and $result.ok -eq $true -and $generatedCount -gt 0) {
+          Stop-GenerateProgressAnimation -UI $UI -FinalPercent 100
           $UI.LblStatusText.Text = 'Generation complete.'
           Set-StatusPill -UI $UI -Text 'Done' -State done
           $msg = if ($result.message) { "" + $result.message } else { 'Documents generated successfully.' }
@@ -1051,6 +1378,9 @@ function Register-GenerateHandlers {
             $checked = $false
             try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
             if (-not $checked) { continue }
+            $rnum = 0
+            if (-not [int]::TryParse(("" + $dr['Row']).Trim(), [ref]$rnum)) { continue }
+            if (-not $rowsToGenerate.Contains($rnum)) { continue }
             $pi = ("" + $dr['PI']).Trim()
             if (-not $pi) { $pi = '-' }
             $pathText = ("" + $UI.OutputPath).Trim()
@@ -1058,11 +1388,15 @@ function Register-GenerateHandlers {
             $dr['Status'] = 'Done'
             $dr['Message'] = $msg
             $dr['Progress'] = '100%'
+            $dr['Generate'] = $false
             $savedCount++
           }
-          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: {2} | Errors: 0" -f $selectedRows.Count, $savedCount, [Math]::Max(0, ($selectedRows.Count - $savedCount)))
+          $savedTotal = $savedCount + $alreadyDoneRows.Count
+          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: {2} | Errors: 0" -f $selectedRows.Count, $savedTotal, [Math]::Max(0, ($selectedRows.Count - $savedTotal)))
+          Update-GenerateSelectAllState -UI $UI
         }
         else {
+          Stop-GenerateProgressAnimation -UI $UI -FinalPercent 0
           $msg = if ($result -and $result.message) { "" + $result.message } else { 'Generation failed without details.' }
           $UI.LblStatusText.Text = 'Generation failed.'
           Set-StatusPill -UI $UI -Text 'Error' -State error
@@ -1071,9 +1405,22 @@ function Register-GenerateHandlers {
         }
       }
       catch {
+        Stop-GenerateProgressAnimation -UI $UI -FinalPercent 0
         $UI.LblStatusText.Text = 'Generation failed.'
         Set-StatusPill -UI $UI -Text 'Error' -State error
-        Append-GenerateLog -UI $UI -Line ("ERROR: " + $_.Exception.Message)
+        $errMsg = ("" + $_.Exception.Message).Trim()
+        if (-not $errMsg) { $errMsg = 'Unknown generation error.' }
+        $errStack = ''
+        try { $errStack = ("" + $_.ScriptStackTrace).Trim() } catch {}
+        Append-GenerateLog -UI $UI -Line ("ERROR: " + $errMsg)
+        try {
+          if ($errStack) {
+            Write-Log -Level ERROR -Message ("Generate Documents failed: {0} | {1}" -f $errMsg, $errStack)
+          }
+          else {
+            Write-Log -Level ERROR -Message ("Generate Documents failed: " + $errMsg)
+          }
+        } catch {}
         $selCount = 1
         try { $selCount = @(Get-CheckedGenerateRows -UI $UI).Count } catch {}
         if ($selCount -lt 1) { $selCount = 1 }
@@ -1081,6 +1428,7 @@ function Register-GenerateHandlers {
         Show-UiError -Context 'Generate-PDF' -ErrorRecord $_
       }
       finally {
+        if ($UI.Grid) { try { $UI.Grid.Refresh() } catch {} }
         if ([bool]$UI.ExcelReady) {
           $UI.BtnStart.Enabled = $true
           $UI.BtnDashboard.Enabled = $true

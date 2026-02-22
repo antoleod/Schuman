@@ -408,3 +408,161 @@ at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
 [2026-02-22 22:46:59] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
 [2026-02-22 22:46:59] [INFO] Startup initialization started.
 [2026-02-22 22:46:59] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:04:46] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:05:53] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:06:58] [ERROR] ServiceNow connectivity check failed.
+[2026-02-22 23:14:02] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:14:04] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:14:04] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:14:04] [INFO] Startup initialization started.
+[2026-02-22 23:14:04] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:16:35] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:16:55] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:16:56] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:16:56] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:16:57] [INFO] Startup initialization started.
+[2026-02-22 23:16:57] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:16:59] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:17:10] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:17:21] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:17:23] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:17:23] [INFO] Startup initialization started.
+[2026-02-22 23:17:23] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:17:25] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:17:28] [ERROR] Load-Data/Search-DashboardRows failed: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index
+[2026-02-22 23:17:28] [ERROR] Load-Data: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index | at global:Search-DashboardRows, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Integrations\Excel.ps1: line 406
+at Load-Data, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 571
+at Export-Excel, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 602
+at global:New-GeneratePdfUI, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 1114
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3380
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3452
+at global:Invoke-SafeUiAction, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 99
+at global:Invoke-UiHandler, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 180
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3607
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3707
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
+[2026-02-22 23:17:49] [INFO] ServiceNow WebView profile cleared: C:\Users\X1\AppData\Local\Schuman\WebView2\X1
+[2026-02-22 23:17:51] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:17:51] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:17:51] [INFO] Startup initialization started.
+[2026-02-22 23:26:04] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:26:04] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:26:04] [INFO] Startup initialization started.
+[2026-02-22 23:26:04] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:26:17] [ERROR] Load-Data/Search-DashboardRows failed: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index
+[2026-02-22 23:26:17] [ERROR] Load-Data: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index | at global:Search-DashboardRows, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Integrations\Excel.ps1: line 406
+at Load-Data, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 571
+at Export-Excel, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 602
+at global:New-GeneratePdfUI, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 1114
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3355
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3427
+at global:Invoke-SafeUiAction, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 99
+at global:Invoke-UiHandler, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 180
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3582
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3682
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
+[2026-02-22 23:31:16] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:31:16] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:31:16] [INFO] Startup initialization started.
+[2026-02-22 23:31:16] [INFO] Startup initialization: starting mandatory Excel refresh.
+[2026-02-22 23:31:16] [INFO] Excel refresh queued. Startup=True; Reason='Startup refresh (mandatory)'
+[2026-02-22 23:31:16] [INFO] Excel refresh RunWorkerAsync starting. RunId=1; TimeoutSec=120
+[2026-02-22 23:31:16] [INFO] Excel refresh RunWorkerAsync dispatched. RunId=1
+[2026-02-22 23:31:16] [WARN] Excel refresh completion ignored (stale run id 1).
+[2026-02-22 23:39:11] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:39:11] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:39:11] [INFO] Startup initialization started.
+[2026-02-22 23:39:11] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:39:35] [ERROR] Load-Data: Argument types do not match | at Load-Data, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 596
+at Export-Excel, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 602
+at global:New-GeneratePdfUI, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateUI.ps1: line 1114
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3365
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3437
+at global:Invoke-SafeUiAction, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 99
+at global:Invoke-UiHandler, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\UiHelpers.ps1: line 180
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3592
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\src\Schuman.Automation\Main.ps1: line 3692
+at <ScriptBlock>, C:\Users\X1\Documents\Schuman\Schuman-Main.ps1: line 34
+[2026-02-22 23:48:48] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:49:48] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:49:48] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:49:48] [INFO] Startup initialization started.
+[2026-02-22 23:49:48] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:50:39] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:50:39] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 23:50:49] [ERROR] Select All: Select All failed.
+[2026-02-22 23:51:02] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 23:51:06] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 23:51:11] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 23:51:58] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:51:58] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:51:58] [INFO] Startup initialization started.
+[2026-02-22 23:51:58] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:54:19] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:54:19] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 23:55:39] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:55:39] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 23:55:52] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:55:52] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 23:57:31] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 23:57:31] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 23:57:31] [INFO] Startup initialization started.
+[2026-02-22 23:57:31] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 23:57:36] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:57:36] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 23:57:39] [ERROR] Select All: Select All failed.
+[2026-02-22 23:57:40] [ERROR] Select All: Select All failed.
+[2026-02-22 23:57:45] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 23:57:54] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 23:59:23] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:59:44] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-22 23:59:59] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:00:14] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:00:52] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:01:05] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:01:16] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:01:47] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:02:04] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:02:57] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 00:02:57] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 00:02:57] [INFO] Startup initialization started.
+[2026-02-23 00:02:57] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 00:03:10] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:03:10] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 00:03:13] [ERROR] Select All: Select All failed.
+[2026-02-23 00:03:14] [ERROR] Select All: Select All failed.
+[2026-02-23 00:03:21] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:03:40] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:03:43] [ERROR] Select All: Select All failed.
+[2026-02-23 00:03:44] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:05:58] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 00:05:58] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 00:05:58] [INFO] Startup initialization started.
+[2026-02-23 00:05:58] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 00:06:03] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:06:03] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 00:06:06] [ERROR] Select All: Select All failed.
+[2026-02-23 00:06:06] [ERROR] Select All: Select All failed.
+[2026-02-23 00:06:11] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:06:33] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:06:49] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:10:16] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:10:38] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:11:14] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:12:39] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 00:12:39] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 00:12:39] [INFO] Startup initialization started.
+[2026-02-23 00:12:39] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 00:13:19] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:13:19] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 00:13:22] [ERROR] Select All: Select All failed.
+[2026-02-23 00:13:23] [ERROR] Select All: Select All failed.
+[2026-02-23 00:13:32] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:13:37] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:13:40] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:14:07] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:14:28] [ERROR] Generate Documents: Generate Documents failed.

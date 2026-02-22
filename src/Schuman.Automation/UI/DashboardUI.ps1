@@ -27,7 +27,8 @@ function global:New-DashboardUI {
     [string]$SheetName = 'BRU',
     [Parameter(Mandatory = $true)][hashtable]$Config,
     [Parameter(Mandatory = $true)][hashtable]$RunContext,
-    $InitialSession = $null
+    $InitialSession = $null,
+    [scriptblock]$OnRefreshExcel = $null
   )
 
   $fontName = 'Segoe UI'
@@ -1232,6 +1233,18 @@ function global:New-DashboardUI {
       if ([string]::IsNullOrWhiteSpace(("" + $state.ExcelPath).Trim()) -or -not (Test-Path -LiteralPath $state.ExcelPath)) {
         $lblStatus.Text = 'Excel not ready / Excel empty'
         return
+      }
+      if ($OnRefreshExcel) {
+        $lblStatus.Text = 'Running Force Update Excel...'
+        try {
+          & $OnRefreshExcel
+        }
+        catch {
+          $err = ("" + $_.Exception.Message).Trim()
+          if (-not $err) { $err = 'Force Update failed.' }
+          $lblStatus.Text = ("Force Update failed: {0}" -f $err)
+          throw
+        }
       }
       $state.QueryCache = @{}
       $state.AllRows = @()

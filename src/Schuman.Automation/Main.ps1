@@ -2021,23 +2021,20 @@ function Ensure-ServiceNowConnectivity {
     [switch]$ForceRelogin
   )
 
-  $needRelogin = [bool]$ForceRelogin
-  if (-not $needRelogin) {
+  if ($script:StartupSession -and -not $ForceRelogin) {
     $isHealthy = $false
     try { $isHealthy = Test-ServiceNowSessionHealth -Session $script:StartupSession } catch { $isHealthy = $false }
-    if (-not $isHealthy) { $needRelogin = $true }
+    if ($isHealthy) { return $true }
   }
 
-  $script:StartupSession = Start-StartupSsoSession -Config $globalConfig -RunContext $uiRunContext -ExistingSession $script:StartupSession -ForceRelogin:$needRelogin
+  # Legacy-like behavior: keep persistent WebView profile and only relogin when health probe fails.
+  # Do not clear profile on normal relogin attempts.
+  $script:StartupSession = Start-StartupSsoSession -Config $globalConfig -RunContext $uiRunContext -ExistingSession $script:StartupSession -ForceRelogin:$false
   if (-not $script:StartupSession) {
     try { Write-UiTrace -Level 'ERROR' -Message 'ServiceNow connectivity check failed.' } catch {}
     return $false
   }
   return $true
-}
-
-if (-not (Ensure-ServiceNowConnectivity -ForceRelogin)) {
-  return
 }
 
 # ---------------------------------------------------------------------------
@@ -2890,8 +2887,9 @@ function Update-MainExcelDependentControls {
     $pathValid = (-not [string]::IsNullOrWhiteSpace($candidate)) -and (Test-Path -LiteralPath $candidate)
   }
   catch { $pathValid = $false }
-  if ($btnDashboard -and -not $btnDashboard.IsDisposed) { $btnDashboard.Enabled = (-not $script:MainBusyActive) }
-  if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Enabled = (-not $script:MainBusyActive) }
+  $canOpenModules = ($ready -and $pathValid -and -not $script:ExcelRefreshInProgress -and -not $script:MainBusyActive)
+  if ($btnDashboard -and -not $btnDashboard.IsDisposed) { $btnDashboard.Enabled = $canOpenModules }
+  if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Enabled = $canOpenModules }
   if ($btnForce -and -not $btnForce.IsDisposed) { $btnForce.Enabled = ($pathValid -and -not $script:ExcelRefreshInProgress -and -not $script:ForceUpdateInProgress -and -not $script:MainBusyActive) }
   if ($btnCleanTemp -and -not $btnCleanTemp.IsDisposed) { $btnCleanTemp.Enabled = (-not $script:MainBusyActive) }
   if ($btnLoadExcel -and -not $btnLoadExcel.IsDisposed) { $btnLoadExcel.Enabled = (-not $script:ExcelRefreshInProgress) }
@@ -3103,6 +3101,12 @@ function Start-SchumanExcelRefreshAsync {
     return
   }
 
+  try {
+    if ($script:ExcelRefreshWatchdogTimer) {
+      $script:ExcelRefreshWatchdogTimer.Stop()
+    }
+  }
+  catch {}
   $script:ExcelRefreshInProgress = $true
   Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready yet - loading...'
   if ($ShowOverlay) {
@@ -3175,8 +3179,10 @@ function Start-SchumanExcelRefreshAsync {
   $worker.Add_RunWorkerCompleted(({
         param($sender, $eventArgs)
         try {
-          if ($script:ActiveExcelRefreshRunId -ne $runId) {
-            Write-UiTrace -Level 'WARN' -Message ("Excel refresh completion ignored (stale run id {0})." -f $runId)
+          $activeRunId = -1
+          try { $activeRunId = [int]$script:ActiveExcelRefreshRunId } catch { $activeRunId = -1 }
+          if (($activeRunId -ne $runId) -and ($activeRunId -gt $runId)) {
+            Write-UiTrace -Level 'WARN' -Message ("Excel refresh completion ignored (stale run id {0}, active {1})." -f $runId, $activeRunId)
             return
           }
 
@@ -3257,27 +3263,21 @@ function Start-SchumanStartupInit {
       return
     }
 
-    $fs = $null
-    try {
-      $fs = [System.IO.File]::Open($excel, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-    }
-    finally {
-      try { if ($fs) { $fs.Close(); $fs.Dispose() } } catch {}
-    }
-
     Save-MainExcelPathPreference -ExcelPath $excel
     $script:ExcelLoadErrorShown = $false
-    $script:LastExcelRefreshAt = [DateTime]::Now
-    Update-MainExcelDependentControls -ExcelReady $true
+    Update-MainExcelDependentControls -ExcelReady $true -Reason 'Ready'
     if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Ready' }
     Write-UiTrace -Level 'INFO' -Message 'Startup initialization completed successfully (quick Excel validation mode).'
+    return
   }
   catch {
     Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready. Please load Excel.'
     Write-UiTrace -Level 'ERROR' -Message ("Startup initialization exception: " + $_.Exception.Message)
   }
   finally {
-    try { Update-StartupOverlay -Visible $false } catch {}
+    if (-not $script:ExcelRefreshInProgress) {
+      try { Update-StartupOverlay -Visible $false } catch {}
+    }
   }
 }
 
@@ -3288,8 +3288,8 @@ function global:Open-SchumanDashboard {
   param()
 
   Invoke-UiSafe -Context 'Open Dashboard Window' -Action {
-    if (-not (Ensure-ServiceNowConnectivity)) {
-      [System.Windows.Forms.MessageBox]::Show('ServiceNow connection is required. Please sign in again.', 'ServiceNow') | Out-Null
+    if (-not $script:StartupSession) {
+      [System.Windows.Forms.MessageBox]::Show('ServiceNow session is not available. Restart Schuman to login again.', 'ServiceNow') | Out-Null
       return
     }
 
@@ -3308,7 +3308,9 @@ function global:Open-SchumanDashboard {
     if (-not $excelForDashboard) { $excelForDashboard = '' }
 
     try {
-      $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excelForDashboard -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $script:StartupSession) -UiName 'New-DashboardUI'
+      $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excelForDashboard -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $script:StartupSession -OnRefreshExcel {
+            & $forceUpdateAction
+          }) -UiName 'New-DashboardUI'
       $script:DashboardForm = $dash
       [void]$dash.add_FormClosed(({
             $script:DashboardForm = $null
@@ -3333,13 +3335,15 @@ $openModule = {
     $excel = ''
   }
 
+  if (-not $script:MainExcelReady) {
+    $msg = 'Excel is still loading or refresh failed. Please wait until startup refresh completes or click "Load Excel..." and refresh again.'
+    if ($status -and -not $status.IsDisposed) { $status.Text = ("Status: {0}" -f $msg) }
+    [System.Windows.Forms.MessageBox]::Show($msg, 'Excel not ready') | Out-Null
+    return
+  }
+
   Set-AppBusyState -isBusy $true -reason ("Opening {0}" -f $module)
   try {
-    if (-not (Ensure-ServiceNowConnectivity)) {
-      if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: ServiceNow connection required.' }
-      return
-    }
-
     if ($module -eq 'Dashboard') {
       Open-SchumanDashboard
     }

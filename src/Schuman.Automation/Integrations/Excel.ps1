@@ -195,13 +195,18 @@ function Write-TicketResultsToExcel {
     [string]$SCTasksHeader = 'SCTasks'
   )
 
-  Invoke-WithExcelWorkbook -ExcelPath $ExcelPath -ReadOnly $false -Action {
+  $summary = Invoke-WithExcelWorkbook -ExcelPath $ExcelPath -ReadOnly $false -Action {
     param($excel, $wb)
 
     $ws = $null
     $debugLogPath = Join-Path $env:TEMP 'Schuman\pi-transplant-debug.log'
     try { New-Item -ItemType Directory -Force -Path (Split-Path -Parent $debugLogPath) | Out-Null } catch {}
     $debugCount = 0
+    $stats = [ordered]@{
+      MatchedRows = 0
+      UpdatedRows = 0
+      SkippedRows = 0
+    }
     try {
       $ws = $wb.Worksheets.Item($SheetName)
       $map = Get-ExcelHeaderMap -Worksheet $ws
@@ -238,6 +243,8 @@ function Write-TicketResultsToExcel {
         $ticket = ("" + $ws.Cells.Item($r, $ticketCol).Text).Trim().ToUpperInvariant()
         if (-not $ResultByTicket.ContainsKey($ticket)) { continue }
 
+        $stats.MatchedRows++
+        $rowChanged = $false
         $res = $ResultByTicket[$ticket]
         $affectedUser = if ($res.PSObject.Properties['affected_user']) { ("" + $res.affected_user).Trim() } else { '' }
         $legalName = if ($res.PSObject.Properties['legal_name']) { ("" + $res.legal_name).Trim() } else { '' }
@@ -251,7 +258,10 @@ function Write-TicketResultsToExcel {
             $current = ("" + $ws.Cells.Item($r, $nameCol).Text).Trim()
             $replaceCurrent = [string]::IsNullOrWhiteSpace($current) -or ($current -eq $ticket) -or (Test-InvalidUserCellValue -Value $current)
             if ($replaceCurrent) {
-              $ws.Cells.Item($r, $nameCol) = $affectedUser
+              if ($current -ne $affectedUser) {
+                $ws.Cells.Item($r, $nameCol) = $affectedUser
+                $rowChanged = $true
+              }
             }
           }
         }
@@ -262,7 +272,10 @@ function Write-TicketResultsToExcel {
         if ($detectedPi) {
           $current = ("" + $ws.Cells.Item($r, $phoneCol).Text).Trim()
           if ([string]::IsNullOrWhiteSpace($current) -or $current -eq $ticket) {
-            $ws.Cells.Item($r, $phoneCol) = $detectedPi
+            if ($current -ne $detectedPi) {
+              $ws.Cells.Item($r, $phoneCol) = $detectedPi
+              $rowChanged = $true
+            }
           }
         }
         if ($debugCount -lt 10) {
@@ -275,18 +288,31 @@ function Write-TicketResultsToExcel {
         }
 
         $completion = if ($res.PSObject.Properties['completion_status']) { ("" + $res.completion_status).Trim() } else { 'Pending' }
-        $ws.Cells.Item($r, $actionCol) = $completion
+        $currentCompletion = ("" + $ws.Cells.Item($r, $actionCol).Text).Trim()
+        if ($currentCompletion -ne $completion) {
+          $ws.Cells.Item($r, $actionCol) = $completion
+          $rowChanged = $true
+        }
 
         $openTaskNumbers = if ($res.PSObject.Properties['open_task_numbers']) { @($res.open_task_numbers) } else { @() }
-        $ws.Cells.Item($r, $tasksCol) = if ((Get-SafeCount $openTaskNumbers) -gt 0) { ($openTaskNumbers -join ', ') } else { '' }
+        $newTaskText = if ((Get-SafeCount $openTaskNumbers) -gt 0) { ($openTaskNumbers -join ', ') } else { '' }
+        $currentTaskText = ("" + $ws.Cells.Item($r, $tasksCol).Text).Trim()
+        if ($currentTaskText -ne $newTaskText) {
+          $ws.Cells.Item($r, $tasksCol) = $newTaskText
+          $rowChanged = $true
+        }
+
+        if ($rowChanged) { $stats.UpdatedRows++ } else { $stats.SkippedRows++ }
       }
 
       $wb.Save()
+      return [pscustomobject]$stats
     }
     finally {
       try { if ($ws) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($ws) } } catch {}
     }
   }
+  return $summary
 }
 
 function global:Search-DashboardRows {
@@ -343,63 +369,30 @@ function global:Search-DashboardRows {
       $out = @{}
       if (-not $ColumnIndex -or $ColumnIndex -le 0) { return $out }
 
-      $rng = $null
-      try {
-        $rng = $ws.Range($ws.Cells.Item(2, $ColumnIndex), $ws.Cells.Item($rows, $ColumnIndex))
-        $vals = $rng.Value2
-        if ($vals -is [System.Array]) {
-          $rank = 1
-          try { $rank = [int]$vals.Rank } catch { $rank = 1 }
-
-          if ($rank -eq 2) {
-            $lb0 = $vals.GetLowerBound(0)
-            $ub0 = $vals.GetUpperBound(0)
-            $lb1 = $vals.GetLowerBound(1)
-            for ($ri = $lb0; $ri -le $ub0; $ri++) {
-              $excelRow = 2 + ($ri - $lb0)
-              $cell = $null
-              try { $cell = $vals[$ri, $lb1] } catch { $cell = $null }
-              $out[$excelRow] = ("" + $cell).Trim()
-            }
-          }
-          elseif ($rank -eq 1) {
-            $lb = $vals.GetLowerBound(0)
-            $ub = $vals.GetUpperBound(0)
-            for ($ri = $lb; $ri -le $ub; $ri++) {
-              $excelRow = 2 + ($ri - $lb)
-              $cell = $null
-              try { $cell = $vals[$ri] } catch { $cell = $null }
-              $out[$excelRow] = ("" + $cell).Trim()
-            }
-          }
-          else {
-            $excelRow = 2
-            foreach ($cell in $vals) {
-              $out[$excelRow] = ("" + $cell).Trim()
-              $excelRow++
-            }
-          }
+      # Some workbooks return unexpected COM array shapes for Value2, so read cell-by-cell for stability.
+      for ($excelRow = 2; $excelRow -le $rows; $excelRow++) {
+        $cellText = ''
+        try {
+          $cellObj = $ws.Cells.Item($excelRow, $ColumnIndex)
+          $cellText = ("" + $cellObj.Text).Trim()
         }
-        else {
-          $out[2] = ("" + $vals).Trim()
+        catch {
+          $cellText = ''
         }
+        $out[$excelRow] = $cellText
       }
-      finally {
-        try { if ($rng) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($rng) } } catch {}
-      }
-
       return $out
     }
 
-    $ritmValues = $getColValues.Invoke($ritmCol)
-    $nameValues = $getColValues.Invoke($nameCol)
-    $statusValues = $getColValues.Invoke($statusCol)
-    $ritmStateValues = $getColValues.Invoke($ritmStateCol)
-    $taskStateValues = $getColValues.Invoke($taskStateCol)
-    $presentValues = $getColValues.Invoke($presentCol)
-    $closedValues = $getColValues.Invoke($closedCol)
-    $taskValues = $getColValues.Invoke($taskCol)
-    $piValues = $getColValues.Invoke($piCol)
+    $ritmValues = [hashtable](& $getColValues $ritmCol)
+    $nameValues = [hashtable](& $getColValues $nameCol)
+    $statusValues = [hashtable](& $getColValues $statusCol)
+    $ritmStateValues = [hashtable](& $getColValues $ritmStateCol)
+    $taskStateValues = [hashtable](& $getColValues $taskStateCol)
+    $presentValues = [hashtable](& $getColValues $presentCol)
+    $closedValues = [hashtable](& $getColValues $closedCol)
+    $taskValues = [hashtable](& $getColValues $taskCol)
+    $piValues = [hashtable](& $getColValues $piCol)
 
     $queryNorm = $query.ToLowerInvariant()
     for ($r = 2; $r -le $rows; $r++) {

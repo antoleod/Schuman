@@ -81,8 +81,11 @@ function Invoke-TicketExportWorkflow {
     }
 
     Write-RunLog -RunContext $RunContext -Level INFO -Message 'Writing extracted data back to Excel.'
-    Write-TicketResultsToExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
+    $writeSummary = Write-TicketResultsToExcel -ExcelPath $ExcelPath -SheetName $SheetName -TicketHeader $TicketHeader -TicketColumn $TicketColumn `
       -ResultByTicket $resultMap -NameHeader $NameHeader -PhoneHeader $PhoneHeader -ActionHeader $ActionHeader -SCTasksHeader $SCTasksHeader
+    if ($writeSummary) {
+      Write-RunLog -RunContext $RunContext -Level INFO -Message ("Writeback summary: matched={0}, updated={1}, skipped={2}" -f [int]$writeSummary.MatchedRows, [int]$writeSummary.UpdatedRows, [int]$writeSummary.SkippedRows)
+    }
   }
 
   return [pscustomobject]@{
