@@ -31,7 +31,7 @@ function global:New-DashboardUI {
   )
 
   $fontName = 'Segoe UI'
-  $uiFontCmd = Get-Command -Name Get-UiFontName -ErrorAction SilentlyContinue
+  $uiFontCmd = Get-Command -Name Get-UiFontName -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($uiFontCmd) {
     try {
       $candidateFont = ("" + (& $uiFontCmd)).Trim()
@@ -69,13 +69,17 @@ function global:New-DashboardUI {
   if (Get-Command -Name Initialize-SchumanRuntime -ErrorAction SilentlyContinue) {
     Initialize-SchumanRuntime -RevalidateOnly
   }
+  $getFunctionCommand = ({
+    param([string]$Name)
+    return (Get-Command -Name $Name -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1)
+  }).GetNewClosure()
   $searchDashboardRowsHandler = ${function:Search-DashboardRows}
   if (-not $searchDashboardRowsHandler) {
     throw 'Search-DashboardRows is not available. Runtime initialization failed.'
   }
   $testClosedStateHandler = ${function:Test-ClosedState}
   if (-not $testClosedStateHandler) {
-    $testClosedStateCommand = Get-Command -Name Test-ClosedState -CommandType Function -ErrorAction SilentlyContinue
+    $testClosedStateCommand = & $getFunctionCommand 'Test-ClosedState'
     if ($testClosedStateCommand -and $testClosedStateCommand.ScriptBlock) {
       $testClosedStateHandler = $testClosedStateCommand.ScriptBlock
     }
@@ -85,22 +89,22 @@ function global:New-DashboardUI {
   }
   $newServiceNowSessionHandler = ${function:New-ServiceNowSession}
   if (-not $newServiceNowSessionHandler) {
-    $cmd = Get-Command -Name New-ServiceNowSession -CommandType Function -ErrorAction SilentlyContinue
+    $cmd = & $getFunctionCommand 'New-ServiceNowSession'
     if ($cmd -and $cmd.ScriptBlock) { $newServiceNowSessionHandler = $cmd.ScriptBlock }
   }
   $getServiceNowTasksForRitmHandler = ${function:Get-ServiceNowTasksForRitm}
   if (-not $getServiceNowTasksForRitmHandler) {
-    $cmd = Get-Command -Name Get-ServiceNowTasksForRitm -CommandType Function -ErrorAction SilentlyContinue
+    $cmd = & $getFunctionCommand 'Get-ServiceNowTasksForRitm'
     if ($cmd -and $cmd.ScriptBlock) { $getServiceNowTasksForRitmHandler = $cmd.ScriptBlock }
   }
   $setServiceNowTaskStateHandler = ${function:Set-ServiceNowTaskState}
   if (-not $setServiceNowTaskStateHandler) {
-    $cmd = Get-Command -Name Set-ServiceNowTaskState -CommandType Function -ErrorAction SilentlyContinue
+    $cmd = & $getFunctionCommand 'Set-ServiceNowTaskState'
     if ($cmd -and $cmd.ScriptBlock) { $setServiceNowTaskStateHandler = $cmd.ScriptBlock }
   }
   $updateDashboardRowHandler = ${function:Update-DashboardRow}
   if (-not $updateDashboardRowHandler) {
-    $cmd = Get-Command -Name Update-DashboardRow -CommandType Function -ErrorAction SilentlyContinue
+    $cmd = & $getFunctionCommand 'Update-DashboardRow'
     if ($cmd -and $cmd.ScriptBlock) { $updateDashboardRowHandler = $cmd.ScriptBlock }
   }
 
@@ -829,7 +833,7 @@ function global:New-DashboardUI {
       $state.ExcelReady = $false
       & $updateActionButtons
       try { Write-Log -Level ERROR -Message ("Dashboard search failed: " + $err) } catch {}
-      $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+      $globalShowUiError = & $getFunctionCommand 'global:Show-UiError'
       if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
         & $globalShowUiError.ScriptBlock -Title 'Dashboard Error' -Message 'Search failed.' -Exception $_.Exception
       }
@@ -1092,7 +1096,7 @@ function global:New-DashboardUI {
       $state.ExcelReady = $false
       & $updateActionButtons
       $lblStatus.Text = 'Preload failed.'
-      $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+      $globalShowUiError = & $getFunctionCommand 'global:Show-UiError'
       if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
         & $globalShowUiError.ScriptBlock -Title 'Dashboard' -Message 'Preload failed.' -Exception $_.Exception
       }
@@ -1118,13 +1122,13 @@ function global:New-DashboardUI {
 
   $runSafeUi = ({
     param([string]$ctx, [scriptblock]$act)
-    $safeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue
+    $safeCmd = & $getFunctionCommand 'Invoke-SafeUiAction'
     if ($safeCmd -and $safeCmd.ScriptBlock) {
-      & $safeCmd.ScriptBlock -ActionName $ctx -Action $act | Out-Null
+      $null = & $safeCmd.ScriptBlock -ActionName $ctx -Action $act
       return
     }
     try { & $act } catch {
-      $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+      $globalShowUiError = & $getFunctionCommand 'global:Show-UiError'
       if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
         & $globalShowUiError.ScriptBlock -Title 'Dashboard' -Message ("{0} failed." -f $ctx) -Exception $_.Exception
       }
@@ -1139,7 +1143,7 @@ function global:New-DashboardUI {
   }).GetNewClosure()
 
   $assignThemeRoles = ({
-    $setRoleCmd = Get-Command -Name Set-UiControlRole -CommandType Function -ErrorAction SilentlyContinue
+    $setRoleCmd = & $getFunctionCommand 'Set-UiControlRole'
     if (-not $setRoleCmd -or -not $setRoleCmd.ScriptBlock) { return }
     & $setRoleCmd.ScriptBlock -Control $btnRefresh -Role 'SecondaryButton'
     & $setRoleCmd.ScriptBlock -Control $btnClear -Role 'SecondaryButton'
@@ -1283,7 +1287,7 @@ function global:New-DashboardUI {
       }).GetNewClosure())
   $btnCloseCode.Add_Click(({
     & $runSafeUi 'Dashboard Close All' {
-      $shutdownCmd = Get-Command -Name Shutdown-SchumanApp -ErrorAction SilentlyContinue
+      $shutdownCmd = & $getFunctionCommand 'Shutdown-SchumanApp'
       if ($shutdownCmd) {
         & $shutdownCmd.ScriptBlock -CurrentForm $form
         return

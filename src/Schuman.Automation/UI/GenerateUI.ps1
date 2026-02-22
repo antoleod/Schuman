@@ -30,7 +30,7 @@ function Show-UiError {
   )
 
   $ctx = if ([string]::IsNullOrWhiteSpace($Context)) { 'UI' } else { $Context }
-  $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+  $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
     try {
       if ($ErrorRecord -and $ErrorRecord.Exception) {
@@ -578,7 +578,7 @@ function Set-GenerateUiTheme {
   } catch {}
 
   $palette = $UI.Theme.Dark
-  $setRoleCmd = Get-Command -Name Set-UiControlRole -CommandType Function -ErrorAction SilentlyContinue
+  $setRoleCmd = Get-Command -Name Set-UiControlRole -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($setRoleCmd -and $setRoleCmd.ScriptBlock) {
     & $setRoleCmd.ScriptBlock -Control $UI.BtnStart -Role 'PrimaryButton'
     & $setRoleCmd.ScriptBlock -Control $UI.BtnDashboard -Role 'AccentButton'
@@ -765,14 +765,14 @@ function Invoke-GenerateUiSafe {
     [string]$Context,
     [scriptblock]$Action
   )
-  $safeCmd = Get-Command -Name Invoke-UiSafe -CommandType Function -ErrorAction SilentlyContinue
+  $safeCmd = Get-Command -Name Invoke-UiSafe -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($safeCmd -and $safeCmd.ScriptBlock) {
-    & $safeCmd.ScriptBlock -Context $Context -Action $Action | Out-Null
+    $null = & $safeCmd.ScriptBlock -Context $Context -Action $Action
     return
   }
-  $legacySafeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue
+  $legacySafeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($legacySafeCmd -and $legacySafeCmd.ScriptBlock) {
-    & $legacySafeCmd.ScriptBlock -Context $Context -Action $Action | Out-Null
+    $null = & $legacySafeCmd.ScriptBlock -Context $Context -Action $Action
     return
   }
   try { & $Action } catch { Show-UiError -Context $Context -ErrorRecord $_ }

@@ -322,3 +322,17 @@ Cannot convert value "128161" to type "System.Char". Error: "Value was either to
 [2026-02-22 22:03:26] [INFO] Startup initialization completed successfully (quick Excel validation mode).
 [2026-02-22 22:04:04] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
 [2026-02-22 22:04:25] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:07:04] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:07:04] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:07:04] [INFO] Startup initialization started.
+[2026-02-22 22:07:04] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:08:22] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:08:36] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:08:51] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:09:20] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:18:31] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:19:01] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:19:01] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:19:01] [INFO] Startup initialization started.
+[2026-02-22 22:19:02] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:20:15] [INFO] Preloaded 12 rows from Excel.
