@@ -3178,9 +3178,7 @@ $script:DashboardForm = $null
 $script:GeneratorForm = $null
 
 function global:Open-SchumanDashboard {
-  param(
-    [System.Windows.Forms.IWin32Window]$OwnerForm = $null
-  )
+  param()
 
   Invoke-UiSafe -Context 'Open Dashboard Window' -Action {
     if ($script:DashboardForm -and -not $script:DashboardForm.IsDisposed) {
@@ -3203,7 +3201,7 @@ function global:Open-SchumanDashboard {
       [void]$dash.add_FormClosed(({
             $script:DashboardForm = $null
           }).GetNewClosure())
-      if ($OwnerForm) { [void]$dash.Show($OwnerForm) } else { [void]$dash.Show() }
+      [void]$dash.Show()
     }
     catch {
       $detail = ("" + $_.Exception.Message).Trim()
@@ -3226,7 +3224,7 @@ $openModule = {
   Set-AppBusyState -isBusy $true -reason ("Opening {0}" -f $module)
   try {
     if ($module -eq 'Dashboard') {
-      Open-SchumanDashboard -OwnerForm $form
+      Open-SchumanDashboard
     }
     else {
       if ($script:GeneratorForm -and -not $script:GeneratorForm.IsDisposed) {
@@ -3246,7 +3244,7 @@ $openModule = {
       $defaultOutput = Join-Path $projectRoot $globalConfig.Documents.OutputFolder
 
       $frm = Resolve-UiForm -UiResult (New-GeneratePdfUI -ExcelPath $excel -SheetName $SheetName -TemplatePath $defaultTemplate -OutputPath $defaultOutput -OnOpenDashboard {
-          Open-SchumanDashboard -OwnerForm $script:GeneratorForm
+          Open-SchumanDashboard
         } -OnGenerate {
           param($argsObj)
           $selectedRows = @()
@@ -3273,7 +3271,7 @@ $openModule = {
       [void]$frm.add_FormClosed(({
             $script:GeneratorForm = $null
           }).GetNewClosure())
-      [void]$frm.Show($form)
+      [void]$frm.Show()
     }
   }
   finally {

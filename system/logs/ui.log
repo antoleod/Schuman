@@ -295,3 +295,30 @@ Cannot convert value "128161" to type "System.Char". Error: "Value was either to
 [2026-02-22 21:47:03] [INFO] Startup initialization started.
 [2026-02-22 21:47:03] [INFO] Startup initialization completed successfully (quick Excel validation mode).
 [2026-02-22 21:48:12] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 21:52:28] [ERROR] Select All: Select All failed.
+[2026-02-22 21:52:32] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 21:52:48] [ERROR] Select All: Select All failed.
+[2026-02-22 21:52:49] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-22 21:54:58] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:55:55] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:56:26] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:56:26] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:56:26] [INFO] Startup initialization started.
+[2026-02-22 21:56:26] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:58:24] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:58:24] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:58:24] [INFO] Startup initialization started.
+[2026-02-22 21:58:24] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:58:36] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:00:58] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 22:01:21] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:01:21] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:01:21] [INFO] Startup initialization started.
+[2026-02-22 22:01:21] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:03:26] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 22:03:26] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 22:03:26] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 22:03:26] [INFO] Startup initialization started.
+[2026-02-22 22:03:26] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 22:04:04] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 22:04:25] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."

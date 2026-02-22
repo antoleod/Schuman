@@ -45,7 +45,14 @@ function Show-UiError {
   }
   $msg = if ($ErrorRecord -and $ErrorRecord.Exception) { ("" + $ErrorRecord.Exception.Message).Trim() } else { "$ctx failed." }
   if (-not $msg) { $msg = "$ctx failed." }
-  Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $msg)
+  $stack = ''
+  try { if ($ErrorRecord) { $stack = ("" + $ErrorRecord.ScriptStackTrace).Trim() } } catch {}
+  if ($stack) {
+    Write-Log -Level ERROR -Message ("{0}: {1} | {2}" -f $ctx, $msg, $stack)
+  }
+  else {
+    Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $msg)
+  }
 }
 
 function New-UI {
@@ -68,6 +75,7 @@ function New-UI {
   $UI.OnGenerate = $OnGenerate
   $UI.OnCloseAll = $OnCloseAll
   $UI.SelectAllSyncing = $false
+  $UI.BulkSelectToggle = $false
   $UI.ExcelReady = $false
   $UI.Theme = @{
     Dark = @{
@@ -269,6 +277,7 @@ function Initialize-Controls {
   $grid.AutoGenerateColumns = $false
   $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
   $grid.EnableHeadersVisualStyles = $false
+  $grid.ColumnHeadersVisible = $true
   $grid.ColumnHeadersHeight = 36
   $grid.RowTemplate.Height = 32
   try {
@@ -417,6 +426,31 @@ function Initialize-Controls {
   return $UI
 }
 
+function Ensure-GenerateGridHeaders {
+  param([hashtable]$UI)
+
+  if (-not $UI -or -not $UI.Grid) { return }
+  $UI.Grid.ColumnHeadersVisible = $true
+
+  $headers = @{
+    Generate = 'Generate'
+    Row = 'Row #'
+    Ticket = 'Ticket/RITM'
+    User = 'User'
+    File = 'Output File'
+    Status = 'Status'
+    Message = 'Message'
+    Progress = 'Progress'
+  }
+
+  foreach ($columnName in $headers.Keys) {
+    try {
+      $col = $UI.Grid.Columns[$columnName]
+      if ($col) { $col.HeaderText = $headers[$columnName] }
+    } catch {}
+  }
+}
+
 function Update-Grid {
   param(
     [hashtable]$UI,
@@ -429,6 +463,7 @@ function Update-Grid {
   $rowsSafe = @($Rows)
   $UI.Grid.SuspendLayout()
   try {
+    Ensure-GenerateGridHeaders -UI $UI
     $UI.GridTable.BeginLoadData()
     try {
       $UI.GridTable.Rows.Clear()
@@ -613,6 +648,7 @@ function Set-GenerateUiTheme {
   if (Get-Command -Name Apply-UiRoundedButtonsRecursive -ErrorAction SilentlyContinue) {
     try { Apply-UiRoundedButtonsRecursive -Root $UI.Form -Radius 10 } catch {}
   }
+  Ensure-GenerateGridHeaders -UI $UI
 }
 
 function Update-GenerateDataState {
@@ -664,21 +700,27 @@ function Get-CheckedGenerateRows {
   param([hashtable]$UI)
   $picked = New-Object System.Collections.Generic.List[object]
   if (-not $UI -or -not $UI.GridTable) { return @() }
-  foreach ($dr in @($UI.GridTable.Rows)) {
-    if (-not $dr) { continue }
-    $checked = $false
-    try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
-    if (-not $checked) { continue }
+  try {
+    for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
+      $dr = $UI.GridTable.Rows[$i]
+      if (-not $dr) { continue }
+      $checked = $false
+      try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
+      if (-not $checked) { continue }
 
-    $rowNum = 0
-    $rowText = ("" + $dr['Row']).Trim()
-    if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
-    $picked.Add([pscustomobject]@{
-        Row = $rowNum
-        Ticket = ("" + $dr['Ticket']).Trim()
-        User = ("" + $dr['User']).Trim()
-        PI = ("" + $dr['PI']).Trim()
-      }) | Out-Null
+      $rowNum = 0
+      $rowText = ("" + $dr['Row']).Trim()
+      if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
+      $picked.Add([pscustomobject]@{
+          Row = $rowNum
+          Ticket = ("" + $dr['Ticket']).Trim()
+          User = ("" + $dr['User']).Trim()
+          PI = ("" + $dr['PI']).Trim()
+        }) | Out-Null
+    }
+  }
+  catch {
+    Write-Log -Level ERROR -Message ("Get-CheckedGenerateRows failed: " + $_.Exception.Message)
   }
   return @($picked.ToArray())
 }
@@ -686,6 +728,7 @@ function Get-CheckedGenerateRows {
 function Update-GenerateSelectAllState {
   param([hashtable]$UI)
   if (-not $UI -or -not $UI.ChkSelectAll -or -not $UI.GridTable) { return }
+  if ([bool]$UI.BulkSelectToggle) { return }
   $UI.SelectAllSyncing = $true
   try {
     $total = [int]$UI.GridTable.Rows.Count
@@ -694,7 +737,8 @@ function Update-GenerateSelectAllState {
       return
     }
     $checked = 0
-    foreach ($dr in @($UI.GridTable.Rows)) {
+    for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
+      $dr = $UI.GridTable.Rows[$i]
       if (-not $dr) { continue }
       $isChecked = $false
       try { $isChecked = [bool]$dr['Generate'] } catch { $isChecked = $false }
@@ -757,6 +801,7 @@ function Register-GenerateHandlers {
   $UI.Grid.Add_CellValueChanged(({
     param($sender, $args)
     try {
+      if ([bool]$UI.BulkSelectToggle) { return }
       if ($args -and $args.ColumnIndex -ge 0) {
         $col = $sender.Columns[$args.ColumnIndex]
         if ($col -and $col.Name -eq 'Generate') {
@@ -773,9 +818,16 @@ function Register-GenerateHandlers {
       $state = $UI.ChkSelectAll.CheckState
       if ($state -eq [System.Windows.Forms.CheckState]::Indeterminate) { return }
       $checkValue = ($state -eq [System.Windows.Forms.CheckState]::Checked)
-      foreach ($dr in @($UI.GridTable.Rows)) {
-        if (-not $dr) { continue }
-        $dr['Generate'] = $checkValue
+      $UI.BulkSelectToggle = $true
+      try {
+        for ($i = 0; $i -lt $UI.GridTable.Rows.Count; $i++) {
+          $dr = $UI.GridTable.Rows[$i]
+          if (-not $dr) { continue }
+          $dr['Generate'] = $checkValue
+        }
+      }
+      finally {
+        $UI.BulkSelectToggle = $false
       }
       Update-GenerateSelectAllState -UI $UI
     }
@@ -936,7 +988,8 @@ function Register-GenerateHandlers {
         $UI.LblStatusText.Text = 'Generation failed.'
         Set-StatusPill -UI $UI -Text 'Error' -State error
         Append-GenerateLog -UI $UI -Line ("ERROR: " + $_.Exception.Message)
-        $selCount = @(Get-CheckedGenerateRows -UI $UI).Count
+        $selCount = 1
+        try { $selCount = @(Get-CheckedGenerateRows -UI $UI).Count } catch {}
         if ($selCount -lt 1) { $selCount = 1 }
         $UI.LblMetrics.Text = ("Total: {0} | Saved: 0 | Skipped: 0 | Errors: {0}" -f $selCount)
         Show-UiError -Context 'Generate-PDF' -ErrorRecord $_
@@ -965,6 +1018,7 @@ function global:New-GeneratePdfUI {
 
   $UI = New-UI -ExcelPath $ExcelPath -SheetName $SheetName -TemplatePath $TemplatePath -OutputPath $OutputPath -OnOpenDashboard $OnOpenDashboard -OnGenerate $OnGenerate -OnCloseAll $OnCloseAll
   $null = Initialize-Controls -UI $UI
+  Ensure-GenerateGridHeaders -UI $UI
   Register-GenerateHandlers -UI $UI
   Set-GenerateUiTheme -UI $UI
   Set-StatusPill -UI $UI -Text 'Idle' -State idle

@@ -265,8 +265,8 @@ function global:New-DashboardUI {
   $workNoteHost.RowCount = 1
   $workNoteHost.Margin = New-Object System.Windows.Forms.Padding(0)
   $workNoteHost.Padding = New-Object System.Windows.Forms.Padding(0)
-  [void]$workNoteHost.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
-  [void]$workNoteHost.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+  [void]$workNoteHost.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+  [void]$workNoteHost.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute, 240)))
 
   $workNoteLeft = New-Object System.Windows.Forms.TableLayoutPanel
   $workNoteLeft.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -313,14 +313,16 @@ function global:New-DashboardUI {
 
   $btnUseCheckInNote = New-Object System.Windows.Forms.Button
   $btnUseCheckInNote.Text = 'Use Check-In Note'
-  $btnUseCheckInNote.Size = New-Object System.Drawing.Size(160, 28)
+  $btnUseCheckInNote.Size = New-Object System.Drawing.Size(220, 28)
   $btnUseCheckInNote.Dock = [System.Windows.Forms.DockStyle]::Top
+  $btnUseCheckInNote.Visible = $true
   & $btnStyle $btnUseCheckInNote $false
 
   $btnUseCheckOutNote = New-Object System.Windows.Forms.Button
   $btnUseCheckOutNote.Text = 'Use Check-Out Note'
-  $btnUseCheckOutNote.Size = New-Object System.Drawing.Size(160, 28)
+  $btnUseCheckOutNote.Size = New-Object System.Drawing.Size(220, 28)
   $btnUseCheckOutNote.Dock = [System.Windows.Forms.DockStyle]::Top
+  $btnUseCheckOutNote.Visible = $true
   & $btnStyle $btnUseCheckOutNote $false
 
   $noteButtonsPanel = New-Object System.Windows.Forms.FlowLayoutPanel
@@ -329,6 +331,7 @@ function global:New-DashboardUI {
   $noteButtonsPanel.WrapContents = $false
   $noteButtonsPanel.AutoSize = $true
   $noteButtonsPanel.Margin = New-Object System.Windows.Forms.Padding(0)
+  $noteButtonsPanel.Visible = $true
   [void]$noteButtonsPanel.Controls.Add($btnUseCheckInNote)
   [void]$noteButtonsPanel.Controls.Add($btnUseCheckOutNote)
   [void]$workNoteRight.Controls.Add($noteButtonsPanel, 0, 1)
