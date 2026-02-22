@@ -12,7 +12,7 @@ param(
   [string]$PhoneHeader = 'PI',
   [string]$ActionHeader = 'Estado de RITM',
   [string]$SCTasksHeader = 'SCTasks',
-  [ValidateSet('Auto','RitmOnly','IncAndRitm','All')]
+  [ValidateSet('Auto','RitmOnly','IncOnly','IncAndRitm','All')]
   [string]$ProcessingScope = 'Auto',
   [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')]
   [string]$PiSearchMode = 'Auto',
@@ -27,6 +27,7 @@ param(
   [string]$TemplatePath,
   [string]$OutputDirectory,
   [switch]$ExportPdf,
+  [string]$RowNumbersCsv = '',
 
   [switch]$NoPopups
 )
@@ -76,8 +77,17 @@ try {
     }
 
     'DocsGenerate' {
+      $rowNumbers = @()
+      if (-not [string]::IsNullOrWhiteSpace($RowNumbersCsv)) {
+        foreach ($token in @($RowNumbersCsv -split ',')) {
+          $text = ("" + $token).Trim()
+          if (-not $text) { continue }
+          $num = 0
+          if ([int]::TryParse($text, [ref]$num)) { $rowNumbers += $num }
+        }
+      }
       $files = Invoke-DocumentGenerationWorkflow -Config $config -RunContext $runContext -ExcelPath $resolvedExcel -SheetName $SheetName `
-        -TemplatePath $TemplatePath -OutputDirectory $OutputDirectory -ExportPdf:$ExportPdf
+        -TemplatePath $TemplatePath -OutputDirectory $OutputDirectory -ExportPdf:$ExportPdf -RowNumbers $rowNumbers
       $files | Format-Table Row, RITM, DocxPath, PdfPath -AutoSize
     }
   }

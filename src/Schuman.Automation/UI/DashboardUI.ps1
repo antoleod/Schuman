@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version Latest
 
-function New-DashboardUI {
+function global:New-DashboardUI {
   <#
   .SYNOPSIS
   Creates and returns the Check-in/Check-out Dashboard form.
@@ -23,7 +23,7 @@ function New-DashboardUI {
   UI updates are performed on the UI thread through safe wrappers.
   #>
   param(
-    [Parameter(Mandatory = $true)][string]$ExcelPath,
+    [string]$ExcelPath = '',
     [string]$SheetName = 'BRU',
     [Parameter(Mandatory = $true)][hashtable]$Config,
     [Parameter(Mandatory = $true)][hashtable]$RunContext,
@@ -602,7 +602,7 @@ function New-DashboardUI {
 
   $ensureExcelReady = ({
     if ([bool]$state.ExcelReady) { return $true }
-    $lblStatus.Text = 'Excel not ready yet - loading...'
+    $lblStatus.Text = 'Excel still loading...'
     return $false
   }).GetNewClosure()
 
@@ -632,7 +632,13 @@ function New-DashboardUI {
   $getVisibleRows = ({
     $rows = @($state.AllRows)
     if ($chkOpenOnly.Checked) {
-      $rows = @($rows | Where-Object { & $isRowOpenLocal $_ })
+      $filtered = New-Object System.Collections.Generic.List[object]
+      foreach ($candidate in $rows) {
+        $isOpen = $false
+        try { $isOpen = [bool](& $isRowOpenLocal $candidate) } catch { $isOpen = $false }
+        if ($isOpen) { [void]$filtered.Add($candidate) }
+      }
+      $rows = @($filtered.ToArray())
     }
     return @($rows)
   }).GetNewClosure()
@@ -651,6 +657,10 @@ function New-DashboardUI {
       [string]$QueryText = '',
       [switch]$ForceReload
     )
+
+    if ([string]::IsNullOrWhiteSpace(("" + $state.ExcelPath).Trim()) -or -not (Test-Path -LiteralPath $state.ExcelPath)) {
+      return @()
+    }
 
     $stamp = & $getExcelStamp
     if ($ForceReload -or ($stamp -ne [int64]$state.ExcelStamp)) {
@@ -774,7 +784,7 @@ function New-DashboardUI {
           $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
           & $appendHistory "Preloaded $($state.Rows.Count) rows from Excel."
         } else {
-          $lblStatus.Text = 'Excel not ready yet - loading...'
+          $lblStatus.Text = if ((Test-Path -LiteralPath $state.ExcelPath)) { 'Excel is empty' } else { 'Excel still loading...' }
         }
         return
       }
@@ -797,15 +807,21 @@ function New-DashboardUI {
         $lblStatus.Text = "Results: $($rows.Count) for '$q'$filterNote"
         & $appendHistory "Search '$q' => $($rows.Count) row(s)$filterNote."
       } else {
-        $lblStatus.Text = 'Excel not ready yet - loading...'
+        $lblStatus.Text = if ((Test-Path -LiteralPath $state.ExcelPath)) { 'Excel is empty' } else { 'Excel still loading...' }
       }
     }
     catch {
       $err = $_.Exception.Message
       $state.ExcelReady = $false
       & $updateActionButtons
-      [System.Windows.Forms.MessageBox]::Show("Search failed: $err", 'Dashboard Error') | Out-Null
       try { Write-Log -Level ERROR -Message ("Dashboard search failed: " + $err) } catch {}
+      $globalShowUiError = Get-Command -Name global:Show-UiError -CommandType Function -ErrorAction SilentlyContinue
+      if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
+        & $globalShowUiError.ScriptBlock -Title 'Dashboard Error' -Message 'Search failed.' -Exception $_.Exception
+      }
+      else {
+        [System.Windows.Forms.MessageBox]::Show("Search failed: $err", 'Dashboard Error') | Out-Null
+      }
     }
     finally {
       & $setLoadingState -IsLoading $false
@@ -1054,7 +1070,7 @@ function New-DashboardUI {
       if ($state.ExcelReady) {
         $lblStatus.Text = "Preloaded $($state.Rows.Count) rows from Excel."
       } else {
-        $lblStatus.Text = 'Excel not ready yet - loading...'
+        $lblStatus.Text = if ((Test-Path -LiteralPath $state.ExcelPath)) { 'Excel is empty' } else { 'Excel still loading...' }
       }
       try { Write-Log -Level INFO -Message ("Preloaded {0} rows from Excel." -f $state.Rows.Count) } catch {}
     }
@@ -1259,18 +1275,33 @@ function New-DashboardUI {
       }).GetNewClosure())
   $btnCloseCode.Add_Click(({
     & $runSafeUi 'Dashboard Close All' {
-      $r = Invoke-UiEmergencyClose -ActionLabel 'Close All' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe', 'winword.exe') -Owner $form -Mode 'All' -MainForm $form
-      if (-not $r.Cancelled) {
-        $lblStatus.Text = $r.Message
-        & $appendHistory $r.Message
-        try {
-          if (Get-Command -Name Close-SchumanOpenForms -ErrorAction SilentlyContinue) {
-            Close-SchumanOpenForms
-          } elseif ($form -and -not $form.IsDisposed) {
-            $form.Close()
-          }
-        } catch {}
+      try { if (Get-Command -Name Close-SchumanUiWindows -ErrorAction SilentlyContinue) { Close-SchumanUiWindows -MainForm $null -GeneratorForm $null | Out-Null } } catch {}
+      $r = $null
+      if (Get-Command -Name Close-SchumanAllResources -ErrorAction SilentlyContinue) {
+        $r = Close-SchumanAllResources -Mode 'All'
       }
+      else {
+        $fallback = Invoke-UiEmergencyClose -ActionLabel 'Close All' -ExecutableNames @('Code', 'Code - Insiders', 'Cursor', 'WINWORD', 'EXCEL') -Owner $form -Mode 'All'
+        $r = @{
+          ClosedProcesses = @()
+          ClosedDocs      = 0
+          Errors          = @()
+          Skipped         = 0
+        }
+        if ($fallback) {
+          $r.Errors = if ($fallback.FailedCount -gt 0) { @("Fallback close reported $($fallback.FailedCount) failures.") } else { @() }
+          if ($fallback.KilledCount -gt 0) { $r.ClosedProcesses = @('fallback') }
+        }
+      }
+      $closedProcCount = @($r.ClosedProcesses).Count
+      $errorsCount = @($r.Errors).Count
+      $summary = "Closed: $closedProcCount processes, $($r.ClosedDocs) documents. Skipped: $($r.Skipped). Errors: $errorsCount."
+      $lblStatus.Text = $summary
+      & $appendHistory $summary
+      if ($errorsCount -gt 0) {
+        try { Write-Log -Level WARN -Message ("Dashboard Close All errors: " + ($r.Errors -join ' | ')) } catch {}
+      }
+      try { if ($form -and -not $form.IsDisposed) { $form.Close() } } catch {}
     }
   }).GetNewClosure())
   # Close Documents button removed by design; merged into Close All.
@@ -1294,7 +1325,7 @@ function New-DashboardUI {
   $state.Rows = @()
   $state.ExcelReady = $false
   & $bindRowsToGrid @()
-  $lblStatus.Text = 'Loading initial Excel data...'
+  $lblStatus.Text = 'Excel still loading...'
   [void]$form.Add_Shown(({
     & $runSafeUi 'Dashboard Shown' {
       & $layoutDashboard

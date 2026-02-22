@@ -13,15 +13,17 @@ try { [System.Windows.Forms.Application]::EnableVisualStyles() } catch {}
 $projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $invokeScript = Join-Path $projectRoot 'Invoke-Schuman.ps1'
 $importModulesPath = Join-Path $PSScriptRoot 'Import-SchumanModules.ps1'
+$uiHelpersPath = Join-Path $PSScriptRoot 'UI\UiHelpers.ps1'
 $themePath = Join-Path $PSScriptRoot 'UI\Theme.ps1'
 $dashboardUiPath = Join-Path $PSScriptRoot 'UI\DashboardUI.ps1'
 $generateUiPath = Join-Path $PSScriptRoot 'UI\GenerateUI.ps1'
 
-foreach ($p in @($invokeScript, $importModulesPath, $themePath, $dashboardUiPath, $generateUiPath)) {
+foreach ($p in @($invokeScript, $importModulesPath, $uiHelpersPath, $themePath, $dashboardUiPath, $generateUiPath)) {
   if (-not (Test-Path -LiteralPath $p)) { throw "Required file not found: $p" }
 }
 
 . $importModulesPath
+. $uiHelpersPath
 . $themePath
 . $dashboardUiPath
 . $generateUiPath
@@ -247,6 +249,36 @@ function global:Stop-SchumanOwnedResources {
   }
 }
 
+function global:Close-SchumanAllResources {
+  param(
+    [ValidateSet('Code', 'Documents', 'All')][string]$Mode = 'All'
+  )
+
+  $result = @{
+    ClosedProcesses = New-Object System.Collections.Generic.List[string]
+    ClosedDocs      = 0
+    Errors          = New-Object System.Collections.Generic.List[string]
+    Skipped         = 0
+  }
+
+  try {
+    $owned = Stop-SchumanOwnedResources -Mode $Mode
+    if ($owned) {
+      try { $result.ClosedDocs = [int]$owned.ComClosedCount } catch {}
+      if ($owned.ProcessFailedCount -gt 0) {
+        $result.Errors.Add(("Owned process cleanup had {0} failure(s)." -f [int]$owned.ProcessFailedCount))
+      }
+    }
+  }
+  catch {
+    $result.Errors.Add(("Owned resource cleanup failed: {0}" -f $_.Exception.Message))
+  }
+
+  $result.ClosedProcesses = @($result.ClosedProcesses | Sort-Object -Unique)
+  $result.Errors = @($result.Errors)
+  return $result
+}
+
 function global:Invoke-UiEmergencyClose {
   param(
     [string]$ActionLabel = '',
@@ -277,26 +309,21 @@ function global:Invoke-UiEmergencyClose {
     elseif ($joined -match 'word|excel') { $modeResolved = 'Documents' }
   }
 
-  $cleanup = Stop-SchumanOwnedResources -Mode $modeResolved
+  $cleanup = Close-SchumanAllResources -Mode $modeResolved
+  $killedCount = @($cleanup.ClosedProcesses).Count
+  $failedCount = @($cleanup.Errors).Count
   if ($externalResult -and $externalResult.PSObject.Properties['KilledCount']) {
-    try { $cleanup.ProcessClosedCount = [int]$cleanup.ProcessClosedCount + [int]$externalResult.KilledCount } catch {}
+    try { $killedCount += [int]$externalResult.KilledCount } catch {}
   }
   if ($externalResult -and $externalResult.PSObject.Properties['FailedCount']) {
-    try { $cleanup.ProcessFailedCount = [int]$cleanup.ProcessFailedCount + [int]$externalResult.FailedCount } catch {}
-  }
-
-  if ($modeResolved -eq 'Code' -or $modeResolved -eq 'All') {
-    try { Close-SchumanOpenForms } catch {}
-    if ($MainForm) {
-      try { $MainForm.Close() } catch {}
-    }
+    try { $failedCount += [int]$externalResult.FailedCount } catch {}
   }
 
   return [pscustomobject]@{
     Cancelled   = $false
-    KilledCount = [int]$cleanup.ProcessClosedCount
-    FailedCount = [int]$cleanup.ProcessFailedCount
-    Message     = ("Cleanup done (COM={0}, ProcClosed={1}, ProcFailed={2})" -f $cleanup.ComClosedCount, $cleanup.ProcessClosedCount, $cleanup.ProcessFailedCount)
+    KilledCount = [int]$killedCount
+    FailedCount = [int]$failedCount
+    Message     = ("Closed: {0} processes, {1} documents. Skipped: {2}. Errors: {3}." -f [int]$killedCount, [int]$cleanup.ClosedDocs, [int]$cleanup.Skipped, [int]$failedCount)
   }
 }
 
@@ -341,7 +368,16 @@ function global:Show-UiError {
   catch {}
 
   $detailText = if ($detail.Count -gt 0) { ($detail -join "`r`n") } else { 'No exception details were captured.' }
-  $summary = "$safeMessage`r`n`r`nSee details for diagnostic information."
+  $exceptionLine = ''
+  if ($ex) {
+    $exceptionLine = ("{0}: {1}" -f $ex.GetType().FullName, ("" + $ex.Message).Trim())
+  }
+  $summary = if ($exceptionLine) {
+    "$safeMessage`r`n`r`n$exceptionLine`r`n`r`nFull details were written to:`r`n$script:LogPath"
+  }
+  else {
+    "$safeMessage`r`n`r`nFull details were written to:`r`n$script:LogPath"
+  }
   Write-UiTrace -Level 'ERROR' -Message ("{0} | {1} | {2}" -f $safeTitle, $safeMessage, $detailText)
 
   $dlg = $null
@@ -441,10 +477,15 @@ function global:Show-UiInfo {
 
 function global:Invoke-SafeUiAction {
   param(
+    [string]$Context = '',
     [string]$ActionName = 'UI Action',
     [scriptblock]$Action,
     [System.Windows.Forms.IWin32Window]$Owner = $null
   )
+
+  $ctx = ("" + $Context).Trim()
+  if (-not $ctx) { $ctx = ("" + $ActionName).Trim() }
+  if (-not $ctx) { $ctx = 'UI Action' }
 
   try {
     if (-not $Action) { return $null }
@@ -453,25 +494,53 @@ function global:Invoke-SafeUiAction {
   catch {
     $errText = ("" + $_.Exception.Message).Trim()
     if (-not $errText) { $errText = 'Unhandled UI exception.' }
-    Write-UiTrace -Level 'ERROR' -Message ("{0}: {1}" -f $ActionName, $errText)
-    Show-UiError -Title 'Schuman' -Message ("{0} failed." -f $ActionName) -Exception $_.Exception
+    Write-UiTrace -Level 'ERROR' -Message ("{0}: {1}" -f $ctx, $errText)
+    Show-UiError -Title 'Schuman' -Message ("{0} failed." -f $ctx) -Exception $_.Exception -Context $ctx
     return $null
+  }
+}
+
+function global:Invoke-UiSafe {
+  param(
+    [scriptblock]$Action,
+    [string]$Context = 'UI Action'
+  )
+  return (Invoke-SafeUiAction -Context $Context -Action $Action)
+}
+
+function global:Test-ControlAlive {
+  param([System.Windows.Forms.Control]$Control)
+  if (-not $Control) { return $false }
+  try {
+    if ($Control.IsDisposed) { return $false }
+    if (-not $Control.IsHandleCreated) { return $false }
+    return $true
+  }
+  catch {
+    return $false
   }
 }
 
 function global:Invoke-OnUiThread {
   param(
     [System.Windows.Forms.Control]$Control,
-    [scriptblock]$Action
+    [scriptblock]$Action,
+    [switch]$Synchronous
   )
-  if (-not $Control -or $Control.IsDisposed) { return }
+  if (-not (Test-ControlAlive $Control)) { return }
   if (-not $Action) { return }
   try {
     if ($Control.InvokeRequired) {
       $safeAction = $Action.GetNewClosure()
-      [void]$Control.BeginInvoke(([System.Windows.Forms.MethodInvoker]{
+      $invoker = ([System.Windows.Forms.MethodInvoker]{
             try { & $safeAction } catch { Write-UiTrace -Level 'WARN' -Message ("Invoke-OnUiThread async callback failed: " + $_.Exception.Message) }
-          }).GetNewClosure())
+          }).GetNewClosure()
+      if ($Synchronous) {
+        [void]$Control.Invoke($invoker)
+      }
+      else {
+        [void]$Control.BeginInvoke($invoker)
+      }
     }
     else {
       & $Action
@@ -529,9 +598,12 @@ function global:Invoke-UiHandler {
     [string]$Context,
     [scriptblock]$Action
   )
-  Invoke-SafeUiAction -ActionName $Context -Action $Action | Out-Null
+  Invoke-SafeUiAction -Context $Context -Action $Action | Out-Null
 }
 
+Register-WinFormsGlobalExceptionHandling
+# Re-apply shared helpers to guarantee canonical wrappers and non-blocking error policy.
+. $uiHelpersPath
 Register-WinFormsGlobalExceptionHandling
 
 function global:Close-SchumanOpenForms {
@@ -547,6 +619,41 @@ function global:Close-SchumanOpenForms {
     }
   }
   catch {}
+}
+
+function global:Close-SchumanUiWindows {
+  param(
+    [System.Windows.Forms.Form]$MainForm = $null,
+    [System.Windows.Forms.Form]$GeneratorForm = $null
+  )
+
+  $closed = 0
+  try {
+    if ($GeneratorForm -and -not $GeneratorForm.IsDisposed) {
+      try { $GeneratorForm.Close(); $closed++ } catch {}
+    }
+  }
+  catch {}
+  try {
+    if ($script:DashboardForm -and -not $script:DashboardForm.IsDisposed) {
+      try { $script:DashboardForm.Close(); $closed++ } catch {}
+      $script:DashboardForm = $null
+    }
+  }
+  catch {}
+
+  $openForms = @()
+  try { $openForms = @([System.Windows.Forms.Application]::OpenForms | ForEach-Object { $_ }) } catch {}
+  foreach ($openForm in $openForms) {
+    if (-not $openForm -or $openForm.IsDisposed) { continue }
+    if ($MainForm -and ($openForm -eq $MainForm)) { continue }
+    if ($GeneratorForm -and ($openForm -eq $GeneratorForm)) { continue }
+    $title = ("" + $openForm.Text).Trim()
+    if ($title -eq 'Check-in / Check-out Dashboard' -or $title -eq 'Schuman Word Generator') {
+      try { $openForm.Close(); $closed++ } catch {}
+    }
+  }
+  return [int]$closed
 }
 
 $globalConfig = Initialize-SchumanEnvironment -ProjectRoot $projectRoot
@@ -784,8 +891,8 @@ function global:Show-ForceUpdateOptionsDialog {
   }
 
   $scopeChoices = @(
-    (& $newChoice 'RITM only (fastest)' 'RitmOnly' $false),
-    (& $newChoice 'INC + RITM' 'IncAndRitm' $true),
+    (& $newChoice 'RITM only (fastest)' 'RitmOnly' $true),
+    (& $newChoice 'INC only' 'IncOnly' $false),
     (& $newChoice 'All tickets' 'All' $false)
   )
   foreach ($c in $scopeChoices) { [void]$scopeGroup.Flow.Controls.Add($c) }
@@ -793,8 +900,7 @@ function global:Show-ForceUpdateOptionsDialog {
   $piChoices = @(
     (& $newChoice 'Configuration Item only (fastest)' 'ConfigurationItemOnly' $false),
     (& $newChoice 'Comments only' 'CommentsOnly' $false),
-    (& $newChoice 'Comments + Configuration Item' 'CommentsAndCI' $true),
-    (& $newChoice 'Auto' 'Auto' $false)
+    (& $newChoice 'Comments + Configuration Item' 'CommentsAndCI' $true)
   )
   foreach ($c in $piChoices) { [void]$piGroup.Flow.Controls.Add($c) }
 
@@ -904,7 +1010,7 @@ function global:Show-ForceUpdateOptionsDialog {
     }
 
     $scope = @($scopeChoices | Where-Object { $_.Checked } | Select-Object -First 1)
-    $scopeValue = if ($scope.Count -gt 0) { "" + $scope[0].Tag } else { 'IncAndRitm' }
+    $scopeValue = if ($scope.Count -gt 0) { "" + $scope[0].Tag } else { 'RitmOnly' }
 
     $pi = @($piChoices | Where-Object { $_.Checked } | Select-Object -First 1)
     $piValue = if ($pi.Count -gt 0) { "" + $pi[0].Tag } else { 'CommentsAndCI' }
@@ -962,8 +1068,8 @@ function global:New-FallbackForceUpdateOptionsDialog {
 
   $cmbScope = New-Object System.Windows.Forms.ComboBox
   $cmbScope.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$cmbScope.Items.AddRange(@('RitmOnly', 'IncAndRitm', 'All'))
-  $cmbScope.SelectedItem = 'IncAndRitm'
+  [void]$cmbScope.Items.AddRange(@('RitmOnly', 'IncOnly', 'All'))
+  $cmbScope.SelectedItem = 'RitmOnly'
   $cmbScope.Dock = [System.Windows.Forms.DockStyle]::Fill
   $root.Controls.Add($cmbScope, 1, 0)
 
@@ -974,7 +1080,7 @@ function global:New-FallbackForceUpdateOptionsDialog {
 
   $cmbPi = New-Object System.Windows.Forms.ComboBox
   $cmbPi.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-  [void]$cmbPi.Items.AddRange(@('ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI', 'Auto'))
+  [void]$cmbPi.Items.AddRange(@('ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI'))
   $cmbPi.SelectedItem = 'CommentsAndCI'
   $cmbPi.Dock = [System.Windows.Forms.DockStyle]::Fill
   $root.Controls.Add($cmbPi, 1, 1)
@@ -1190,7 +1296,8 @@ function Invoke-DocsGenerate {
     [string]$Sheet,
     [string]$Template,
     [string]$Output,
-    [bool]$ExportPdf = $true
+    [bool]$ExportPdf = $true,
+    [int[]]$RowNumbers = @()
   )
 
   $active = @(Get-RunningSchumanOperationProcesses -Operations @('DocsGenerate'))
@@ -1261,6 +1368,9 @@ function Invoke-DocsGenerate {
     '-NoPopups'
   )
   if ($ExportPdf) { $args += '-ExportPdf' }
+  if ($RowNumbers -and @($RowNumbers).Count -gt 0) {
+    $args += @('-RowNumbersCsv', (@($RowNumbers | ForEach-Object { [int]$_ }) -join ','))
+  }
 
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = (Join-Path $PSHOME 'powershell.exe')
@@ -1358,7 +1468,7 @@ function Invoke-ForceExcelUpdate {
   param(
     [string]$Excel,
     [string]$Sheet,
-    [ValidateSet('Auto', 'RitmOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
+    [ValidateSet('Auto', 'RitmOnly', 'IncOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
     [ValidateSet('Auto', 'ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI')][string]$PiSearchMode = 'Auto',
     [int]$MaxTickets = 0,
     [bool]$FastMode = $true
@@ -1779,8 +1889,7 @@ if (-not $startupSession) {
 function Clear-SchumanTempFiles {
   [CmdletBinding(SupportsShouldProcess)]
   param(
-    [string]$ProjectRoot = $projectRoot,
-    [switch]$WhatIf
+    [string]$ProjectRoot = $projectRoot
   )
 
   $result = [pscustomobject]@{
@@ -1833,7 +1942,7 @@ function Clear-SchumanTempFiles {
               Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
           }
           catch {}
-          if (-not $WhatIf) {
+          if ($PSCmdlet.ShouldProcess($item.FullName, 'Delete directory')) {
             Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
           }
           $result.DeletedFolders++
@@ -1842,7 +1951,7 @@ function Clear-SchumanTempFiles {
         else {
           $size = [long]0
           try { $size = $item.Length } catch {}
-          if (-not $WhatIf) {
+          if ($PSCmdlet.ShouldProcess($item.FullName, 'Delete file')) {
             Remove-Item -LiteralPath $item.FullName -Force -ErrorAction Stop
           }
           $result.DeletedFiles++
@@ -2058,13 +2167,12 @@ $layout.Controls.Add($btnCleanTemp, 0, 7)
 $btnEmergency = New-Object System.Windows.Forms.TableLayoutPanel
 $btnEmergency.Dock = [System.Windows.Forms.DockStyle]::Top
 $btnEmergency.AutoSize = $true
-$btnEmergency.ColumnCount = 2
-$btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
-$btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+$btnEmergency.ColumnCount = 1
+$btnEmergency.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
 $layout.Controls.Add($btnEmergency, 0, 9)
 
 $btnCloseCode = New-Object System.Windows.Forms.Button
-$btnCloseCode.Text = 'Close Code Apps'
+$btnCloseCode.Text = 'Close All'
 $btnCloseCode.Dock = [System.Windows.Forms.DockStyle]::Fill
 $btnCloseCode.Height = 36
 $btnCloseCode.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
@@ -2073,21 +2181,8 @@ $btnCloseCode.FlatAppearance.BorderSize = 1
 $btnCloseCode.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
 $btnCloseCode.ForeColor = [System.Drawing.Color]::White
 $btnCloseCode.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
-$btnCloseCode.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 0)
+$btnCloseCode.Margin = New-Object System.Windows.Forms.Padding(0)
 $btnEmergency.Controls.Add($btnCloseCode, 0, 0)
-
-$btnCloseDocs = New-Object System.Windows.Forms.Button
-$btnCloseDocs.Text = 'Close Documents'
-$btnCloseDocs.Dock = [System.Windows.Forms.DockStyle]::Fill
-$btnCloseDocs.Height = 36
-$btnCloseDocs.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$btnCloseDocs.FlatAppearance.BorderColor = [System.Drawing.ColorTranslator]::FromHtml('#DC2626')
-$btnCloseDocs.FlatAppearance.BorderSize = 1
-$btnCloseDocs.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#7F1D1D')
-$btnCloseDocs.ForeColor = [System.Drawing.Color]::White
-$btnCloseDocs.Font = New-Object System.Drawing.Font((Get-UiFontNameSafe), 10, [System.Drawing.FontStyle]::Bold)
-$btnCloseDocs.Margin = New-Object System.Windows.Forms.Padding(8, 0, 0, 0)
-$btnEmergency.Controls.Add($btnCloseDocs, 1, 0)
 
 $status = New-Object System.Windows.Forms.Label
 $status.Text = 'Status: Ready (SSO connected)'
@@ -2535,7 +2630,6 @@ if ($script:SetUiControlRoleHandler) {
   & $script:SetUiControlRoleHandler -Control $btnForce -Role 'AccentButton'
   & $script:SetUiControlRoleHandler -Control $btnLoadExcel -Role 'SecondaryButton'
   & $script:SetUiControlRoleHandler -Control $btnCloseCode -Role 'DangerButton'
-  & $script:SetUiControlRoleHandler -Control $btnCloseDocs -Role 'DangerButton'
   & $script:SetUiControlRoleHandler -Control $card.Border -Role 'CardBorder'
   & $script:SetUiControlRoleHandler -Control $card.Content.Parent -Role 'CardSurface'
   & $script:SetUiControlRoleHandler -Control $hdr -Role 'HeaderTitle'
@@ -2605,7 +2699,6 @@ function Apply-MainUiTheme {
   if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Height = $moduleHeight }
   if ($btnForce -and -not $btnForce.IsDisposed) { $btnForce.Height = $forceHeight }
   if ($btnCloseCode -and -not $btnCloseCode.IsDisposed) { $btnCloseCode.Height = $dangerHeight }
-  if ($btnCloseDocs -and -not $btnCloseDocs.IsDisposed) { $btnCloseDocs.Height = $dangerHeight }
 }
 
 try { Apply-MainUiTheme -ThemeName 'Dark' -AccentName '' -FontScale 100 -Compact:$false }
@@ -2614,6 +2707,8 @@ catch { Show-UiError -Title 'Theme' -Message 'Could not apply initial theme.' -E
 $script:ApplyMainUiThemeHandler = ${function:Apply-MainUiTheme}
 $script:MainExcelReady = $false
 $script:ExcelReady = $false
+$script:ForceUpdateInProgress = $false
+$script:CancelRequested = $false
 $script:ExcelRefreshInProgress = $false
 $script:ExcelRefreshWorker = $null
 $script:ExcelLoadErrorShown = $false
@@ -2636,19 +2731,41 @@ function Update-MainExcelDependentControls {
     $pathValid = (-not [string]::IsNullOrWhiteSpace($candidate)) -and (Test-Path -LiteralPath $candidate)
   }
   catch { $pathValid = $false }
-  if ($btnDashboard -and -not $btnDashboard.IsDisposed) { $btnDashboard.Enabled = $ready }
-  if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Enabled = $ready }
-  if ($btnForce -and -not $btnForce.IsDisposed) { $btnForce.Enabled = ($pathValid -and -not $script:ExcelRefreshInProgress) }
-  if ($btnCleanTemp -and -not $btnCleanTemp.IsDisposed) { $btnCleanTemp.Enabled = $ready }
+  if ($btnDashboard -and -not $btnDashboard.IsDisposed) { $btnDashboard.Enabled = (-not $script:MainBusyActive) }
+  if ($btnGenerate -and -not $btnGenerate.IsDisposed) { $btnGenerate.Enabled = (-not $script:MainBusyActive) }
+  if ($btnForce -and -not $btnForce.IsDisposed) { $btnForce.Enabled = ($pathValid -and -not $script:ExcelRefreshInProgress -and -not $script:ForceUpdateInProgress -and -not $script:MainBusyActive) }
+  if ($btnCleanTemp -and -not $btnCleanTemp.IsDisposed) { $btnCleanTemp.Enabled = (-not $script:MainBusyActive) }
   if ($btnLoadExcel -and -not $btnLoadExcel.IsDisposed) { $btnLoadExcel.Enabled = (-not $script:ExcelRefreshInProgress) }
   if (-not $ExcelReady -and $status -and -not $status.IsDisposed) {
     $msg = ("" + $Reason).Trim()
-    if (-not $msg) { $msg = 'Excel not ready yet - loading...' }
+    if (-not $msg) { $msg = 'Excel still loading...' }
     $status.Text = ("Status: {0}" -f $msg)
   }
   elseif ($ExcelReady -and $status -and -not $status.IsDisposed -and -not $script:MainBusyActive) {
     $status.Text = 'Status: Ready'
   }
+}
+
+function global:Set-AppBusyState {
+  param(
+    [bool]$isBusy,
+    [string]$reason = 'Working'
+  )
+
+  Set-MainBusyState -IsBusy $isBusy -Text $reason
+  if (-not $isBusy) {
+    try { Update-MainExcelDependentControls -ExcelReady $script:MainExcelReady } catch {}
+  }
+}
+
+function global:Restore-UiAfterForceUpdate {
+  $script:ForceUpdateInProgress = $false
+  Set-AppBusyState -isBusy $false -reason 'Ready'
+  try {
+    $reason = if ($script:MainExcelReady) { 'Ready' } else { 'Excel is empty' }
+    Update-MainExcelDependentControls -ExcelReady $script:MainExcelReady -Reason $reason
+  }
+  catch {}
 }
 
 function Update-StartupOverlay {
@@ -2696,7 +2813,7 @@ function Invoke-SchumanExcelRefresh {
   param(
     [string]$ExcelPath,
     [string]$Reason = 'Manual refresh',
-    [ValidateSet('Auto', 'RitmOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
+    [ValidateSet('Auto', 'RitmOnly', 'IncOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
     [ValidateSet('Auto', 'ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI')][string]$PiSearchMode = 'Auto',
     [int]$MaxTickets = 0,
     [bool]$FastMode = $true,
@@ -2808,7 +2925,7 @@ function Start-SchumanExcelRefreshAsync {
     [string]$Reason = 'Manual refresh',
     [bool]$ShowOverlay = $true,
     [bool]$Startup = $false,
-    [ValidateSet('Auto', 'RitmOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
+    [ValidateSet('Auto', 'RitmOnly', 'IncOnly', 'IncAndRitm', 'All')][string]$ProcessingScope = 'All',
     [ValidateSet('Auto', 'ConfigurationItemOnly', 'CommentsOnly', 'CommentsAndCI')][string]$PiSearchMode = 'Auto',
     [int]$MaxTickets = 0,
     [bool]$FastMode = $true,
@@ -3005,54 +3122,107 @@ function Start-SchumanStartupInit {
   }
 }
 
+$script:DashboardForm = $null
+$script:GeneratorForm = $null
+
+$openDashboardWindow = {
+  param(
+    [string]$ExcelPathValue,
+    [System.Windows.Forms.IWin32Window]$Owner = $null
+  )
+
+  Invoke-UiSafe -Context 'Open Dashboard Window' -Action {
+    if ($script:DashboardForm -and -not $script:DashboardForm.IsDisposed) {
+      try {
+        if ($script:DashboardForm.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) {
+          $script:DashboardForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+        }
+        $script:DashboardForm.Show()
+        $script:DashboardForm.BringToFront()
+        $script:DashboardForm.Activate()
+        return
+      }
+      catch {}
+    }
+
+    $dash = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $ExcelPathValue -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
+    $script:DashboardForm = $dash
+    [void]$dash.add_FormClosed(({
+          $script:DashboardForm = $null
+        }).GetNewClosure())
+    if ($Owner) {
+      [void]$dash.Show($Owner)
+    }
+    else {
+      [void]$dash.Show()
+    }
+  }
+}.GetNewClosure()
+
 $openModule = {
   param([string]$module)
 
-  if (-not $script:MainExcelReady) {
-    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready yet - loading...'
-    try { if ($txtExcel -and -not $txtExcel.IsDisposed) { $txtExcel.Focus() } } catch {}
-    return
-  }
   $excel = ("" + $txtExcel.Text).Trim()
-  if ([string]::IsNullOrWhiteSpace($excel) -or -not (Test-Path -LiteralPath $excel)) {
-    Update-MainExcelDependentControls -ExcelReady $false -Reason 'Excel not ready yet - loading...'
-    try { if ($txtExcel -and -not $txtExcel.IsDisposed) { $txtExcel.Focus() } } catch {}
-    return
+  if ([string]::IsNullOrWhiteSpace($excel)) {
+    if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Excel still loading...' }
+    $excel = ''
   }
 
-  Set-MainBusyState -IsBusy $true -Text ("Opening {0}" -f $module)
+  Set-AppBusyState -isBusy $true -reason ("Opening {0}" -f $module)
   try {
     if ($module -eq 'Dashboard') {
-      $frm = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
-      [void]$frm.ShowDialog($form)
+      & $openDashboardWindow -ExcelPathValue $excel -Owner $form
     }
     else {
+      if ($script:GeneratorForm -and -not $script:GeneratorForm.IsDisposed) {
+        try {
+          if ($script:GeneratorForm.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) {
+            $script:GeneratorForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+          }
+          $script:GeneratorForm.Show()
+          $script:GeneratorForm.BringToFront()
+          $script:GeneratorForm.Activate()
+          return
+        }
+        catch {}
+      }
+
       $defaultTemplate = Join-Path $projectRoot $globalConfig.Documents.TemplateFile
       $defaultOutput = Join-Path $projectRoot $globalConfig.Documents.OutputFolder
 
       $frm = Resolve-UiForm -UiResult (New-GeneratePdfUI -ExcelPath $excel -SheetName $SheetName -TemplatePath $defaultTemplate -OutputPath $defaultOutput -OnOpenDashboard {
-          $d = Resolve-UiForm -UiResult (New-DashboardUI -ExcelPath $excel -SheetName $SheetName -Config $globalConfig -RunContext $uiRunContext -InitialSession $startupSession) -UiName 'New-DashboardUI'
-          [void]$d.ShowDialog($form)
+          & $openDashboardWindow -ExcelPathValue $excel
         } -OnGenerate {
           param($argsObj)
-          $okRun = Invoke-DocsGenerate -Excel $argsObj.ExcelPath -Sheet $SheetName -Template $argsObj.TemplatePath -Output $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf
+          $selectedRows = @()
+          try { $selectedRows = @($argsObj.RowNumbers | ForEach-Object { [int]$_ }) } catch { $selectedRows = @() }
+          $okRun = Invoke-DocsGenerate -Excel $argsObj.ExcelPath -Sheet $SheetName -Template $argsObj.TemplatePath -Output $argsObj.OutputPath -ExportPdf:[bool]$argsObj.ExportPdf -RowNumbers $selectedRows
           if ($okRun) {
             return [pscustomobject]@{
               ok         = $true
               message    = 'Documents generated successfully.'
               outputPath = $argsObj.OutputPath
+              generatedCount = @($selectedRows).Count
             }
           }
           return [pscustomobject]@{
             ok      = $false
             message = 'Document generation failed. Check logs under system/runs.'
+            generatedCount = 0
           }
+        } -OnCloseAll {
+          param($uiObj)
+          try { Close-SchumanUiWindows -MainForm $form -GeneratorForm $uiObj.Form | Out-Null } catch {}
         }) -UiName 'New-GeneratePdfUI'
-      [void]$frm.ShowDialog($form)
+      $script:GeneratorForm = $frm
+      [void]$frm.add_FormClosed(({
+            $script:GeneratorForm = $null
+          }).GetNewClosure())
+      [void]$frm.Show($form)
     }
   }
   finally {
-    Set-MainBusyState -IsBusy $false
+    Set-AppBusyState -isBusy $false -reason 'Ready'
   }
 }
 
@@ -3073,37 +3243,24 @@ if (-not $startSchumanExcelRefreshAsyncHandler) { throw 'Excel refresh handler i
 if (-not $invokeForceExcelUpdateHandler) { throw 'Force update handler is not available.' }
 if (-not $saveMainExcelPathPreferenceHandler) { throw 'Excel preference save handler is not available.' }
 if (-not $showExcelLoadErrorOnceHandler) { throw 'Excel load error handler is not available.' }
-$closeCodeAction = {
-  $cmd = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue
-  if (-not $cmd) {
-    Show-UiError -Title 'Schuman' -Message 'Close helper not available.'
-    return
-  }
+$closeAllAction = {
   try {
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Close Code Apps' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe') -Owner $form -Mode 'All' -MainForm $form -BaseDir $projectRoot
-    if ($r -and -not $r.Cancelled) {
-      $status.Text = "Status: $($r.Message)"
-      try { Close-SchumanOpenForms } catch {}
+    $closedWindows = 0
+    try { $closedWindows = Close-SchumanUiWindows -MainForm $form -GeneratorForm $script:GeneratorForm } catch {}
+    $r = Close-SchumanAllResources -Mode 'All'
+    $closedProcCount = @($r.ClosedProcesses).Count
+    $errorsCount = @($r.Errors).Count
+    $summary = "Closed windows: $closedWindows. Closed owned processes: $closedProcCount. Closed owned documents: $($r.ClosedDocs). Errors: $errorsCount."
+    if ($status -and -not $status.IsDisposed) {
+      $status.Text = "Status: $summary"
     }
+    if ($errorsCount -gt 0) {
+      Write-UiTrace -Level 'WARN' -Message ("Close All completed with errors: " + (($r.Errors -join ' | ')))
+    }
+    Show-UiInfo -Title 'Close All' -Message $summary
   }
   catch {
-    Show-UiError -Title 'Schuman' -Message 'Could not complete "Close Code Apps".' -Exception $_.Exception
-  }
-}.GetNewClosure()
-$closeDocsAction = {
-  $cmd = Get-Command -Name Invoke-UiEmergencyClose -CommandType Function -ErrorAction SilentlyContinue
-  if (-not $cmd) {
-    Show-UiError -Title 'Schuman' -Message 'Close helper not available for documents.'
-    return
-  }
-  try {
-    $r = Invoke-UiEmergencyClose -ActionLabel 'Close Documents' -ExecutableNames @('winword.exe', 'excel.exe') -Owner $form -Mode 'Documents' -MainForm $form -BaseDir $projectRoot
-    if ($r -and -not $r.Cancelled) {
-      $status.Text = "Status: $($r.Message)"
-    }
-  }
-  catch {
-    Show-UiError -Title 'Schuman' -Message 'Could not complete "Close Documents".' -Exception $_.Exception
+    Show-UiError -Title 'Schuman' -Message 'Could not complete "Close All".' -Exception $_.Exception
   }
 }.GetNewClosure()
 $forceUpdateAction = {
@@ -3118,8 +3275,12 @@ $forceUpdateAction = {
     if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Refresh already in progress...' }
     return
   }
+  if ($script:ForceUpdateInProgress) {
+    if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Force update already in progress...' }
+    return
+  }
 
-  Set-MainBusyState -IsBusy $true -Text 'Preparing force update options'
+  Set-AppBusyState -isBusy $true -reason 'Preparing force update options'
   $opts = $null
   try {
     if ($showForceUpdateOptionsDialogHandler) {
@@ -3133,31 +3294,54 @@ $forceUpdateAction = {
     }
   }
   finally {
-    Set-MainBusyState -IsBusy $false
+    Set-AppBusyState -isBusy $false -reason 'Ready'
   }
 
   if (-not $opts -or -not $opts.ok) {
-    $status.Text = 'Status: Force update canceled'
+    if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Force update canceled' }
     return
   }
 
-  Set-MainBusyState -IsBusy $true -Text ("Refreshing Excel ({0}/{1})..." -f $opts.processingScope, $opts.piSearchMode)
+  $script:ForceUpdateInProgress = $true
+  $script:CancelRequested = $false
+  Set-AppBusyState -isBusy $true -reason ("Refreshing Excel ({0}/{1})..." -f $opts.processingScope, $opts.piSearchMode)
   try {
     $forceResult = & $invokeForceExcelUpdateHandler -Excel $excel -Sheet $SheetName -ProcessingScope $opts.processingScope -PiSearchMode $opts.piSearchMode -MaxTickets ([int]$opts.maxTickets) -FastMode ([bool]$opts.fastMode)
+    if ($forceResult -and [bool]$forceResult.cancelled) {
+      $script:CancelRequested = $true
+      if ($status -and -not $status.IsDisposed) {
+        $status.Text = 'Status: Force Update cancelled. Using last loaded Excel data.'
+      }
+      Write-UiTrace -Level 'INFO' -Message 'Force update cancelled by user. Keeping last loaded Excel state.'
+      return
+    }
     if ($forceResult -and $forceResult.ok) {
       $script:ExcelLoadErrorShown = $false
       $script:LastExcelRefreshAt = [DateTime]::Now
-      & $updateMainExcelDependentControlsHandler -ExcelReady $true -Reason 'Ready'
-      if ($status -and -not $status.IsDisposed) { $status.Text = ("Status: Ready - Force update completed in {0}s" -f [int]$forceResult.durationSec) }
+      $rowsCount = 0
+      try {
+        $rowsCount = @(Search-DashboardRows -ExcelPath $excel -SheetName $SheetName -SearchText '').Count
+      }
+      catch { $rowsCount = 0 }
+      if ($rowsCount -gt 0) {
+        & $updateMainExcelDependentControlsHandler -ExcelReady $true -Reason 'Ready'
+        if ($status -and -not $status.IsDisposed) { $status.Text = ("Status: Ready - Force update completed in {0}s" -f [int]$forceResult.durationSec) }
+      }
+      else {
+        & $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel is empty'
+        if ($status -and -not $status.IsDisposed) { $status.Text = 'Status: Excel is empty' }
+      }
     }
     else {
-      & $updateMainExcelDependentControlsHandler -ExcelReady $false -Reason 'Excel refresh failed. Please retry Force Update.'
+      & $updateMainExcelDependentControlsHandler -ExcelReady $script:MainExcelReady -Reason 'Force update failed. Using last loaded Excel data.'
       $msg = if ($forceResult -and $forceResult.errorMessage) { ("" + $forceResult.errorMessage).Trim() } else { 'Force update failed without details.' }
-      Show-UiError -Title 'Force Update' -Message $msg
+      if ($status -and -not $status.IsDisposed) { $status.Text = ("Status: Force update failed. {0}" -f $msg) }
+      Write-UiTrace -Level 'ERROR' -Message ("Force update failed: {0}" -f $msg)
     }
   }
   finally {
-    Set-MainBusyState -IsBusy $false
+    Restore-UiAfterForceUpdate
+    $script:CancelRequested = $false
   }
 }.GetNewClosure()
 
@@ -3211,10 +3395,7 @@ $btnGenerate.Add_Click(({
       Invoke-UiHandler -Context 'Open Generate' -Action $openGenerateAction
     }).GetNewClosure())
 $btnCloseCode.Add_Click(({
-      Invoke-UiHandler -Context 'Close Code Apps' -Action $closeCodeAction
-    }).GetNewClosure())
-$btnCloseDocs.Add_Click(({
-      Invoke-UiHandler -Context 'Close Documents' -Action $closeDocsAction
+      Invoke-UiHandler -Context 'Close All' -Action $closeAllAction
     }).GetNewClosure())
 $btnForce.Add_Click(({
       Invoke-UiHandler -Context 'Force Update' -Action $forceUpdateAction
@@ -3225,7 +3406,7 @@ $btnCleanTemp.Add_Click(({
         try {
           $r = $null
           if ($clearSchumanTempFilesHandler) {
-            $r = & $clearSchumanTempFilesHandler -ProjectRoot $projectRoot -WhatIf:$false
+            $r = & $clearSchumanTempFilesHandler -ProjectRoot $projectRoot
           }
           else {
             $cleanupRoot = Join-Path $env:TEMP 'Schuman'
@@ -3248,14 +3429,15 @@ $btnCleanTemp.Add_Click(({
             }
           }
           $kbFreed = [math]::Round($r.FreedBytes / 1KB, 1)
-          $summary = "Deleted: $($r.DeletedFiles) files, $($r.DeletedFolders) folders. Freed: ${kbFreed} KB. Skipped: $($r.Skipped)."
+          $errorCount = @($r.Errors).Count
+          $summary = "Deleted files: $($r.DeletedFiles). Deleted folders: $($r.DeletedFolders). Skipped: $($r.Skipped). Errors: $errorCount. Freed: ${kbFreed} KB."
           if ($r.Errors.Count -gt 0) {
             $errList = ($r.Errors | Select-Object -First 5) -join "`r`n"
-            $summary += "`r`nSome items skipped (locked/access denied):`r`n$errList"
+            $summary += "`r`n`r`nFirst errors:`r`n$errList"
           }
-          [System.Windows.Forms.MessageBox]::Show($summary, 'Clean Temp Files') | Out-Null
+          Show-UiInfo -Title 'Clean Temp Files' -Message $summary
           if ($status -and -not $status.IsDisposed) {
-            $status.Text = "Status: Temp cleaned — $($r.DeletedFiles) files, $($r.DeletedFolders) folders, ${kbFreed} KB freed"
+            $status.Text = "Status: Temp cleaned - files=$($r.DeletedFiles), folders=$($r.DeletedFolders), skipped=$($r.Skipped), errors=$errorCount"
           }
         }
         finally {
@@ -3277,7 +3459,7 @@ $btnCleanTemp.Add_Click(({
         if ($startupSession) { Close-ServiceNowSession -Session $startupSession }
       }
       catch {}
-      try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
+      try { Close-SchumanAllResources -Mode 'All' | Out-Null } catch {}
       try {
         if ($script:MainBusyTimer) {
           $script:MainBusyTimer.Stop()
@@ -3304,7 +3486,7 @@ $btnCleanTemp.Add_Click(({
 [void]$form.add_FormClosing(({
       param($sender, $eventArgs)
       try {
-        try { Stop-SchumanOwnedResources -Mode 'All' | Out-Null } catch {}
+        try { Close-SchumanAllResources -Mode 'All' | Out-Null } catch {}
         try { Close-SchumanOpenForms -Except $sender } catch {}
       }
       catch {}

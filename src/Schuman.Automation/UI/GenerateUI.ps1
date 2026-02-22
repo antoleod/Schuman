@@ -46,7 +46,6 @@ function Show-UiError {
   $msg = if ($ErrorRecord -and $ErrorRecord.Exception) { ("" + $ErrorRecord.Exception.Message).Trim() } else { "$ctx failed." }
   if (-not $msg) { $msg = "$ctx failed." }
   Write-Log -Level ERROR -Message ("{0}: {1}" -f $ctx, $msg)
-  try { [System.Windows.Forms.MessageBox]::Show($msg, 'Schuman', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null } catch {}
 }
 
 function New-UI {
@@ -56,7 +55,8 @@ function New-UI {
     [string]$TemplatePath = '',
     [string]$OutputPath = '',
     [scriptblock]$OnOpenDashboard = $null,
-    [scriptblock]$OnGenerate = $null
+    [scriptblock]$OnGenerate = $null,
+    [scriptblock]$OnCloseAll = $null
   )
 
   $UI = [hashtable]::Synchronized(@{})
@@ -66,6 +66,8 @@ function New-UI {
   $UI.OutputPath = ("" + $OutputPath).Trim()
   $UI.OnOpenDashboard = $OnOpenDashboard
   $UI.OnGenerate = $OnGenerate
+  $UI.OnCloseAll = $OnCloseAll
+  $UI.SelectAllSyncing = $false
   $UI.ExcelReady = $false
   $UI.Theme = @{
     Dark = @{
@@ -89,9 +91,11 @@ function New-UI {
     }
   }
   $UI.GridTable = New-Object System.Data.DataTable 'GenerateStatus'
+  [void]$UI.GridTable.Columns.Add('Generate', [bool])
   [void]$UI.GridTable.Columns.Add('Row', [string])
   [void]$UI.GridTable.Columns.Add('Ticket', [string])
   [void]$UI.GridTable.Columns.Add('User', [string])
+  [void]$UI.GridTable.Columns.Add('PI', [string])
   [void]$UI.GridTable.Columns.Add('File', [string])
   [void]$UI.GridTable.Columns.Add('Status', [string])
   [void]$UI.GridTable.Columns.Add('Message', [string])
@@ -239,7 +243,7 @@ function Initialize-Controls {
 
   $grid = New-Object System.Windows.Forms.DataGridView
   $grid.Dock = [System.Windows.Forms.DockStyle]::Fill
-  $grid.ReadOnly = $true
+  $grid.ReadOnly = $false
   $grid.AllowUserToAddRows = $false
   $grid.AllowUserToDeleteRows = $false
   $grid.AllowUserToResizeRows = $false
@@ -259,10 +263,18 @@ function Initialize-Controls {
   [void]$listCard.Controls.Add($grid)
   $UI.Grid = $grid
 
+  $colGenerate = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
+  $colGenerate.Name = 'Generate'
+  $colGenerate.DataPropertyName = 'Generate'
+  $colGenerate.HeaderText = 'Generate'
+  $colGenerate.FillWeight = 8
+  [void]$grid.Columns.Add($colGenerate)
+
   foreach ($columnName in @('Row', 'Ticket', 'User', 'File', 'Status', 'Message', 'Progress')) {
     $col = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
     $col.Name = $columnName
     $col.DataPropertyName = $columnName
+    $col.ReadOnly = $true
     switch ($columnName) {
       'Row' { $col.HeaderText = 'Row #'; $col.FillWeight = 8 }
       'Ticket' { $col.HeaderText = 'Ticket/RITM'; $col.FillWeight = 16 }
@@ -368,6 +380,13 @@ function Initialize-Controls {
   $optionsFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
   [void]$footerGrid.Controls.Add($optionsFlow, 2, 0)
 
+  $UI.ChkSelectAll = New-Object System.Windows.Forms.CheckBox
+  $UI.ChkSelectAll.Text = 'Select all'
+  $UI.ChkSelectAll.AutoSize = $true
+  $UI.ChkSelectAll.ThreeState = $true
+  $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Checked
+  [void]$optionsFlow.Controls.Add($UI.ChkSelectAll)
+
   $UI.ChkShowWord = New-Object System.Windows.Forms.CheckBox
   $UI.ChkShowWord.Text = 'Show Word after generation'
   $UI.ChkShowWord.AutoSize = $true
@@ -405,9 +424,11 @@ function Update-Grid {
       $UI.GridTable.Rows.Clear()
       foreach ($item in $rowsSafe) {
         $dr = $UI.GridTable.NewRow()
+        $dr['Generate'] = $true
         $dr['Row'] = if ($null -ne $item.Row) { "" + $item.Row } else { '' }
         $dr['Ticket'] = if ($null -ne $item.Ticket) { "" + $item.Ticket } else { '' }
         $dr['User'] = if ($null -ne $item.User) { "" + $item.User } else { '' }
+        $dr['PI'] = if ($null -ne $item.PI) { "" + $item.PI } else { '' }
         $dr['File'] = if ($null -ne $item.File) { "" + $item.File } else { '' }
         $dr['Status'] = if ($null -ne $item.Status) { "" + $item.Status } else { '' }
         $dr['Message'] = if ($null -ne $item.Message) { "" + $item.Message } else { '' }
@@ -419,6 +440,7 @@ function Update-Grid {
       $UI.GridTable.EndLoadData()
     }
     $UI.Grid.ClearSelection()
+    try { Update-GenerateSelectAllState -UI $UI } catch {}
   }
   finally {
     $UI.Grid.ResumeLayout()
@@ -437,6 +459,8 @@ function Load-Data {
   foreach ($r in $rows) {
     $ticket = ("" + $r.RITM).Trim()
     if (-not $ticket) { continue }
+    $pi = ("" + $r.PI).Trim()
+    if (-not $pi) { $pi = '-' }
     $status = ("" + $r.DashboardStatus).Trim()
     if (-not $status) { $status = 'Ready' }
     $message = if ($status -eq 'Ready') { 'Preloaded from Excel' } else { 'Preloaded from Excel status' }
@@ -444,7 +468,8 @@ function Load-Data {
         Row = ("" + $r.Row)
         Ticket = $ticket
         User = ("" + $r.RequestedFor)
-        File = ''
+        PI = $pi
+        File = ("PI: {0}" -f $pi)
         Status = $status
         Message = $message
         Progress = '0%'
@@ -459,7 +484,10 @@ function Export-Excel {
 }
 
 function Generate-PDF {
-  param([hashtable]$UI)
+  param(
+    [hashtable]$UI,
+    [int[]]$SelectedRowNumbers = @()
+  )
 
   if (-not $UI.ContainsKey('OnGenerate') -or -not $UI.OnGenerate) {
     throw 'Generate callback not configured.'
@@ -472,6 +500,7 @@ function Generate-PDF {
     ExportPdf = [bool]$UI.ChkSavePdf.Checked
     SaveDocx = [bool]$UI.ChkSaveDocx.Checked
     ShowWord = [bool]$UI.ChkShowWord.Checked
+    RowNumbers = @($SelectedRowNumbers)
   }
 
   if (-not (Test-Path -LiteralPath $argsObj.ExcelPath)) { throw 'Excel file not found.' }
@@ -549,7 +578,7 @@ function Set-GenerateUiTheme {
   $UI.BtnStop.ForeColor = $palette.StopFg
   $UI.BtnStop.FlatAppearance.BorderColor = $palette.StopBorder
 
-  foreach ($chk in @($UI.ChkSavePdf, $UI.ChkSaveDocx, $UI.ChkShowWord)) {
+  foreach ($chk in @($UI.ChkSelectAll, $UI.ChkSavePdf, $UI.ChkSaveDocx, $UI.ChkShowWord)) {
     $chk.BackColor = $palette.Card
     $chk.ForeColor = $palette.Text
   }
@@ -580,10 +609,10 @@ function Update-GenerateDataState {
   param([hashtable]$UI,[bool]$ExcelReady,[string]$Reason = '')
   $UI.ExcelReady = [bool]$ExcelReady
   $UI.BtnStart.Enabled = [bool]$ExcelReady
-  $UI.BtnDashboard.Enabled = [bool]$ExcelReady
+  $UI.BtnDashboard.Enabled = $true
   if (-not $ExcelReady) {
     $msg = ("" + $Reason).Trim()
-    if (-not $msg) { $msg = 'Excel not ready yet - loading...' }
+    if (-not $msg) { $msg = 'Excel still loading...' }
     $UI.LblStatusText.Text = $msg
     Set-StatusPill -UI $UI -Text 'Missing Excel' -State error
   }
@@ -621,15 +650,75 @@ function Update-OutputButton {
   $UI.BtnOpen.Enabled = (-not [string]::IsNullOrWhiteSpace($out)) -and (Test-Path -LiteralPath $out)
 }
 
-function Invoke-UiSafe {
+function Get-CheckedGenerateRows {
+  param([hashtable]$UI)
+  $picked = New-Object System.Collections.Generic.List[object]
+  if (-not $UI -or -not $UI.GridTable) { return @() }
+  foreach ($dr in @($UI.GridTable.Rows)) {
+    if (-not $dr) { continue }
+    $checked = $false
+    try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
+    if (-not $checked) { continue }
+
+    $rowNum = 0
+    $rowText = ("" + $dr['Row']).Trim()
+    if (-not [int]::TryParse($rowText, [ref]$rowNum)) { continue }
+    $picked.Add([pscustomobject]@{
+        Row = $rowNum
+        Ticket = ("" + $dr['Ticket']).Trim()
+        User = ("" + $dr['User']).Trim()
+        PI = ("" + $dr['PI']).Trim()
+      }) | Out-Null
+  }
+  return @($picked.ToArray())
+}
+
+function Update-GenerateSelectAllState {
+  param([hashtable]$UI)
+  if (-not $UI -or -not $UI.ChkSelectAll -or -not $UI.GridTable) { return }
+  $UI.SelectAllSyncing = $true
+  try {
+    $total = [int]$UI.GridTable.Rows.Count
+    if ($total -le 0) {
+      $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Unchecked
+      return
+    }
+    $checked = 0
+    foreach ($dr in @($UI.GridTable.Rows)) {
+      if (-not $dr) { continue }
+      $isChecked = $false
+      try { $isChecked = [bool]$dr['Generate'] } catch { $isChecked = $false }
+      if ($isChecked) { $checked++ }
+    }
+    if ($checked -eq 0) {
+      $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Unchecked
+    }
+    elseif ($checked -ge $total) {
+      $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Checked
+    }
+    else {
+      $UI.ChkSelectAll.CheckState = [System.Windows.Forms.CheckState]::Indeterminate
+    }
+  }
+  finally {
+    $UI.SelectAllSyncing = $false
+  }
+}
+
+function Invoke-GenerateUiSafe {
   param(
     [hashtable]$UI,
     [string]$Context,
     [scriptblock]$Action
   )
-  $safeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue
+  $safeCmd = Get-Command -Name Invoke-UiSafe -CommandType Function -ErrorAction SilentlyContinue
   if ($safeCmd -and $safeCmd.ScriptBlock) {
-    & $safeCmd.ScriptBlock -ActionName $Context -Action $Action | Out-Null
+    & $safeCmd.ScriptBlock -Context $Context -Action $Action | Out-Null
+    return
+  }
+  $legacySafeCmd = Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue
+  if ($legacySafeCmd -and $legacySafeCmd.ScriptBlock) {
+    & $legacySafeCmd.ScriptBlock -Context $Context -Action $Action | Out-Null
     return
   }
   try { & $Action } catch { Show-UiError -Context $Context -ErrorRecord $_ }
@@ -640,7 +729,7 @@ function Register-GenerateHandlers {
   .SYNOPSIS
   Registers Generator button and interaction handlers.
   .DESCRIPTION
-  Wraps all UI actions with Invoke-UiSafe to avoid unhandled exceptions.
+  Wraps all UI actions with Invoke-GenerateUiSafe to avoid unhandled exceptions.
   .PARAMETER UI
   Shared synchronized UI state hashtable.
   .NOTES
@@ -648,14 +737,43 @@ function Register-GenerateHandlers {
   #>
   param([hashtable]$UI)
 
+  $UI.Grid.Add_CurrentCellDirtyStateChanged(({
+    param($sender, $args)
+    try {
+      if ($sender.IsCurrentCellDirty) { $sender.CommitEdit([System.Windows.Forms.DataGridViewDataErrorContexts]::Commit) }
+    } catch {}
+  }).GetNewClosure())
+
+  $UI.Grid.Add_CellValueChanged(({
+    param($sender, $args)
+    try {
+      if ($args -and $args.ColumnIndex -ge 0) {
+        $col = $sender.Columns[$args.ColumnIndex]
+        if ($col -and $col.Name -eq 'Generate') {
+          Update-GenerateSelectAllState -UI $UI
+        }
+      }
+    } catch {}
+  }).GetNewClosure())
+
+  $UI.ChkSelectAll.Add_CheckStateChanged(({
+    param($sender, $args)
+    Invoke-GenerateUiSafe -UI $UI -Context 'Select All' -Action {
+      if ([bool]$UI.SelectAllSyncing) { return }
+      $state = $UI.ChkSelectAll.CheckState
+      if ($state -eq [System.Windows.Forms.CheckState]::Indeterminate) { return }
+      $checkValue = ($state -eq [System.Windows.Forms.CheckState]::Checked)
+      foreach ($dr in @($UI.GridTable.Rows)) {
+        if (-not $dr) { continue }
+        $dr['Generate'] = $checkValue
+      }
+      Update-GenerateSelectAllState -UI $UI
+    }
+  }).GetNewClosure())
+
   $UI.BtnDashboard.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Open Dashboard' -Action {
-      if (-not [bool]$UI.ExcelReady) {
-        $UI.LblStatusText.Text = 'Excel not ready yet - loading...'
-        Set-StatusPill -UI $UI -Text 'Loading' -State running
-        return
-      }
+    Invoke-GenerateUiSafe -UI $UI -Context 'Open Dashboard' -Action {
       if ($UI.OnOpenDashboard) { & $UI.OnOpenDashboard; return }
       $UI.LblStatusText.Text = 'Dashboard callback not configured.'
       Set-StatusPill -UI $UI -Text 'Error' -State error
@@ -664,7 +782,7 @@ function Register-GenerateHandlers {
 
   $UI.BtnOpen.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Open Output Folder' -Action {
+    Invoke-GenerateUiSafe -UI $UI -Context 'Open Output Folder' -Action {
       $out = ("" + $UI.OutputPath).Trim()
       if (-not $out) { return }
       if (-not (Test-Path -LiteralPath $out)) { return }
@@ -674,23 +792,63 @@ function Register-GenerateHandlers {
 
   $UI.BtnCloseCode.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Close All' -Action {
-      $r = Invoke-UiEmergencyClose -ActionLabel 'Close All' -ExecutableNames @('excel.exe', 'powershell.exe', 'pwsh.exe', 'winword.exe') -Owner $UI.Form -Mode 'All' -MainForm $UI.Form
-      if (-not $r.Cancelled) {
-        $UI.LblStatusText.Text = $r.Message
-        Append-GenerateLog -UI $UI -Line $r.Message
-        try { if (Get-Command -Name Close-SchumanOpenForms -ErrorAction SilentlyContinue) { Close-SchumanOpenForms } } catch {}
+    Invoke-GenerateUiSafe -UI $UI -Context 'Close All' -Action {
+      if ($UI.OnCloseAll) {
+        try { & $UI.OnCloseAll $UI } catch {}
       }
+      $r = $null
+      if (Get-Command -Name Close-SchumanAllResources -ErrorAction SilentlyContinue) {
+        $r = Close-SchumanAllResources -Mode 'All'
+      }
+      else {
+        $fallback = Invoke-UiEmergencyClose -ActionLabel 'Close All' -ExecutableNames @('Code', 'Code - Insiders', 'Cursor', 'WINWORD', 'EXCEL') -Owner $UI.Form -Mode 'All'
+        $r = @{
+          ClosedProcesses = @()
+          ClosedDocs      = 0
+          Errors          = @()
+          Skipped         = 0
+        }
+        if ($fallback) {
+          $r.Errors = if ($fallback.FailedCount -gt 0) { @("Fallback close reported $($fallback.FailedCount) failures.") } else { @() }
+          if ($fallback.KilledCount -gt 0) { $r.ClosedProcesses = @('fallback') }
+        }
+      }
+      $closedProcCount = @($r.ClosedProcesses).Count
+      $errorsCount = @($r.Errors).Count
+      $summary = "Closed: $closedProcCount processes, $($r.ClosedDocs) documents. Skipped: $($r.Skipped). Errors: $errorsCount."
+      $UI.LblStatusText.Text = $summary
+      Append-GenerateLog -UI $UI -Line $summary
+      try { if ($UI.Form -and -not $UI.Form.IsDisposed) { $UI.Form.Close() } } catch {}
     }
   }).GetNewClosure())
 
   $UI.BtnToggleLog.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Toggle Log' -Action {
+    Invoke-GenerateUiSafe -UI $UI -Context 'Toggle Log' -Action {
       $UI.LogPanel.Visible = -not $UI.LogPanel.Visible
       if ($UI.LogPanel.Visible) {
         $UI.LogPanel.Height = 150
         $UI.BtnToggleLog.Text = 'Hide Log'
+        $logPath = ''
+        try { if ($script:LogPath) { $logPath = ("" + $script:LogPath).Trim() } } catch {}
+        if (-not $logPath) {
+          try {
+            $projectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+            $logPath = Join-Path $projectRoot 'system\logs\ui.log'
+          } catch {}
+        }
+        if ($logPath -and (Test-Path -LiteralPath $logPath)) {
+          try {
+            $content = Get-Content -LiteralPath $logPath -Tail 250 -ErrorAction Stop
+            $UI.LogBox.Text = (($content -join [Environment]::NewLine) + [Environment]::NewLine)
+          }
+          catch {
+            $UI.LogBox.Text = ("Unable to read log: " + $_.Exception.Message)
+          }
+        }
+        else {
+          $UI.LogBox.Text = "No log yet.`r`nExpected path: $logPath"
+        }
       }
       else {
         $UI.LogPanel.Height = 0
@@ -701,27 +859,35 @@ function Register-GenerateHandlers {
 
   $UI.BtnStop.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Stop' -Action {
+    Invoke-GenerateUiSafe -UI $UI -Context 'Stop' -Action {
       [System.Windows.Forms.MessageBox]::Show('Stop is not available in this integrated mode.', 'Info') | Out-Null
     }
   }).GetNewClosure())
 
   $UI.BtnStart.Add_Click(({
     param($sender, $args)
-    Invoke-UiSafe -UI $UI -Context 'Generate Documents' -Action {
+    Invoke-GenerateUiSafe -UI $UI -Context 'Generate Documents' -Action {
       if (-not [bool]$UI.ExcelReady) {
-        $UI.LblStatusText.Text = 'Excel not ready yet - loading...'
+        $UI.LblStatusText.Text = 'Excel still loading...'
         Set-StatusPill -UI $UI -Text 'Loading' -State running
+        return
+      }
+      $selectedRows = @(Get-CheckedGenerateRows -UI $UI)
+      if ($selectedRows.Count -eq 0) {
+        $UI.LblStatusText.Text = 'Select at least one row to generate.'
+        Set-StatusPill -UI $UI -Text 'Select Rows' -State error
+        Append-GenerateLog -UI $UI -Line 'Select at least one row to generate.'
         return
       }
       $UI.BtnStart.Enabled = $false
       $UI.BtnDashboard.Enabled = $false
       try {
-        $UI.LblStatusText.Text = 'Generating documents...'
+        $UI.LblStatusText.Text = ("Generating documents for {0} selected row(s)..." -f $selectedRows.Count)
         Set-StatusPill -UI $UI -Text 'Running' -State running
-        Append-GenerateLog -UI $UI -Line 'Starting document generation.'
+        Append-GenerateLog -UI $UI -Line ("Starting document generation for {0} selected row(s)." -f $selectedRows.Count)
 
-        $result = Generate-PDF -UI $UI
+        $selectedRowNumbers = @($selectedRows | ForEach-Object { [int]$_.Row })
+        $result = Generate-PDF -UI $UI -SelectedRowNumbers $selectedRowNumbers
         if ($result -and $result.ok -eq $true) {
           $UI.LblStatusText.Text = 'Generation complete.'
           Set-StatusPill -UI $UI -Text 'Done' -State done
@@ -729,30 +895,38 @@ function Register-GenerateHandlers {
           Append-GenerateLog -UI $UI -Line $msg
           if ($result.outputPath) { $UI.OutputPath = ("" + $result.outputPath).Trim() }
           Update-OutputButton -UI $UI
-          Update-Grid -UI $UI -Rows @([pscustomobject]@{
-              Row = ''
-              Ticket = ''
-              User = ''
-              File = $UI.OutputPath
-              Status = 'Done'
-              Message = $msg
-              Progress = '100%'
-            })
-          $UI.LblMetrics.Text = 'Total: 1 | Saved: 1 | Skipped: 0 | Errors: 0'
+          $savedCount = 0
+          foreach ($dr in @($UI.GridTable.Rows)) {
+            if (-not $dr) { continue }
+            $checked = $false
+            try { $checked = [bool]$dr['Generate'] } catch { $checked = $false }
+            if (-not $checked) { continue }
+            $pi = ("" + $dr['PI']).Trim()
+            if (-not $pi) { $pi = '-' }
+            $pathText = ("" + $UI.OutputPath).Trim()
+            if ($pathText) { $dr['File'] = ("{0} | PI: {1}" -f $pathText, $pi) } else { $dr['File'] = ("PI: {0}" -f $pi) }
+            $dr['Status'] = 'Done'
+            $dr['Message'] = $msg
+            $dr['Progress'] = '100%'
+            $savedCount++
+          }
+          $UI.LblMetrics.Text = ("Total: {0} | Saved: {1} | Skipped: 0 | Errors: 0" -f $selectedRows.Count, $savedCount)
         }
         else {
           $msg = if ($result -and $result.message) { "" + $result.message } else { 'Generation failed without details.' }
           $UI.LblStatusText.Text = 'Generation failed.'
           Set-StatusPill -UI $UI -Text 'Error' -State error
           Append-GenerateLog -UI $UI -Line $msg
-          $UI.LblMetrics.Text = 'Total: 1 | Saved: 0 | Skipped: 0 | Errors: 1'
+          $UI.LblMetrics.Text = ("Total: {0} | Saved: 0 | Skipped: 0 | Errors: {0}" -f $selectedRows.Count)
         }
       }
       catch {
         $UI.LblStatusText.Text = 'Generation failed.'
         Set-StatusPill -UI $UI -Text 'Error' -State error
         Append-GenerateLog -UI $UI -Line ("ERROR: " + $_.Exception.Message)
-        $UI.LblMetrics.Text = 'Total: 1 | Saved: 0 | Skipped: 0 | Errors: 1'
+        $selCount = @(Get-CheckedGenerateRows -UI $UI).Count
+        if ($selCount -lt 1) { $selCount = 1 }
+        $UI.LblMetrics.Text = ("Total: {0} | Saved: 0 | Skipped: 0 | Errors: {0}" -f $selCount)
         Show-UiError -Context 'Generate-PDF' -ErrorRecord $_
       }
       finally {
@@ -766,17 +940,18 @@ function Register-GenerateHandlers {
 
 }
 
-function New-GeneratePdfUI {
+function global:New-GeneratePdfUI {
   param(
     [string]$ExcelPath = '',
     [string]$SheetName = 'BRU',
     [string]$TemplatePath = '',
     [string]$OutputPath = '',
     [scriptblock]$OnOpenDashboard = $null,
-    [scriptblock]$OnGenerate = $null
+    [scriptblock]$OnGenerate = $null,
+    [scriptblock]$OnCloseAll = $null
   )
 
-  $UI = New-UI -ExcelPath $ExcelPath -SheetName $SheetName -TemplatePath $TemplatePath -OutputPath $OutputPath -OnOpenDashboard $OnOpenDashboard -OnGenerate $OnGenerate
+  $UI = New-UI -ExcelPath $ExcelPath -SheetName $SheetName -TemplatePath $TemplatePath -OutputPath $OutputPath -OnOpenDashboard $OnOpenDashboard -OnGenerate $OnGenerate -OnCloseAll $OnCloseAll
   $null = Initialize-Controls -UI $UI
   Register-GenerateHandlers -UI $UI
   Set-GenerateUiTheme -UI $UI
@@ -787,7 +962,8 @@ function New-GeneratePdfUI {
     $rows = @(Export-Excel -UI $UI)
     Update-Grid -UI $UI -Rows $rows
     $total = $rows.Count
-    Update-GenerateDataState -UI $UI -ExcelReady ($total -gt 0) -Reason 'Excel not ready yet - loading...'
+    $reason = if ($total -gt 0) { 'Ready' } elseif ((Test-Path -LiteralPath $UI.ExcelPath)) { 'Excel is empty' } else { 'Excel still loading...' }
+    Update-GenerateDataState -UI $UI -ExcelReady ($total -gt 0) -Reason $reason
     $UI.LblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
     if ($total -gt 0) {
       $UI.LblStatusText.Text = "Ready. Preloaded $total rows from Excel."
@@ -795,7 +971,7 @@ function New-GeneratePdfUI {
     }
   }
   catch {
-    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason 'Excel not ready yet - loading...'
+    Update-GenerateDataState -UI $UI -ExcelReady $false -Reason 'Excel still loading...'
     Show-UiError -Context 'Load-Data' -ErrorRecord $_
   }
 

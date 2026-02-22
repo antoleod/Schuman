@@ -12,7 +12,7 @@ function Invoke-TicketExportWorkflow {
     [string]$PhoneHeader,
     [string]$ActionHeader,
     [string]$SCTasksHeader,
-    [ValidateSet('Auto','RitmOnly','IncAndRitm','All')][string]$ProcessingScope = 'Auto',
+    [ValidateSet('Auto','RitmOnly','IncOnly','IncAndRitm','All')][string]$ProcessingScope = 'Auto',
     [ValidateSet('Auto','ConfigurationItemOnly','CommentsOnly','CommentsAndCI')][string]$PiSearchMode = 'Auto',
     [int]$MaxTickets = 0,
     [switch]$NoWriteBack,
@@ -94,11 +94,12 @@ function Invoke-TicketExportWorkflow {
 function Apply-ProcessingScope {
   param(
     [Parameter(Mandatory = $true)][string[]]$Tickets,
-    [Parameter(Mandatory = $true)][ValidateSet('Auto','RitmOnly','IncAndRitm','All')][string]$Scope
+    [Parameter(Mandatory = $true)][ValidateSet('Auto','RitmOnly','IncOnly','IncAndRitm','All')][string]$Scope
   )
 
   switch ($Scope) {
     'RitmOnly' { return @($Tickets | Where-Object { $_ -like 'RITM*' }) }
+    'IncOnly' { return @($Tickets | Where-Object { $_ -like 'INC*' }) }
     'IncAndRitm' { return @($Tickets | Where-Object { $_ -like 'RITM*' -or $_ -like 'INC*' }) }
     'All' { return @($Tickets) }
     default {

@@ -2857,3 +2857,41 @@
 2026-02-22 20:07:52 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_200536\tickets_export.json
 2026-02-22 20:07:52 [INFO] Writing extracted data back to Excel.
 2026-02-22 20:07:55 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_200536\tickets_export.json
+2026-02-22 20:35:00 [INFO] ServiceNow SSO confirmed.
+2026-02-22 20:35:11 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-22 20:35:15 [INFO] Tickets queued: total=8, filtered=8, scope=IncAndRitm
+2026-02-22 20:35:16 [INFO] ServiceNow SSO confirmed.
+2026-02-22 20:35:16 [INFO] [1/8] Extracting RITM0496748
+2026-02-22 20:35:25 [INFO] RITM0496748 status='1' open_tasks=1 pi_source='none' pi=''
+2026-02-22 20:35:25 [INFO] PERF ticket_RITM0496748 took 8494ms
+2026-02-22 20:35:25 [INFO] [2/8] Extracting RITM0405052
+2026-02-22 20:35:31 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-22 20:35:31 [INFO] PERF ticket_RITM0405052 took 6450ms
+2026-02-22 20:35:32 [INFO] [3/8] Extracting RITM0400334
+2026-02-22 20:35:38 [INFO] RITM0400334 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 20:35:38 [INFO] PERF ticket_RITM0400334 took 6883ms
+2026-02-22 20:35:38 [INFO] [4/8] Extracting RITM0433331
+2026-02-22 20:35:52 [INFO] RITM0420972 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 20:35:52 [INFO] PERF ticket_RITM0420972 took 6524ms
+2026-02-22 20:35:52 [INFO] [6/8] Extracting RITM0434588
+2026-02-22 20:35:56 [INFO] RITM0434588 status='2' open_tasks=1 pi_source='none' pi=''
+2026-02-22 20:35:56 [INFO] PERF ticket_RITM0434588 took 4774ms
+2026-02-22 20:35:56 [INFO] [7/8] Extracting RITM0434592
+2026-02-22 20:36:01 [INFO] RITM0434592 status='4' open_tasks=0 pi_source='none' pi=''
+2026-02-22 20:36:01 [INFO] PERF ticket_RITM0434592 took 5044ms
+2026-02-22 20:36:01 [INFO] [8/8] Extracting RITM0434593
+2026-02-22 20:36:05 [INFO] RITM0434593 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-22 20:36:05 [INFO] PERF ticket_RITM0434593 took 3734ms
+2026-02-22 20:36:05 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_203511\tickets_export.json
+2026-02-22 20:36:05 [INFO] Writing extracted data back to Excel.
+2026-02-22 20:36:09 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260222_203511\tickets_export.json
+2026-02-22 20:38:32 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-22 20:38:36 [INFO] Tickets queued: total=8, filtered=8, scope=IncAndRitm
+2026-02-22 20:38:38 [INFO] ServiceNow SSO confirmed.
+2026-02-22 20:38:38 [INFO] [1/8] Extracting RITM0496748
+2026-02-22 20:40:48 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-22 20:40:54 [INFO] Tickets queued: total=8, filtered=8, scope=IncAndRitm
+2026-02-22 20:42:04 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:02:19 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:14:10 [INFO] ServiceNow SSO confirmed.
+2026-02-22 21:16:11 [INFO] ServiceNow SSO confirmed.

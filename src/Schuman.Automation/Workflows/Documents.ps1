@@ -8,7 +8,8 @@ function Invoke-DocumentGenerationWorkflow {
     [string]$SheetName,
     [string]$TemplatePath,
     [string]$OutputDirectory,
-    [switch]$ExportPdf
+    [switch]$ExportPdf,
+    [int[]]$RowNumbers = @()
   )
 
   if (-not $SheetName) { $SheetName = $Config.Excel.DefaultSheet }
@@ -26,6 +27,17 @@ function Invoke-DocumentGenerationWorkflow {
 
   $rows = Search-DashboardRows -ExcelPath $ExcelPath -SheetName $SheetName -SearchText ''
   $targets = @($rows | Where-Object { $_.RITM -match '^RITM\d{6,8}$' })
+  if ($RowNumbers -and @($RowNumbers).Count -gt 0) {
+    $selected = @{}
+    foreach ($n in @($RowNumbers)) {
+      try { $selected[[int]$n] = $true } catch {}
+    }
+    $targets = @($targets | Where-Object {
+        $rnum = 0
+        if (-not [int]::TryParse(("" + $_.Row).Trim(), [ref]$rnum)) { return $false }
+        return $selected.ContainsKey($rnum)
+      })
+  }
 
   if ($targets.Count -eq 0) {
     Write-RunLog -RunContext $RunContext -Level WARN -Message 'No eligible RITM rows found for document generation.'

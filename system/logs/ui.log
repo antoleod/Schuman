@@ -218,3 +218,62 @@ Cannot convert value "128161" to type "System.Char". Error: "Value was either to
 [2026-02-22 20:18:10] [ERROR] ThreadException: The term 'Invoke-UiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
 [2026-02-22 20:18:37] [ERROR] Clean Temp Files: A parameter with the name 'WhatIf' was defined multiple times for the command.
 [2026-02-22 20:18:37] [ERROR] UI: UI failed.
+[2026-02-22 20:34:58] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 20:35:00] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 20:35:00] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 20:35:01] [INFO] Startup initialization started.
+[2026-02-22 20:35:01] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 20:38:05] [ERROR] Open Dashboard: The term 'New-DashboardUI' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:38:05] [ERROR] Open Dashboard: Open Dashboard failed.
+[2026-02-22 20:38:11] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 20:38:21] [ERROR] Open Dashboard: The term 'New-DashboardUI' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:38:21] [ERROR] Open Dashboard: Open Dashboard failed.
+[2026-02-22 20:38:46] [ERROR] Force Update | Export cancelled by user. | No exception details were captured.
+[2026-02-22 20:41:04] [ERROR] Force Update | Export cancelled by user. | No exception details were captured.
+[2026-02-22 20:42:02] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 20:42:05] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 20:42:05] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 20:42:05] [INFO] Startup initialization started.
+[2026-02-22 20:42:05] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 20:42:08] [ERROR] Open Dashboard: The term 'New-DashboardUI' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:42:08] [ERROR] Open Dashboard: Open Dashboard failed.
+[2026-02-22 20:43:07] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 20:43:26] [ERROR] ThreadException: The term 'Invoke-GenerateUiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:43:40] [ERROR] ThreadException: The term 'Invoke-GenerateUiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:44:46] [ERROR] ThreadException: The term 'Invoke-GenerateUiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:46:31] [ERROR] ThreadException: The term 'Invoke-GenerateUiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:46:34] [ERROR] ThreadException: The term 'Invoke-GenerateUiSafe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2026-02-22 20:46:50] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 20:48:22] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 21:02:16] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:02:19] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:02:19] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:02:20] [INFO] Startup initialization started.
+[2026-02-22 21:02:20] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:02:25] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:02:31] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:03:00] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 21:03:18] [ERROR] Close All: Close All failed.
+[2026-02-22 21:03:20] [ERROR] Close All: Close All failed.
+[2026-02-22 21:04:20] [ERROR] Close All: Close All failed.
+[2026-02-22 21:04:22] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:04:28] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:05:06] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 21:12:25] [ERROR] Load-Data: Cannot bind argument to parameter 'LiteralPath' because it is an empty string.
+[2026-02-22 21:13:11] [ERROR] Load-Data: Cannot bind argument to parameter 'LiteralPath' because it is an empty string.
+[2026-02-22 21:14:07] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:14:10] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:14:10] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:14:10] [INFO] Startup initialization started.
+[2026-02-22 21:14:10] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:14:13] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:14:16] [ERROR] Open Dashboard Window: Open Dashboard Window failed.
+[2026-02-22 21:14:21] [INFO] Preloaded 12 rows from Excel.
+[2026-02-22 21:14:24] [ERROR] Open Dashboard: Open Dashboard failed.
+[2026-02-22 21:15:22] [ERROR] Open Dashboard: Open Dashboard failed.
+[2026-02-22 21:16:08] [WARN] SetUnhandledExceptionMode failed: Exception calling "SetUnhandledExceptionMode" with "1" argument(s): "Thread exception mode cannot be changed once any Controls are created on the thread."
+[2026-02-22 21:16:11] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-22 21:16:11] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-22 21:16:11] [INFO] Startup initialization started.
+[2026-02-22 21:16:11] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-22 21:16:28] [ERROR] Open Dashboard Window: Open Dashboard Window failed.

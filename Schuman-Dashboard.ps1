@@ -36,14 +36,16 @@ $script:DashboardDomainExceptionHandler = [System.UnhandledExceptionEventHandler
 
 $moduleRoot = Join-Path $PSScriptRoot 'src\Schuman.Automation'
 $importModulesPath = Join-Path $moduleRoot 'Import-SchumanModules.ps1'
+$uiHelpersPath = Join-Path $moduleRoot 'UI\UiHelpers.ps1'
 $themePath = Join-Path $moduleRoot 'UI\Theme.ps1'
 $dashboardUiPath = Join-Path $moduleRoot 'UI\DashboardUI.ps1'
 
-foreach ($p in @($importModulesPath, $themePath, $dashboardUiPath)) {
+foreach ($p in @($importModulesPath, $uiHelpersPath, $themePath, $dashboardUiPath)) {
   if (-not (Test-Path -LiteralPath $p)) { throw "Required file not found: $p" }
 }
 
 . $importModulesPath
+. $uiHelpersPath
 . $themePath
 . $dashboardUiPath
 
