@@ -193,3 +193,55 @@
 [2026-02-23 07:41:47] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0434593_Juan Carlos DIOSES.docx
 [2026-02-23 07:41:47] Excel saved
 [2026-02-23 07:41:47] === RUN END === Total=12 Saved=12 Skipped=0 Errors=0
+[2026-02-23 08:52:43] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 08:53:20] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 09:05:35] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=6
+[2026-02-23 09:05:44] User clicked Start.
+[2026-02-23 09:05:44] === RUN START ===
+[2026-02-23 09:05:44] Opening Excel
+[2026-02-23 09:05:46] Row 2 start: RITM0496748_Juan Carlos DIOSES.docx
+[2026-02-23 09:05:47] Row 2: ProtectionType=-1 (Unknown)
+[2026-02-23 09:05:47] Row 2: Document protected, attempting unprotect
+[2026-02-23 09:05:47] Row 2: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-23 09:05:47] Row 2: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-23 09:05:49] Row 2: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0496748_Juan Carlos DIOSES.pdf
+[2026-02-23 09:05:49] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0496748_Juan Carlos DIOSES.docx
+[2026-02-23 09:05:49] Row 3 start: RITM0405052_Alexandra DE TORNACO.docx
+[2026-02-23 09:05:49] Row 3: ProtectionType=-1 (Unknown)
+[2026-02-23 09:05:49] Row 3: Document protected, attempting unprotect
+[2026-02-23 09:05:49] Row 3: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-23 09:05:49] Row 3: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-23 09:05:50] Row 3: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0405052_Alexandra DE TORNACO.pdf
+[2026-02-23 09:05:50] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0405052_Alexandra DE TORNACO.docx
+[2026-02-23 09:05:50] Row 4 start: RITM0400334_Devrim ATES.docx
+[2026-02-23 09:05:50] Row 4: ProtectionType=-1 (Unknown)
+[2026-02-23 09:05:50] Row 4: Document protected, attempting unprotect
+[2026-02-23 09:05:50] Row 4: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-23 09:05:50] Row 4: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-23 09:05:52] Row 4: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0400334_Devrim ATES.pdf
+[2026-02-23 09:05:52] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0400334_Devrim ATES.docx
+[2026-02-23 09:05:52] Row 5 start: RITM0433331_Jauram REISNER.docx
+[2026-02-23 09:05:52] Row 5: ProtectionType=-1 (Unknown)
+[2026-02-23 09:05:52] Row 5: Document protected, attempting unprotect
+[2026-02-23 09:05:52] Row 5: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-23 09:05:52] Row 5: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-23 09:05:53] Row 5: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0433331_Jauram REISNER.pdf
+[2026-02-23 09:05:53] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0433331_Jauram REISNER.docx
+[2026-02-23 09:05:53] Row 6 start: RITM0420972_Laura PROIETTI.docx
+[2026-02-23 09:05:53] Row 6: ProtectionType=-1 (Unknown)
+[2026-02-23 09:05:53] Row 6: Document protected, attempting unprotect
+[2026-02-23 09:05:53] Row 6: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-23 09:05:53] Row 6: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-23 09:05:54] Row 6: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0420972_Laura PROIETTI.pdf
+[2026-02-23 09:05:54] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0420972_Laura PROIETTI.docx
+[2026-02-23 09:05:54] Row 7 start: RITM0434593_Juan Carlos DIOSES.docx
+[2026-02-23 09:05:54] Row 7: ProtectionType=-1 (Unknown)
+[2026-02-23 09:05:54] Row 7: Document protected, attempting unprotect
+[2026-02-23 09:05:54] Row 7: Unprotect failed: The Unprotect method or property is not available because the document is already unprotected.
+[2026-02-23 09:05:54] Row 7: Unprotect attempted, ProtectionType now=-1 (Unknown)
+[2026-02-23 09:05:55] Row 7: PDF saved -> C:\Users\X1\Documents\Schuman\WORD files\RITM0434593_Juan Carlos DIOSES.pdf
+[2026-02-23 09:05:55] Saved: C:\Users\X1\Documents\Schuman\WORD files\RITM0434593_Juan Carlos DIOSES.docx
+[2026-02-23 09:05:55] Excel saved
+[2026-02-23 09:05:55] === RUN END === Total=6 Saved=6 Skipped=0 Errors=0
+[2026-02-23 09:12:57] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=6
+[2026-02-23 09:32:30] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=6

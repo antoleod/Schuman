@@ -373,7 +373,7 @@ $btnOpen.Text = "Open Output Folder"
 $btnOpen.Width = 170
 $btnOpen.Height = 30
 $btnOpen.FlatStyle = "Flat"
-$btnOpen.Enabled = $false
+$btnOpen.Enabled = (Test-Path -LiteralPath $OutDir)
 $buttonFlow.Controls.Add($btnOpen)
 
 $btnToggleLog = New-Object Windows.Forms.Button
@@ -700,6 +700,27 @@ function Get-IntPropOrDefault($obj, [string]$name, [int]$defaultValue = 0){
   return $defaultValue
 }
 
+function Sanitize-OutputName([string]$s){
+  if([string]::IsNullOrWhiteSpace($s)){ return "" }
+  $s = $s -replace '[\\/:*?"<>|'']',''
+  $s = $s -replace '\s+',' '
+  return $s.Trim()
+}
+
+function Get-ExpectedOutputPaths([string]$ticket, [string]$user){
+  $safeTicket = Sanitize-OutputName $ticket
+  $safeUser = Sanitize-OutputName $user
+  if([string]::IsNullOrWhiteSpace($safeTicket)){ $safeTicket = "UNKNOWN_TICKET" }
+  if([string]::IsNullOrWhiteSpace($safeUser)){ $safeUser = "UNKNOWN_NAME" }
+  $docx = Join-Path $OutDir ("{0}_{1}.docx" -f $safeTicket, $safeUser)
+  $pdf = [System.IO.Path]::ChangeExtension($docx, ".pdf")
+  return [pscustomobject]@{
+    Docx = $docx
+    Pdf = $pdf
+    BaseName = [System.IO.Path]::GetFileName($docx)
+  }
+}
+
 function Ensure-GridRow([int]$rowId, [string]$fileName, [string]$ticket, [string]$user){
   if($script:RowMap.ContainsKey($rowId)){ return $script:RowMap[$rowId] }
   $r = $grid.Rows.Add()
@@ -793,18 +814,36 @@ function Load-ExcelPreview {
 
   $grid.Rows.Clear()
   $script:RowMap.Clear()
+  $existingDone = 0
   foreach ($item in $previewRows) {
     $piText = if ($item.PI) { $item.PI } else { '-' }
-    $row = Ensure-GridRow -rowId ([int]$item.Row) -fileName ("PI: " + $piText) -ticket $item.Ticket -user $item.User
-    Set-RowStatus -row $row -status "Ready" -message "Loaded from Excel" -state "normal"
-    $row.Cells["Progress"].Value = "-"
+    $paths = Get-ExpectedOutputPaths -ticket $item.Ticket -user $item.User
+    $hasPdf = Test-Path -LiteralPath $paths.Pdf
+    $hasDocx = Test-Path -LiteralPath $paths.Docx
+    $outputLabel = "PI: " + $piText
+    if ($hasPdf) {
+      $outputLabel = [System.IO.Path]::GetFileName($paths.Pdf)
+    } elseif ($hasDocx) {
+      $outputLabel = [System.IO.Path]::GetFileName($paths.Docx)
+    }
+    $row = Ensure-GridRow -rowId ([int]$item.Row) -fileName $outputLabel -ticket $item.Ticket -user $item.User
+    if ($hasPdf -or $hasDocx) {
+      $existingDone++
+      $msg = if ($hasPdf -and $hasDocx) { "PDF/DOCX already generated" } elseif ($hasPdf) { "PDF already generated" } else { "DOCX already generated" }
+      Set-RowStatus -row $row -status "Done" -message $msg -state "success"
+      $row.Cells["Progress"].Value = "100%"
+    } else {
+      Set-RowStatus -row $row -status "Ready" -message "Loaded from Excel" -state "normal"
+      $row.Cells["Progress"].Value = "-"
+    }
   }
   $total = @($previewRows).Count
-  $lblMetrics.Text = "Total: $total | Saved: 0 | Skipped: 0 | Errors: 0"
+  $lblMetrics.Text = "Total: $total | Saved: $existingDone | Skipped: 0 | Errors: 0"
+  $btnOpen.Enabled = (Test-Path -LiteralPath $OutDir)
   if (-not $Silent) {
     $lblStatusText.Text = "Ready. Preloaded $total rows from Excel."
     Set-StatusPill -text "Ready" -state "idle"
-    Append-Log "Preloaded $total rows from Excel."
+    Append-Log "Preloaded $total rows from Excel. Existing outputs: $existingDone."
   }
   Write-Log ("Load-Data completed. Excel='{0}', rows={1}" -f $ExcelPath, $total)
   return $true
@@ -1353,7 +1392,27 @@ $script:WorkerLogic = {
       if([string]::IsNullOrWhiteSpace($safeName)){ $safeName="UNKNOWN_NAME" }
 
       $fileName = "${safeTicket}_${safeName}.docx"
-      $filePath = Get-UniquePath -Dir $Config.OutDir -BaseName $fileName
+      $filePath = Join-Path $Config.OutDir $fileName
+      $pdfPath = [System.IO.Path]::ChangeExtension([string]$filePath, ".pdf")
+
+      $hasDocx = Test-Path -LiteralPath $filePath
+      $hasPdf = Test-Path -LiteralPath $pdfPath
+      $docxReady = (-not [bool]$Config.ExportDocx) -or $hasDocx
+      $pdfReady = (-not [bool]$Config.ExportPdf) -or $hasPdf
+      if ($docxReady -and $pdfReady) {
+        $skipped++
+        try {
+          $sheet.Cells.Item($r,$statusCol).Value2 = "OK (existing)"
+          if ($docxCol) { $sheet.Cells.Item($r,$docxCol).Value2 = if ($hasDocx) { [string]$filePath } else { "" } }
+          if ($pdfCol) { $sheet.Cells.Item($r,$pdfCol).Value2 = if ($hasPdf) { [string]$pdfPath } else { "" } }
+        } catch {}
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{
+          Type="RowSkip"; Row=$r; File=$fileName; Ticket=$ticket; User=$name; Message="Already generated"
+        })
+        WriteLog $Config.LogPath "Row ${r} skipped: existing output(s) detected."
+        $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="Counters"; Total=$total; Saved=$saved; Skipped=$skipped; Errors=$errors })
+        continue
+      }
 
       # UI row start
       $rowStart = Get-Date
@@ -1449,6 +1508,7 @@ $script:WorkerLogic = {
         $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Saving..." })
         if($Config.ExportDocx){
           if($Config.TurboMode){
+            try { if (Test-Path -LiteralPath $filePath) { Remove-Item -LiteralPath $filePath -Force -ErrorAction SilentlyContinue } } catch {}
             $doc.SaveAs2([string]$filePath, $wdFormatDOCX)
           } else {
             WriteLog $Config.LogPath "Row ${r}: Saving"
@@ -1462,7 +1522,6 @@ $script:WorkerLogic = {
 
         if($Config.ExportPdf){
           # Export PDF
-          $pdfPath = [System.IO.Path]::ChangeExtension([string]$filePath, ".pdf")
           try {
             $SyncHash.UiEvents.Enqueue([pscustomobject]@{ Type="RowStage"; Row=$r; Stage="Exporting PDF..." })
             $doc.ExportAsFixedFormat($pdfPath, $wdFormatPDF)
@@ -1621,9 +1680,15 @@ $uiTimer.Add_Tick({
       }
       "RowSkip" {
         $row = Ensure-GridRow -rowId $p.Row -fileName $p.File -ticket $p.Ticket -user $p.User
-        Set-RowStatus -row $row -status "Skipped" -message $p.Message -state "skipped"
-        $row.Cells["Progress"].Value = "-"
-        Append-Log "Row $($p.Row) skipped: $($p.Message)"
+        if (("" + $p.Message).ToLowerInvariant().Contains("already")) {
+          Set-RowStatus -row $row -status "Done" -message "Already generated" -state "success"
+          $row.Cells["Progress"].Value = "100%"
+          Append-Log "Row $($p.Row) already generated."
+        } else {
+          Set-RowStatus -row $row -status "Skipped" -message $p.Message -state "skipped"
+          $row.Cells["Progress"].Value = "-"
+          Append-Log "Row $($p.Row) skipped: $($p.Message)"
+        }
       }
     }
   }
@@ -1735,6 +1800,7 @@ $btnStop.Add_Click({
   $script:SyncHash.Status = "Stopping"
   $lblStatusText.Text = "Stopping..."
   Set-StatusPill -text "Stopping" -state "running"
+  $btnStop.Enabled = $false
   if($script:PSInstance){
     try { $script:PSInstance.Stop() | Out-Null } catch {}
   }

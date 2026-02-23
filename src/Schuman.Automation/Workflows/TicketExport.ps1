@@ -53,6 +53,45 @@ function Invoke-TicketExportWorkflow {
       Write-RunLog -RunContext $RunContext -Level INFO -Message ("[{0}/{1}] Extracting {2}" -f $i, $filtered.Count, $ticket)
 
       $res = Get-ServiceNowTicket -Session $session -Ticket $ticket -PiSearchMode $PiSearchMode -SkipLegalNameFallback:$SkipLegalNameFallback
+
+      # Legacy parity: for RITM in Force Update, ensure comments/journal path is also evaluated.
+      # If the selected mode returned only CI evidence (or no PI), retry with CommentsAndCI and prefer it when available.
+      if ($ticket -like 'RITM*') {
+        $currentPi = ''
+        $currentSource = ''
+        try { if ($res.PSObject.Properties['detected_pi_machine']) { $currentPi = ("" + $res.detected_pi_machine).Trim() } } catch {}
+        try { if ($res.PSObject.Properties['pi_source']) { $currentSource = ("" + $res.pi_source).Trim().ToLowerInvariant() } } catch {}
+
+        $needsCommentsRetry = $false
+        if ($PiSearchMode -eq 'ConfigurationItemOnly') { $needsCommentsRetry = $true }
+        elseif ([string]::IsNullOrWhiteSpace($currentPi)) { $needsCommentsRetry = $true }
+        elseif ($currentSource -eq 'ci') { $needsCommentsRetry = $true }
+
+        if ($needsCommentsRetry) {
+          try {
+            $resComments = Get-ServiceNowTicket -Session $session -Ticket $ticket -PiSearchMode 'CommentsAndCI' -SkipLegalNameFallback:$SkipLegalNameFallback
+            if ($resComments -and $resComments.ok -eq $true) {
+              $retryPi = ''
+              $retrySource = ''
+              try { if ($resComments.PSObject.Properties['detected_pi_machine']) { $retryPi = ("" + $resComments.detected_pi_machine).Trim() } } catch {}
+              try { if ($resComments.PSObject.Properties['pi_source']) { $retrySource = ("" + $resComments.pi_source).Trim().ToLowerInvariant() } } catch {}
+
+              if (-not [string]::IsNullOrWhiteSpace($retryPi) -and $retrySource -ne 'ci') {
+                $res = $resComments
+                Write-RunLog -RunContext $RunContext -Level INFO -Message ("{0} PI upgraded from comments/journal source='{1}'." -f $ticket, $retrySource)
+              }
+              elseif ([string]::IsNullOrWhiteSpace($currentPi) -and -not [string]::IsNullOrWhiteSpace($retryPi)) {
+                $res = $resComments
+                Write-RunLog -RunContext $RunContext -Level INFO -Message ("{0} PI recovered via comments/journal source='{1}'." -f $ticket, $retrySource)
+              }
+            }
+          }
+          catch {
+            Write-RunLog -RunContext $RunContext -Level WARN -Message ("{0} comments/journal retry failed: {1}" -f $ticket, $_.Exception.Message)
+          }
+        }
+      }
+
       if ($res.ok -eq $false) {
         Write-RunLog -RunContext $RunContext -Level WARN -Message ("{0} extraction failed: {1}" -f $ticket, $res.reason)
       } else {

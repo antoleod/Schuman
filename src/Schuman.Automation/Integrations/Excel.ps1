@@ -346,8 +346,22 @@ function global:Search-DashboardRows {
     if (-not $ritmCol) { throw 'Dashboard requires a RITM/Number column.' }
 
     $statusCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Dashboard Status')
-    $ritmStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('RITM State', 'RITM Status', 'State', 'Status')
-    $taskStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @('SCTASK State', 'SCTASK Status', 'SC Task State', 'Task State')
+    $ritmStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @(
+      'RITM State',
+      'RITM Status',
+      'Estado de RITM',
+      'Estado RITM',
+      'Completion Status',
+      'Action'
+    )
+    $taskStateCol = Resolve-HeaderColumn -HeaderMap $map -Names @(
+      'SCTASK State',
+      'SCTASK Status',
+      'SC Task State',
+      'Task State',
+      'Estado de SCTASK',
+      'Estado SCTASK'
+    )
     $presentCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Present Time')
     $closedCol = Resolve-HeaderColumn -HeaderMap $map -Names @('Closed Time')
     $taskCol = Resolve-HeaderColumn -HeaderMap $map -Names @('SCTasks', 'SCTask', 'SC Task')
@@ -394,6 +408,23 @@ function global:Search-DashboardRows {
     $taskValues = [hashtable](& $getColValues $taskCol)
     $piValues = [hashtable](& $getColValues $piCol)
 
+    $normalizeStateText = {
+      param([string]$Text)
+      $raw = ("" + $Text).Trim()
+      if (-not $raw) { return '' }
+      $norm = $raw.ToLowerInvariant()
+      if ($norm -match 'closed|complete|completed|resolved|cancel|cerrad|complet|resuelt|cancelad|chius|ferm|annul') {
+        return 'Complete'
+      }
+      if ($norm -match 'work.?in.?progress|in.?progress|progress|wip|en progreso|progreso') {
+        return 'Work in Progress'
+      }
+      if ($norm -match 'open|pending|new|abierto|pendiente|nuevo') {
+        return 'Pending'
+      }
+      return $raw
+    }
+
     $queryNorm = $query.ToLowerInvariant()
     for ($r = 2; $r -le $rows; $r++) {
       $ritm = if ($ritmValues.ContainsKey($r)) { ("" + $ritmValues[$r]).Trim().ToUpperInvariant() } else { '' }
@@ -401,8 +432,10 @@ function global:Search-DashboardRows {
 
       $requestedFor = if ($nameValues.ContainsKey($r)) { ("" + $nameValues[$r]).Trim() } else { '' }
       $dashboardStatus = if ($statusValues.ContainsKey($r)) { ("" + $statusValues[$r]).Trim() } else { '' }
-      $ritmState = if ($ritmStateValues.ContainsKey($r)) { ("" + $ritmStateValues[$r]).Trim() } else { '' }
-      $taskState = if ($taskStateValues.ContainsKey($r)) { ("" + $taskStateValues[$r]).Trim() } else { '' }
+      $ritmStateRaw = if ($ritmStateValues.ContainsKey($r)) { ("" + $ritmStateValues[$r]).Trim() } else { '' }
+      $taskStateRaw = if ($taskStateValues.ContainsKey($r)) { ("" + $taskStateValues[$r]).Trim() } else { '' }
+      $ritmState = & $normalizeStateText $ritmStateRaw
+      $taskState = & $normalizeStateText $taskStateRaw
       $presentTime = if ($presentValues.ContainsKey($r)) { ("" + $presentValues[$r]).Trim() } else { '' }
       $closedTime = if ($closedValues.ContainsKey($r)) { ("" + $closedValues[$r]).Trim() } else { '' }
       $sctask = if ($taskValues.ContainsKey($r)) { ("" + $taskValues[$r]).Trim() } else { '' }

@@ -70,6 +70,21 @@ function global:New-DashboardUI {
   if (Get-Command -Name Initialize-SchumanRuntime -ErrorAction SilentlyContinue) {
     Initialize-SchumanRuntime -RevalidateOnly
   }
+  $resolveInvokable = ({
+    param($Candidate)
+    if ($null -eq $Candidate) { return $null }
+    if ($Candidate -is [scriptblock]) { return $Candidate }
+    if ($Candidate -is [System.Management.Automation.FunctionInfo]) { return $Candidate.ScriptBlock }
+    if ($Candidate -is [System.Management.Automation.CommandInfo]) { return $Candidate.ScriptBlock }
+    if ($Candidate -is [System.Array]) {
+      foreach ($item in $Candidate) {
+        $resolved = & $resolveInvokable $item
+        if ($resolved) { return $resolved }
+      }
+      return $null
+    }
+    return $null
+  }).GetNewClosure()
   $getFunctionCommand = ({
     param([string]$Name)
     return (Get-Command -Name $Name -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1)
@@ -78,35 +93,33 @@ function global:New-DashboardUI {
   if (-not $searchDashboardRowsCommand) {
     throw 'Search-DashboardRows is not available. Runtime initialization failed.'
   }
-  $testClosedStateHandler = ${function:Test-ClosedState}
+  $testClosedStateHandler = & $resolveInvokable ${function:Test-ClosedState}
   if (-not $testClosedStateHandler) {
     $testClosedStateCommand = & $getFunctionCommand 'Test-ClosedState'
-    if ($testClosedStateCommand -and $testClosedStateCommand.ScriptBlock) {
-      $testClosedStateHandler = $testClosedStateCommand.ScriptBlock
-    }
+    $testClosedStateHandler = & $resolveInvokable $testClosedStateCommand
   }
   if (-not $testClosedStateHandler) {
     throw 'Test-ClosedState is not available. Runtime initialization failed.'
   }
-  $newServiceNowSessionHandler = ${function:New-ServiceNowSession}
+  $newServiceNowSessionHandler = & $resolveInvokable ${function:New-ServiceNowSession}
   if (-not $newServiceNowSessionHandler) {
     $cmd = & $getFunctionCommand 'New-ServiceNowSession'
-    if ($cmd -and $cmd.ScriptBlock) { $newServiceNowSessionHandler = $cmd.ScriptBlock }
+    $newServiceNowSessionHandler = & $resolveInvokable $cmd
   }
-  $getServiceNowTasksForRitmHandler = ${function:Get-ServiceNowTasksForRitm}
+  $getServiceNowTasksForRitmHandler = & $resolveInvokable ${function:Get-ServiceNowTasksForRitm}
   if (-not $getServiceNowTasksForRitmHandler) {
     $cmd = & $getFunctionCommand 'Get-ServiceNowTasksForRitm'
-    if ($cmd -and $cmd.ScriptBlock) { $getServiceNowTasksForRitmHandler = $cmd.ScriptBlock }
+    $getServiceNowTasksForRitmHandler = & $resolveInvokable $cmd
   }
-  $setServiceNowTaskStateHandler = ${function:Set-ServiceNowTaskState}
+  $setServiceNowTaskStateHandler = & $resolveInvokable ${function:Set-ServiceNowTaskState}
   if (-not $setServiceNowTaskStateHandler) {
     $cmd = & $getFunctionCommand 'Set-ServiceNowTaskState'
-    if ($cmd -and $cmd.ScriptBlock) { $setServiceNowTaskStateHandler = $cmd.ScriptBlock }
+    $setServiceNowTaskStateHandler = & $resolveInvokable $cmd
   }
-  $updateDashboardRowHandler = ${function:Update-DashboardRow}
+  $updateDashboardRowHandler = & $resolveInvokable ${function:Update-DashboardRow}
   if (-not $updateDashboardRowHandler) {
     $cmd = & $getFunctionCommand 'Update-DashboardRow'
-    if ($cmd -and $cmd.ScriptBlock) { $updateDashboardRowHandler = $cmd.ScriptBlock }
+    $updateDashboardRowHandler = & $resolveInvokable $cmd
   }
 
   $btnStyle = ({
@@ -155,12 +168,13 @@ function global:New-DashboardUI {
   $txtSearch.ForeColor = $cText
   $txtSearch.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
   $txtSearch.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDown
-  $txtSearch.AutoCompleteMode = [System.Windows.Forms.AutoCompleteMode]::SuggestAppend
-  $txtSearch.AutoCompleteSource = [System.Windows.Forms.AutoCompleteSource]::ListItems
+  # Keep typing/deleting stable; do not force suggest popup while editing.
+  $txtSearch.AutoCompleteMode = [System.Windows.Forms.AutoCompleteMode]::None
+  $txtSearch.AutoCompleteSource = [System.Windows.Forms.AutoCompleteSource]::None
   $txtSearch.MaxDropDownItems = 14
 
   $btnRefresh = New-Object System.Windows.Forms.Button
-  $btnRefresh.Text = 'Refresh'
+  $btnRefresh.Text = 'Search'
   $btnRefresh.Location = New-Object System.Drawing.Point(390, 36)
   $btnRefresh.Size = New-Object System.Drawing.Size(100, 28)
   & $btnStyle $btnRefresh $false
@@ -630,6 +644,7 @@ function global:New-DashboardUI {
 
   $updateActionButtons = ({
     $excelReady = [bool]$state.ExcelReady
+    $excelPathReady = (-not [string]::IsNullOrWhiteSpace(("" + $state.ExcelPath).Trim())) -and (Test-Path -LiteralPath $state.ExcelPath)
     $sel = & $getSelectedRow
     $hasValidRitm = $false
     $isClosed = $false
@@ -641,14 +656,14 @@ function global:New-DashboardUI {
     }
     $allowActions = ($excelReady -and -not $state.IsLoading)
     $btnRefresh.Enabled = $true
-    $btnClear.Enabled = $allowActions
+    $btnClear.Enabled = $excelPathReady
     $btnTemplateSettings.Enabled = $allowActions
     $btnCheckIn.Enabled = ($allowActions -and $hasValidRitm -and -not $isClosed)
     $btnCheckOut.Enabled = ($allowActions -and $hasValidRitm)
     # Recalculate button intentionally removed.
     $btnOpenSnow.Enabled = ($allowActions -and $hasValidRitm)
-    $txtSearch.Enabled = $allowActions
-    $chkOpenOnly.Enabled = $allowActions
+    $txtSearch.Enabled = $excelPathReady
+    $chkOpenOnly.Enabled = $excelPathReady
   }).GetNewClosure()
 
   $getVisibleRows = ({
@@ -794,11 +809,10 @@ function global:New-DashboardUI {
       & $setLoadingState -IsLoading $true -Message 'Loading Excel data...'
       $q = ("" + $state.Controls.Search.Text).Trim()
       if ([string]::IsNullOrWhiteSpace($q)) {
-        if ($ReloadFromExcel -or $state.AllRows.Count -eq 0) {
-          $state.AllRows = @(& $fetchRows -QueryText '' -ForceReload:$ReloadFromExcel)
-        }
+        # Always rebuild visible rows for empty search so Clear restores full grid.
+        $state.AllRows = @(& $fetchRows -QueryText '' -ForceReload:$ReloadFromExcel)
         $state.Rows = @(& $getVisibleRows)
-        $state.ExcelReady = ($state.Rows.Count -gt 0)
+        $state.ExcelReady = (Test-Path -LiteralPath $state.ExcelPath)
         $state.LastSearch = ''
         & $bindRowsToGrid $state.Rows
         & $updateActionButtons
@@ -819,7 +833,7 @@ function global:New-DashboardUI {
 
       $rows = & $getVisibleRows
       $state.Rows = @($rows)
-      $state.ExcelReady = ($state.Rows.Count -gt 0)
+      $state.ExcelReady = (Test-Path -LiteralPath $state.ExcelPath)
       $state.LastSearch = $q
       & $bindRowsToGrid $rows
       & $updateActionButtons
@@ -838,7 +852,7 @@ function global:New-DashboardUI {
       $position = ''
       try { $stack = ("" + $_.ScriptStackTrace).Trim() } catch {}
       try { if ($_.InvocationInfo) { $position = ("" + $_.InvocationInfo.PositionMessage).Trim() } } catch {}
-      $state.ExcelReady = $false
+      $state.ExcelReady = (Test-Path -LiteralPath $state.ExcelPath)
       & $updateActionButtons
       try {
         if ($stack -or $position) {
@@ -848,13 +862,8 @@ function global:New-DashboardUI {
           Write-Log -Level ERROR -Message ("Dashboard search failed: " + $err)
         }
       } catch {}
-      $globalShowUiError = & $getFunctionCommand 'global:Show-UiError'
-      if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
-        & $globalShowUiError.ScriptBlock -Title 'Dashboard Error' -Message 'Search failed.' -Exception $_.Exception
-      }
-      else {
-        [System.Windows.Forms.MessageBox]::Show("Search failed: $err", 'Dashboard Error') | Out-Null
-      }
+      $lblStatus.Text = ("Search failed: {0}" -f $err)
+      try { & $appendHistory ("Search failed: " + $err) } catch {}
     }
     finally {
       & $setLoadingState -IsLoading $false
@@ -887,7 +896,11 @@ function global:New-DashboardUI {
         $state.Controls.Comment.Text = $note
       }
 
-      if (-not $getServiceNowTasksForRitmHandler -or -not $setServiceNowTaskStateHandler -or -not $updateDashboardRowHandler) {
+      if (
+        (-not $getServiceNowTasksForRitmHandler) -or -not ($getServiceNowTasksForRitmHandler -is [scriptblock]) -or
+        (-not $setServiceNowTaskStateHandler) -or -not ($setServiceNowTaskStateHandler -is [scriptblock]) -or
+        (-not $updateDashboardRowHandler) -or -not ($updateDashboardRowHandler -is [scriptblock])
+      ) {
         [System.Windows.Forms.MessageBox]::Show('Dashboard dependencies are missing. Restart the app to reload integrations.', 'Dashboard Error') | Out-Null
         $lblStatus.Text = 'Dependencies missing. Action canceled.'
         return
@@ -904,21 +917,77 @@ function global:New-DashboardUI {
       $dashboardStatus = if ($action -eq 'checkin') { 'Checked-In' } else { 'Checked-Out' }
 
       $lblStatus.Text = "Updating $($task.number)..."
-      $ok = & $setServiceNowTaskStateHandler -Session $state.Session -TaskSysId ("" + $task.sys_id) -TargetStateLabel $targetLabel -WorkNote $note
-      if (-not $ok) {
+      $updateSucceeded = $false
+      try {
+        if (-not $setServiceNowTaskStateHandler -or -not ($setServiceNowTaskStateHandler -is [scriptblock])) {
+          throw [System.InvalidOperationException]::new('Set-ServiceNowTaskState handler is missing or invalid.')
+        }
+        $updateResult = & $setServiceNowTaskStateHandler -Session $state.Session -TaskSysId ("" + $task.sys_id) -TargetStateLabel $targetLabel -WorkNote $note
+        if ($updateResult -is [bool]) {
+          $updateSucceeded = $updateResult
+        }
+        elseif ($null -eq $updateResult) {
+          $updateSucceeded = $false
+        }
+        elseif ($updateResult.PSObject -and $updateResult.PSObject.Properties['ok']) {
+          try { $updateSucceeded = [bool]$updateResult.ok } catch { $updateSucceeded = $false }
+        }
+        else {
+          # Non-null return without explicit boolean usually means command completed.
+          $updateSucceeded = $true
+        }
+      }
+      catch {
+        $snErr = $_.Exception.Message
+        try { Write-Log -Level ERROR -Message ("Dashboard ServiceNow update exception: " + $snErr) } catch {}
+        [System.Windows.Forms.MessageBox]::Show("ServiceNow update failed for $($task.number).`r`n$snErr", 'Action failed') | Out-Null
+        $lblStatus.Text = 'Action failed.'
+        return
+      }
+
+      if (-not $updateSucceeded) {
         [System.Windows.Forms.MessageBox]::Show("ServiceNow update failed for $($task.number). Please try again and verify connection/permissions.", 'Action failed') | Out-Null
         $lblStatus.Text = 'Action failed.'
         return
       }
 
-      & $updateDashboardRowHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -Row ([int]$row.Row) -Status $dashboardStatus -SCTaskNumber ("" + $task.number)
+      try {
+        if (-not $updateDashboardRowHandler -or -not ($updateDashboardRowHandler -is [scriptblock])) {
+          throw [System.InvalidOperationException]::new('Update-DashboardRow handler is missing or invalid.')
+        }
+        & $updateDashboardRowHandler -ExcelPath $state.ExcelPath -SheetName $state.SheetName -Row ([int]$row.Row) -Status $dashboardStatus -SCTaskNumber ("" + $task.number)
+      }
+      catch {
+        $postErr = $_.Exception.Message
+        try { Write-Log -Level ERROR -Message ("Dashboard post-update writeback failed: " + $postErr) } catch {}
+        [System.Windows.Forms.MessageBox]::Show("ServiceNow was updated, but Excel/UI sync failed.`r`n$postErr", 'Dashboard Warning') | Out-Null
+      }
+
       $lblStatus.Text = ("{0}: {1} ({2})" -f $dashboardStatus, $row.RITM, $task.number)
-      & $appendHistory ("{0}: {1} ({2})" -f $dashboardStatus, $row.RITM, $task.number)
-      & $performSearch -ReloadFromExcel
+      try {
+        if ($appendHistory -and ($appendHistory -is [scriptblock])) {
+          & $appendHistory ("{0}: {1} ({2})" -f $dashboardStatus, $row.RITM, $task.number)
+        }
+      } catch {}
+      try {
+        if ($performSearch -and ($performSearch -is [scriptblock])) {
+          & $performSearch -ReloadFromExcel
+        }
+      } catch {
+        $refreshErr = ("" + $_.Exception.Message).Trim()
+        if ($refreshErr) {
+          try { Write-Log -Level ERROR -Message ("Dashboard refresh-after-action failed: " + $refreshErr) } catch {}
+          $lblStatus.Text = ("Action completed, refresh failed: {0}" -f $refreshErr)
+        }
+      }
     }
     catch {
       $err = $_.Exception.Message
       try { Write-Log -Level ERROR -Message ("Dashboard action failed: " + $err) } catch {}
+      if ($err -and $err -match "expression after '&'.*pipeline element") {
+        $lblStatus.Text = "Action completed, but UI handler failed. Please reopen dashboard."
+        return
+      }
       [System.Windows.Forms.MessageBox]::Show("Action failed.`r`n$err`r`n`r`nTry again. If it persists, check connection and login.", 'Dashboard Error') | Out-Null
     }
   }).GetNewClosure()
@@ -1137,14 +1206,38 @@ function global:New-DashboardUI {
 
   $runSafeUi = ({
     param([string]$ctx, [scriptblock]$act)
-    if (Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue) {
-      $null = Invoke-SafeUiAction -ActionName $ctx -Action $act
+    $safeCtx = ("" + $ctx).Trim()
+    if (-not $safeCtx) { $safeCtx = 'UI Action' }
+    if (-not ($act -is [scriptblock])) {
+      try { Write-Log -Level WARN -Message ("{0} skipped: invalid UI action target." -f $safeCtx) } catch {}
       return
     }
-    try { & $act } catch {
+    try {
+      if (Get-Command -Name Invoke-SafeUiAction -CommandType Function -ErrorAction SilentlyContinue) {
+        $null = Invoke-SafeUiAction -Context $safeCtx -Action $act
+      }
+      else {
+        & $act
+      }
+    }
+    catch {
+      $err = ("" + $_.Exception.Message).Trim()
+      if (-not $err) { $err = 'Unknown error.' }
+      $pos = ''
+      try { if ($_.InvocationInfo) { $pos = ("" + $_.InvocationInfo.PositionMessage).Trim() } } catch {}
+      if ($pos) {
+        try { Write-Log -Level ERROR -Message ("{0} failed: {1} | {2}" -f $safeCtx, $err, $pos) } catch {}
+      }
+      else {
+        try { Write-Log -Level ERROR -Message ("{0} failed: {1}" -f $safeCtx, $err) } catch {}
+      }
+      if ($safeCtx -like 'Dashboard Search*' -or $safeCtx -eq 'Dashboard Refresh' -or $safeCtx -eq 'Dashboard OpenOnly Changed' -or $safeCtx -eq 'Dashboard Clear') {
+        $lblStatus.Text = ("{0} failed: {1}" -f $safeCtx, $err)
+        return
+      }
       $globalShowUiError = & $getFunctionCommand 'global:Show-UiError'
       if ($globalShowUiError -and $globalShowUiError.ScriptBlock) {
-        & $globalShowUiError.ScriptBlock -Title 'Dashboard' -Message ("{0} failed." -f $ctx) -Exception $_.Exception
+        & $globalShowUiError.ScriptBlock -Title 'Dashboard' -Message ("{0} failed." -f $safeCtx) -Exception $_.Exception
       }
     }
   }).GetNewClosure()
@@ -1179,21 +1272,32 @@ function global:New-DashboardUI {
       if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter) {
         $e.SuppressKeyPress = $true
         if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
+        $q = ("" + $state.Controls.Search.Text).Trim()
+        if ([string]::IsNullOrWhiteSpace($q)) {
+          $lblStatus.Text = 'Clear search box.'
+          return
+        }
         & $performSearch
       }
     }
   }).GetNewClosure())
   $txtSearch.Add_TextUpdate(({
     & $runSafeUi 'Dashboard Search TextUpdate' {
-      & $updateSearchUserSuggestions
-      & $scheduleSearch
+      # Safety: keep typing/deleting stable.
+      # Do NOT rebuild ComboBox items while typing, it can clobber the current text and break filtering.
+      $q = ("" + $state.Controls.Search.Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($q)) {
+        $lblStatus.Text = 'Clear search box.'
+      }
     }
   }).GetNewClosure())
   $txtSearch.Add_DropDown(({
         & $runSafeUi 'Dashboard Search DropDown' { & $updateSearchUserSuggestions }
       }).GetNewClosure())
   $txtSearch.Add_SelectedIndexChanged(({
-        & $runSafeUi 'Dashboard Search SelectionChanged' { & $scheduleSearch }
+        & $runSafeUi 'Dashboard Search SelectionChanged' {
+          # Manual search only: selecting suggestion should not trigger auto search.
+        }
       }).GetNewClosure())
 
   $chkOpenOnly.Add_CheckedChanged(({
@@ -1234,7 +1338,14 @@ function global:New-DashboardUI {
         $lblStatus.Text = 'Excel not ready / Excel empty'
         return
       }
-      if ($OnRefreshExcel) {
+      $q = ("" + $state.Controls.Search.Text).Trim()
+      if ([string]::IsNullOrWhiteSpace($q)) {
+        $lblStatus.Text = 'Clear search box.'
+        return
+      }
+      # Fast path by default: run search only. Use Ctrl+Click for hard Excel refresh.
+      $hardRefresh = [System.Windows.Forms.Control]::ModifierKeys -band [System.Windows.Forms.Keys]::Control
+      if ($hardRefresh -and $OnRefreshExcel) {
         $lblStatus.Text = 'Running Force Update Excel...'
         try {
           & $OnRefreshExcel
@@ -1243,17 +1354,18 @@ function global:New-DashboardUI {
           $err = ("" + $_.Exception.Message).Trim()
           if (-not $err) { $err = 'Force Update failed.' }
           $lblStatus.Text = ("Force Update failed: {0}" -f $err)
-          throw
+          return
         }
+        $state.QueryCache = @{}
+        $state.AllRows = @()
+        $state.AllRowsUniverse = @()
+        $state.ExcelStamp = 0L
       }
-      $state.QueryCache = @{}
-      $state.AllRows = @()
-      $state.AllRowsUniverse = @()
-      $state.ExcelStamp = 0L
-      $state.Controls.Search.Text = $state.LastSearch
-      & $performSearch -ReloadFromExcel
-      $lblStatus.Text = 'Done: dashboard refreshed from Excel.'
-      & $appendHistory 'Dashboard refreshed from Excel.'
+      if ($state.Controls.SearchTimer) { $state.Controls.SearchTimer.Stop() }
+      & $performSearch -ReloadFromExcel:$hardRefresh
+      if ($hardRefresh) {
+        & $appendHistory 'Dashboard hard-refreshed from Excel.'
+      }
     }
   }).GetNewClosure())
 
@@ -1262,6 +1374,8 @@ function global:New-DashboardUI {
       if (-not (& $ensureExcelReady)) { return }
       $state.Controls.Search.Text = ''
       $state.LastSearch = ''
+      $state.QueryCache = @{}
+      $state.AllRows = @()
       & $performSearch
     }
   }).GetNewClosure())

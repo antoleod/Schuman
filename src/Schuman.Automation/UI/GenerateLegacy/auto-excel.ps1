@@ -2705,7 +2705,14 @@ function Invoke-DashboardRecalculateStatus {
   }
 
   Log "INFO" "Dashboard RE-CALCULATE completed for $ritm => status='$targetStatus' open=$($openTasks.Count) wip=$($wipTasks.Count) ritm_state='$ritmStateRaw'"
-  return [pscustomobject]@{ ok = $true; message = "Recalculated: $ritm => $targetStatus" }
+  return [pscustomobject]@{
+    ok           = $true
+    message      = "Recalculated: $ritm => $targetStatus"
+    targetStatus = $targetStatus
+    openCount    = @($openTasks).Count
+    wipCount     = @($wipTasks).Count
+    ritmState    = $ritmStateRaw
+  }
 }
 
 function Test-DashboardRowOpenLocal {
@@ -3192,6 +3199,29 @@ function Show-CheckInOutDashboard {
         $txtComment.Text = $note
       }
       $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
+      $recalcBeforeIn = Invoke-DashboardRecalculateStatus -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row
+      if ($recalcBeforeIn.ok -ne $true) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Unable to verify current SNOW state for $ritmSel.`r`n$($recalcBeforeIn.message)",
+          "Check-In",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+        return
+      }
+      if (("" + $recalcBeforeIn.targetStatus).Trim().ToLowerInvariant() -eq "completed") {
+        [System.Windows.Forms.MessageBox]::Show(
+          "RITM $ritmSel is already CLOSED in SNOW. Check-In is blocked.",
+          "Check-In",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        & $performSearch -ReloadFromExcel
+        return
+      }
+      & $performSearch -ReloadFromExcel
+      $row = & $getSelectedRow
+      if (-not $row) { return }
       $candIn = Get-DashboardCheckInCandidate -wv $wv -RitmNumber $ritmSel
       if (-not $candIn) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -3252,6 +3282,29 @@ function Show-CheckInOutDashboard {
         $txtComment.Text = $note
       }
       $ritmSel = ("" + $row.RITM).Trim().ToUpperInvariant()
+      $recalcBeforeOut = Invoke-DashboardRecalculateStatus -wv $wv -ExcelPath $ExcelPath -SheetName $SheetName -RowItem $row
+      if ($recalcBeforeOut.ok -ne $true) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Unable to verify current SNOW state for $ritmSel.`r`n$($recalcBeforeOut.message)",
+          "Check-Out",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Warning
+        ) | Out-Null
+        return
+      }
+      if (("" + $recalcBeforeOut.targetStatus).Trim().ToLowerInvariant() -eq "completed") {
+        [System.Windows.Forms.MessageBox]::Show(
+          "RITM $ritmSel is already CLOSED in SNOW. Check-Out is blocked.",
+          "Check-Out",
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+        & $performSearch -ReloadFromExcel
+        return
+      }
+      & $performSearch -ReloadFromExcel
+      $row = & $getSelectedRow
+      if (-not $row) { return }
       $candOut = Get-DashboardCheckOutCandidate -wv $wv -RitmNumber $ritmSel
       if (-not $candOut) {
         [System.Windows.Forms.MessageBox]::Show(

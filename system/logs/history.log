@@ -3159,3 +3159,63 @@
 2026-02-23 07:20:23 [INFO] ServiceNow SSO confirmed.
 2026-02-23 07:30:08 [INFO] ServiceNow SSO confirmed.
 2026-02-23 07:39:34 [INFO] ServiceNow SSO confirmed.
+2026-02-23 08:48:37 [INFO] ServiceNow SSO confirmed.
+2026-02-23 08:50:49 [INFO] ServiceNow SSO confirmed.
+2026-02-23 08:52:39 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:00:42 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:00:59 [INFO] Reading tickets from Excel: C:\Users\X1\Documents\Schuman\Schuman List.xlsx
+2026-02-23 09:01:00 [INFO] Tickets queued: total=6, filtered=6, scope=All
+2026-02-23 09:01:01 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:01:01 [INFO] [1/6] Extracting RITM0496748
+2026-02-23 09:01:05 [INFO] RITM0496748 status='1' open_tasks=1 pi_source='ci' pi='MUSTBRUN2424012'
+2026-02-23 09:01:05 [INFO] PERF ticket_RITM0496748 took 3388ms
+2026-02-23 09:01:05 [INFO] [2/6] Extracting RITM0405052
+2026-02-23 09:01:11 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-23 09:01:11 [INFO] PERF ticket_RITM0405052 took 6276ms
+2026-02-23 09:01:11 [INFO] [3/6] Extracting RITM0400334
+2026-02-23 09:01:18 [INFO] RITM0400334 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:01:18 [INFO] PERF ticket_RITM0400334 took 6506ms
+2026-02-23 09:01:18 [INFO] [4/6] Extracting RITM0433331
+2026-02-23 09:01:24 [INFO] RITM0433331 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:01:24 [INFO] PERF ticket_RITM0433331 took 5993ms
+2026-02-23 09:01:24 [INFO] [5/6] Extracting RITM0420972
+2026-02-23 09:01:30 [INFO] RITM0420972 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:01:30 [INFO] PERF ticket_RITM0420972 took 6154ms
+2026-02-23 09:01:30 [INFO] [6/6] Extracting RITM0434593
+2026-02-23 09:01:33 [INFO] RITM0434593 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:01:33 [INFO] PERF ticket_RITM0434593 took 3074ms
+2026-02-23 09:01:33 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260223_090059\tickets_export.json
+2026-02-23 09:01:33 [INFO] Writing extracted data back to Excel.
+2026-02-23 09:01:34 [INFO] Writeback summary: matched=6, updated=6, skipped=0
+2026-02-23 09:01:34 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260223_090059\tickets_export.json
+2026-02-23 09:10:10 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:13:58 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:14:11 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:14:11 [INFO] [1/6] Extracting RITM0496748
+2026-02-23 09:14:15 [INFO] RITM0496748 status='3' open_tasks=0 pi_source='ci' pi='MUSTBRUN2424012'
+2026-02-23 09:14:15 [INFO] PERF ticket_RITM0496748 took 3314ms
+2026-02-23 09:14:15 [INFO] [2/6] Extracting RITM0405052
+2026-02-23 09:14:21 [INFO] RITM0405052 status='1' open_tasks=2 pi_source='none' pi=''
+2026-02-23 09:14:21 [INFO] PERF ticket_RITM0405052 took 6567ms
+2026-02-23 09:14:21 [INFO] [3/6] Extracting RITM0400334
+2026-02-23 09:14:27 [INFO] RITM0400334 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:14:27 [INFO] PERF ticket_RITM0400334 took 6078ms
+2026-02-23 09:14:27 [INFO] [4/6] Extracting RITM0433331
+2026-02-23 09:14:33 [INFO] RITM0433331 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:14:33 [INFO] PERF ticket_RITM0433331 took 5706ms
+2026-02-23 09:14:33 [INFO] [5/6] Extracting RITM0420972
+2026-02-23 09:14:39 [INFO] RITM0420972 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:14:39 [INFO] PERF ticket_RITM0420972 took 5855ms
+2026-02-23 09:14:39 [INFO] [6/6] Extracting RITM0434593
+2026-02-23 09:14:42 [INFO] RITM0434593 status='3' open_tasks=0 pi_source='none' pi=''
+2026-02-23 09:14:42 [INFO] Combined JSON generated: C:\Users\X1\Documents\Schuman\system\runs\export_20260223_091409\tickets_export.json
+2026-02-23 09:14:42 [INFO] Writing extracted data back to Excel.
+2026-02-23 09:14:44 [INFO] Writeback summary: matched=6, updated=6, skipped=0
+2026-02-23 09:14:44 [INFO] Export completed. JSON: C:\Users\X1\Documents\Schuman\system\runs\export_20260223_091409\tickets_export.json
+2026-02-23 09:15:36 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:22:25 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:24:30 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:26:33 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:28:24 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:32:25 [INFO] ServiceNow SSO confirmed.
+2026-02-23 09:33:07 [INFO] ServiceNow SSO confirmed.
