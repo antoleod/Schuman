@@ -3348,86 +3348,33 @@ $openModule = {
       Open-SchumanDashboard
     }
     else {
-      if ($script:GeneratorForm -and -not $script:GeneratorForm.IsDisposed) {
-        try {
-          if ($script:GeneratorForm.WindowState -eq [System.Windows.Forms.FormWindowState]::Minimized) {
-            $script:GeneratorForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
-          }
-          $script:GeneratorForm.Show()
-          $script:GeneratorForm.BringToFront()
-          $script:GeneratorForm.Activate()
-          return
-        }
-        catch {}
-      }
-
       $defaultTemplate = Join-Path $projectRoot $globalConfig.Documents.TemplateFile
       $defaultOutput = Join-Path $projectRoot $globalConfig.Documents.OutputFolder
+      $legacyGeneratePath = Join-Path $projectRoot 'src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1'
+      if (-not (Test-Path -LiteralPath $legacyGeneratePath)) {
+        throw "Generator script not found: $legacyGeneratePath"
+      }
 
-      $frm = Resolve-UiForm -UiResult (New-GeneratePdfUI -ExcelPath $excel -SheetName $SheetName -TemplatePath $defaultTemplate -OutputPath $defaultOutput -OnOpenDashboard {
-          Open-SchumanDashboard
-        } -OnGenerate {
-          param($argsObj)
-          $selectedRows = @()
-          try { $selectedRows = @($argsObj.RowNumbers | ForEach-Object { [int]$_ }) } catch { $selectedRows = @() }
-          if ($selectedRows.Count -le 0) {
-            return [pscustomobject]@{
-              ok             = $false
-              message        = 'No rows selected for generation.'
-              outputPath     = $argsObj.OutputPath
-              generatedCount = 0
-            }
-          }
-          try {
-            $docRun = New-RunContext -Config $globalConfig -RunName 'docsgenerate_ui'
-            $files = @(Invoke-DocumentGenerationWorkflow -Config $globalConfig -RunContext $docRun -ExcelPath $argsObj.ExcelPath -SheetName $SheetName -TemplatePath $argsObj.TemplatePath -OutputDirectory $argsObj.OutputPath -ExportPdf:$([bool]$argsObj.ExportPdf) -RowNumbers $selectedRows)
+      $excelForLegacy = ("" + $excel).Trim()
+      if (-not $excelForLegacy -or -not (Test-Path -LiteralPath $excelForLegacy)) {
+        $excelForLegacy = Join-Path $projectRoot 'Schuman List.xlsx'
+      }
 
-            if (-not [bool]$argsObj.SaveDocx) {
-              foreach ($f in $files) {
-                try {
-                  $docPath = ("" + $f.DocxPath).Trim()
-                  if ($docPath -and (Test-Path -LiteralPath $docPath)) {
-                    Remove-Item -LiteralPath $docPath -Force -ErrorAction SilentlyContinue
-                  }
-                }
-                catch {}
-              }
-            }
-
-            $count = @($files).Count
-            if ($count -gt 0) {
-              return [pscustomobject]@{
-                ok             = $true
-                message        = ("Documents generated successfully. Files: {0}" -f $count)
-                outputPath     = $argsObj.OutputPath
-                generatedCount = $count
-              }
-            }
-
-            return [pscustomobject]@{
-              ok             = $false
-              message        = 'No files were generated for the selected rows.'
-              outputPath     = $argsObj.OutputPath
-              generatedCount = 0
-            }
-          }
-          catch {
-            return [pscustomobject]@{
-              ok             = $false
-              message        = ("Document generation failed: {0}" -f $_.Exception.Message)
-              outputPath     = $argsObj.OutputPath
-              generatedCount = 0
-            }
-          }
-        } -OnCloseAll {
-          param($uiObj)
-          try { Shutdown-SchumanApp -CurrentForm $uiObj.Form } catch {}
-        }) -UiName 'New-GeneratePdfUI'
-      $script:GeneratorForm = $frm
-      [void]$frm.add_FormClosed(({
-            $script:GeneratorForm = $null
-          }).GetNewClosure())
-      [void]$frm.Show()
+      $legacyArgsLine = @(
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-File', ('"{0}"' -f $legacyGeneratePath),
+        '-ExcelPath', ('"{0}"' -f $excelForLegacy),
+        '-TemplatePath', ('"{0}"' -f $defaultTemplate),
+        '-OutDir', ('"{0}"' -f $defaultOutput),
+        '-PreferredSheet', ('"{0}"' -f $SheetName)
+      ) -join ' '
+      Start-Process -FilePath 'powershell.exe' -ArgumentList $legacyArgsLine -WorkingDirectory $projectRoot | Out-Null
+      Write-Log -Level INFO -Message ("Opened migrated generator UI: {0}" -f $legacyGeneratePath)
+      if ($status -and -not $status.IsDisposed) {
+        $status.Text = 'Status: Generator opened'
+      }
+      return
     }
   }
   finally {
@@ -3692,5 +3639,3 @@ $btnCleanTemp.Add_Click(({
     }).GetNewClosure())
 
 [void]$form.ShowDialog()
-
-

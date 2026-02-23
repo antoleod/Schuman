@@ -43,6 +43,8 @@ function Invoke-DocumentGenerationWorkflow {
     $word.DisplayAlerts = 0
 
     foreach ($row in $targets) {
+      $ticketValue = ''
+      try {
       $ticketValue = ("" + $row.RITM).Trim()
       $nameValue = ("" + $row.RequestedFor).Trim()
       $piValue = ("" + $row.PI).Trim()
@@ -68,6 +70,7 @@ function Invoke-DocumentGenerationWorkflow {
             RITM = $ticketValue
             DocxPath = $docxPath
             PdfPath = if ($ExportPdf) { $expectedPdfPath } else { '' }
+            Error = $null
           }) | Out-Null
         continue
       }
@@ -119,12 +122,24 @@ function Invoke-DocumentGenerationWorkflow {
           RITM = $ticketValue
           DocxPath = $docxPath
           PdfPath = $pdfPath
+          Error = $null
         }) | Out-Null
       }
       finally {
         try { if ($doc) { $doc.Close($true) | Out-Null } } catch {}
         try { if ($doc -and (Get-Command -Name Unregister-SchumanOwnedComResource -ErrorAction SilentlyContinue)) { Unregister-SchumanOwnedComResource -Object $doc } } catch {}
         try { if ($doc) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($doc) } } catch {}
+      }
+      }
+      catch {
+        Write-RunLog -RunContext $RunContext -Level ERROR -Message ("Row {0} failed: {1}" -f $row.Row, $_.Exception.Message)
+        $generated.Add([pscustomobject]@{
+          Row = $row.Row
+          RITM = $ticketValue
+          DocxPath = ''
+          PdfPath = ''
+          Error = $_.Exception.Message
+        }) | Out-Null
       }
     }
   }

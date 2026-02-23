@@ -24,3 +24,123 @@
 [2026-02-23 00:43:16] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
 [2026-02-23 00:43:16] [INFO] Preloaded 12 rows from Excel.
 [2026-02-23 00:43:19] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:47:09] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 00:47:09] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 00:47:09] [INFO] Startup initialization started.
+[2026-02-23 00:47:09] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 00:47:13] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 00:47:13] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 00:47:18] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:47:31] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 00:54:32] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 00:54:32] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 00:54:33] [INFO] Startup initialization started.
+[2026-02-23 00:54:33] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 00:54:36] [INFO] Diagnostic mode is disabled. To enable, create system/db/generate-diagnostic.flag
+[2026-02-23 00:54:48] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:03:12] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:03:12] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:03:12] [INFO] Startup initialization started.
+[2026-02-23 01:03:12] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:03:15] [INFO] Diagnostic mode is disabled. To enable, create system/db/generate-diagnostic.flag
+[2026-02-23 01:03:18] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:03:18] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:03:23] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:05:22] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:05:22] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:05:22] [INFO] Startup initialization started.
+[2026-02-23 01:05:22] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:05:25] [INFO] Diagnostic mode is disabled. To enable, create system/db/generate-diagnostic.flag
+[2026-02-23 01:05:28] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:05:28] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:11:11] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:11:11] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:11:11] [INFO] Startup initialization started.
+[2026-02-23 01:11:11] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:11:14] [INFO] Diagnostic mode is disabled. To enable, create system/db/generate-diagnostic.flag
+[2026-02-23 01:11:20] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:11:20] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:11:27] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:11:39] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:11:48] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:12:19] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:12:19] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:12:20] [INFO] Startup initialization started.
+[2026-02-23 01:12:20] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:12:22] [INFO] Diagnostic mode is disabled. To enable, create system/db/generate-diagnostic.flag
+[2026-02-23 01:12:26] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:12:26] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:12:30] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:19:37] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:19:37] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:19:38] [INFO] Startup initialization started.
+[2026-02-23 01:19:38] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:19:40] [INFO] Diagnostic mode is ENABLED.
+[2026-02-23 01:19:43] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:19:43] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:19:51] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:19:58] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:20:01] [ERROR] Select All: Select All failed.
+[2026-02-23 01:20:01] [ERROR] Select All: Select All failed.
+[2026-02-23 01:20:07] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:20:09] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:20:10] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:26:28] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:26:28] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:26:28] [INFO] Startup initialization started.
+[2026-02-23 01:26:29] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:26:31] [INFO] Diagnostic mode is ENABLED.
+[2026-02-23 01:26:34] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:26:34] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:26:39] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:29:47] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:29:47] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:29:48] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:29:50] [INFO] Diagnostic mode is ENABLED.
+[2026-02-23 01:29:54] [INFO] Load-Data completed. Excel='C:\Users\X1\Documents\Schuman\Schuman List.xlsx', rows=12
+[2026-02-23 01:29:54] [INFO] Preloaded 12 rows from Excel.
+[2026-02-23 01:30:06] [ERROR] Generate Documents: Generate Documents failed.
+[2026-02-23 01:34:09] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:34:09] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:34:09] [INFO] Startup initialization started.
+[2026-02-23 01:34:09] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:34:10] [INFO] Opened legacy generator UI: C:\Users\X1\Documents\Schuman\legacy\Generate-pdf.ps1
+[2026-02-23 01:34:23] [INFO] Opened legacy generator UI: C:\Users\X1\Documents\Schuman\legacy\Generate-pdf.ps1
+[2026-02-23 01:37:16] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:37:16] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:37:17] [INFO] Startup initialization started.
+[2026-02-23 01:37:17] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:37:18] [INFO] Opened legacy generator UI: C:\Users\X1\Documents\Schuman\legacy\Generate-pdf.ps1
+[2026-02-23 01:41:11] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:41:11] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:41:11] [INFO] Startup initialization started.
+[2026-02-23 01:41:11] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:41:13] [INFO] Opened migrated generator UI: C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1
+[2026-02-23 01:44:23] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 01:44:23] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 01:44:23] [INFO] Startup initialization started.
+[2026-02-23 01:44:23] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 01:44:25] [INFO] Opened migrated generator UI: C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1
+[2026-02-23 07:11:09] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 07:11:09] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 07:11:09] [INFO] Startup initialization started.
+[2026-02-23 07:11:09] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 07:11:12] [INFO] Opened migrated generator UI: C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1
+[2026-02-23 07:17:05] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 07:17:05] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 07:17:05] [INFO] Startup initialization started.
+[2026-02-23 07:17:05] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 07:17:07] [INFO] Opened migrated generator UI: C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1
+[2026-02-23 07:20:24] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 07:20:24] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 07:20:25] [INFO] Startup initialization started.
+[2026-02-23 07:20:25] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 07:20:28] [INFO] Opened migrated generator UI: C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1
+[2026-02-23 07:30:09] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 07:30:09] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 07:30:10] [INFO] Startup initialization started.
+[2026-02-23 07:30:10] [INFO] Startup initialization completed successfully (quick Excel validation mode).
+[2026-02-23 07:30:11] [INFO] Opened migrated generator UI: C:\Users\X1\Documents\Schuman\src\Schuman.Automation\UI\GenerateLegacy\Generate-pdf.ps1
+[2026-02-23 07:39:34] [INFO] Theme apply 'Dark' on 1 open form(s).
+[2026-02-23 07:39:34] [INFO] Theme applied to window: ServiceNow Login - Complete SSO and wait for green status
+[2026-02-23 07:39:34] [INFO] Startup initialization completed successfully (quick Excel validation mode).
